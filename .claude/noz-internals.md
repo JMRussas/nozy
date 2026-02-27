@@ -146,12 +146,12 @@ Pattern: `using (UI.BeginContainer(style)) { ... }` — the `AutoContainer` disp
 
 | File | Purpose |
 |------|---------|
-| `engine/src/Application.cs` | App lifecycle, game loop |
-| `engine/src/ApplicationConfig.cs` | `IApplication` interface, config |
-| `engine/src/graphics/Graphics.cs` | 2D rendering, batching, state |
-| `engine/src/graphics/Shader.cs` | Shader asset, ShaderFlags |
-| `engine/src/graphics/BlendMode.cs` | Blend mode enum |
-| `engine/src/platform/IGraphicsDriver.cs` | GPU driver interface |
-| `engine/src/ui/UI.cs` | Immediate-mode UI |
-| `engine/src/ui/ElementStyle.cs` | ContainerStyle, LabelStyle, BorderStyle |
-| `platform/webgpu/` | WebGPU backend (not indexed in RAG — read directly) |
+| `engine/noz/engine/src/Application.cs` | App lifecycle, game loop |
+| `engine/noz/engine/src/ApplicationConfig.cs` | `IApplication` interface, config |
+| `engine/noz/engine/src/graphics/Graphics.cs` | 2D rendering, batching, state |
+| `engine/noz/engine/src/graphics/Shader.cs` | Shader asset, ShaderFlags |
+| `engine/noz/engine/src/graphics/BlendMode.cs` | Blend mode enum |
+| `engine/noz/engine/src/platform/IGraphicsDriver.cs` | GPU driver interface |
+| `engine/noz/engine/src/ui/UI.cs` | Immediate-mode UI |
+| `engine/noz/engine/src/ui/ElementStyle.cs` | ContainerStyle, LabelStyle, BorderStyle |
+| `engine/noz/platform/webgpu/` | WebGPU backend (not indexed in RAG — read directly) |
