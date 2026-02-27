@@ -53,6 +53,6 @@ public class Transform3DTests
 
         // After 90 degree Y rotation: X axis points toward -Z
         Assert.Equal(0.0f, matrix.M11, 0.001f);  // cos(90) ≈ 0
-        Assert.Equal(-1.0f, matrix.M13, 0.001f);  // -sin(90) = -1
+        Assert.Equal(-1.0f, matrix.M13, 0.001f);  // M13 = 2*(xz - wy) = -1 for 90° Y rotation
     }
 }
