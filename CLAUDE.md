@@ -6,7 +6,7 @@
 
 ```bash
 dotnet build yesz.slnx          # Build all projects
-dotnet test yesz.slnx           # Run all tests (8 currently)
+dotnet test yesz.slnx           # Run all tests (9 currently)
 dotnet run --project samples/HelloCube/HelloCube.csproj   # Run sample
 ```
 
