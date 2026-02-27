@@ -1,0 +1,29 @@
+<Solution>
+  <Folder Name="/engine/" />
+  <Folder Name="/engine/noz/" />
+  <Folder Name="/engine/noz/engine/">
+    <Project Path="engine/noz/engine/NoZ.csproj" />
+  </Folder>
+  <Folder Name="/engine/noz/generators/">
+    <Project Path="engine/noz/generators/NoZ.Generators.csproj" />
+  </Folder>
+  <Folder Name="/engine/noz/platform/" />
+  <Folder Name="/engine/noz/platform/desktop/">
+    <Project Path="engine/noz/platform/desktop/NoZ.Desktop.csproj" />
+  </Folder>
+  <Folder Name="/engine/noz/platform/webgpu/">
+    <Project Path="engine/noz/platform/webgpu/NoZ.WebGPU.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/HelloCube/HelloCube.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/YesZ.Core/YesZ.Core.csproj" />
+    <Project Path="src/YesZ.Desktop/YesZ.Desktop.csproj" />
+    <Project Path="src/YesZ.Rendering/YesZ.Rendering.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/YesZ.Core.Tests/YesZ.Core.Tests.csproj" />
+    <Project Path="tests/YesZ.Rendering.Tests/YesZ.Rendering.Tests.csproj" />
+  </Folder>
+</Solution>

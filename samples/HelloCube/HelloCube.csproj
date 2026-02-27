@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AssemblyName>HelloCube</AssemblyName>
+    <RootNamespace>YesZ.Samples.HelloCube</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\YesZ.Core\YesZ.Core.csproj" />
+    <ProjectReference Include="..\..\src\YesZ.Rendering\YesZ.Rendering.csproj" />
+    <ProjectReference Include="..\..\src\YesZ.Desktop\YesZ.Desktop.csproj" />
+    <ProjectReference Include="..\..\engine\noz\engine\NoZ.csproj" />
+    <ProjectReference Include="..\..\engine\noz\platform\desktop\NoZ.Desktop.csproj" />
+    <ProjectReference Include="..\..\engine\noz\platform\webgpu\NoZ.WebGPU.csproj" />
+    <ProjectReference Include="..\..\engine\noz\generators\NoZ.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+</Project>

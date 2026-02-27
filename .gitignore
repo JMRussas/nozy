@@ -1,0 +1,39 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+*.sln.docstates
+.vs/
+*.userprefs
+
+## Build
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Bb]uild/
+bld/
+
+## NuGet
+*.nupkg
+**/packages/*
+!**/packages/build/
+*.nuget.props
+*.nuget.targets
+project.lock.json
+
+## IDE
+.idea/
+*.swp
+*~
+.vscode/
+
+## OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+## Test results
+TestResults/
+coverage/
