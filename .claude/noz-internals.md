@@ -96,7 +96,7 @@ The GPU abstraction layer. Current methods (no depth/cull support):
 | **Passes** | `BeginScenePass`, `ResumeScenePass`, `EndScenePass` |
 | **Render Texture** | `CreateRenderTexture`, `BeginRenderTexturePass`, `EndRenderTexturePass` |
 
-**Not present (needed for Phase 1):** `SetDepthTest`, `SetDepthWrite`, `SetCullMode`, `ClearDepth`, `CullMode` enum.
+**Depth/cull note:** No runtime depth or cull methods exist on the interface, and none are needed. In WebGPU, depth test, depth write, and cull mode are pipeline state — determined at shader creation time via `ShaderFlags`. Phase 1a wires these flags through the WebGPU driver internals without modifying this interface.
 
 ## ShaderFlags
 
@@ -112,7 +112,7 @@ public enum ShaderFlags : byte
 }
 ```
 
-`Shader.Load()` reads flags from the binary asset but does **not** pass them to `IGraphicsDriver.CreateShader()`. Phase 1 must thread these through.
+`Shader.Load()` reads flags from the binary asset but does **not** pass them to `IGraphicsDriver.CreateShader()`. Phase 1a threads these through the WebGPU driver's `ShaderInfo` → `PsoKey` → `CreateRenderPipeline()` path.
 
 ## Shader Class
 
