@@ -35,6 +35,7 @@ public class LightEnvironment
 
     public void ClearPointLights()
     {
+        _pointLights.AsSpan(0, _pointLightCount).Clear();
         _pointLightCount = 0;
     }
 }

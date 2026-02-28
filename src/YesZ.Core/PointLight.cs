@@ -29,7 +29,7 @@ public struct PointLight
     /// </summary>
     public float Range
     {
-        readonly get => _range;
+        readonly get => _range > 0f ? _range : DefaultRange;
         set => _range = value > 0f ? value : DefaultRange;
     }
 

@@ -20,7 +20,7 @@ public struct DirectionalLight
     /// </summary>
     public Vector3 Direction
     {
-        readonly get => _direction;
+        readonly get => _direction == Vector3.Zero ? DefaultDirection : _direction;
         set
         {
             var len = value.Length();

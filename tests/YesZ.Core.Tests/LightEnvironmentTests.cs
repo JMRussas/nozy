@@ -74,6 +74,20 @@ public class LightEnvironmentTests
     }
 
     [Fact]
+    public void ClearPointLights_ZerosArrayData()
+    {
+        var env = new LightEnvironment();
+        env.AddPointLight(new PointLight { Position = new Vector3(99, 99, 99), Range = 50f });
+        env.ClearPointLights();
+
+        // Re-add one light — the old data at index 0 should be gone
+        env.AddPointLight(new PointLight { Position = new Vector3(1, 2, 3), Range = 5f });
+
+        Assert.Equal(1, env.PointLightCount);
+        Assert.Equal(new Vector3(1, 2, 3), env.PointLights[0].Position);
+    }
+
+    [Fact]
     public void PointLights_ReturnsCorrectSpan()
     {
         var env = new LightEnvironment();

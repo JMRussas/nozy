@@ -48,4 +48,13 @@ public class PointLightTests
 
         Assert.Equal(new Vector3(0, 3, 0), light.EffectiveColor);
     }
+
+    [Fact]
+    public void DefaultConstructed_Range_FallsBackToDefault()
+    {
+        // struct default: _range is 0f — getter must return DefaultRange
+        var light = new PointLight();
+
+        Assert.Equal(PointLight.DefaultRange, light.Range);
+    }
 }

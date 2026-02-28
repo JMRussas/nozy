@@ -63,4 +63,13 @@ public class DirectionalLightTests
         var len = light.Direction.Length();
         Assert.InRange(len, 0.999f, 1.001f);
     }
+
+    [Fact]
+    public void DefaultConstructed_Direction_FallsBackToDefault()
+    {
+        // struct default: _direction is Vector3.Zero — getter must return DefaultDirection
+        var light = new DirectionalLight();
+
+        Assert.Equal(DirectionalLight.DefaultDirection, light.Direction);
+    }
 }
