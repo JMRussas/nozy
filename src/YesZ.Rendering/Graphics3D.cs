@@ -10,7 +10,12 @@
 //  per-draw uniform buffer tracking. Each DrawMesh creates a unique globals
 //  snapshot (different MVP → different batch state → separate draw call).
 //
-//  Depends on: YesZ.Core (Camera3D, Mesh3D, MeshVertex3D), NoZ (Graphics, Shader, ShaderFlags)
+//  Materials: SetMaterial() binds a Material3D's shader, texture, and uniform
+//  data. Per-batch uniform snapshots in NoZ's Graphics ensure each batch gets
+//  the correct material uniform values during deferred execution.
+//
+//  Depends on: YesZ.Core (Camera3D, Mesh3D, MeshVertex3D), YesZ.Rendering (Material3D, MaterialUniforms),
+//              NoZ (Graphics, Shader, ShaderFlags, ShaderBinding, ShaderBindingType, TextureFormat, TextureFilter)
 //  Used by:    Game code, samples
 
 using System.Numerics;
@@ -21,11 +26,14 @@ namespace YesZ.Rendering;
 
 public static class Graphics3D
 {
-    private static Shader? _shader;
+    private static Shader? _unlitShader;
+    private static Shader? _texturedShader;
     private static Camera3D? _camera;
     private static Matrix4x4 _savedProjection;
     private static Matrix4x4 _viewProjection;
     private static bool _initialized;
+    private static nuint _defaultWhiteTexture;
+    private static Material3D? _currentMaterial;
 
     /// <summary>
     /// Initialize the 3D rendering system. Must be called after Graphics is initialized
@@ -35,27 +43,68 @@ public static class Graphics3D
     {
         if (_initialized) return;
 
-        var wgslSource = LoadEmbeddedShader("YesZ.Rendering.Shaders.unlit3d.wgsl");
-
-        var bindings = new List<ShaderBinding>
-        {
-            new() { Binding = 0, Type = ShaderBindingType.UniformBuffer, Name = "globals" },
-        };
-
-        var handle = Graphics.Driver.CreateShader("unlit3d", wgslSource, wgslSource, bindings);
         var flags = ShaderFlags.Depth | ShaderFlags.DepthLess;
 
-        try
-        {
-            _shader = Shader.CreateRaw("unlit3d", handle, flags, bindings, MeshVertex3D.VertexHash);
-        }
-        catch
-        {
-            Graphics.Driver.DestroyShader(handle);
-            throw;
-        }
+        // Unlit shader (vertex color only, no textures)
+        _unlitShader = CreateShaderFromEmbedded(
+            "YesZ.Rendering.Shaders.unlit3d.wgsl",
+            "unlit3d",
+            flags,
+            new List<ShaderBinding>
+            {
+                new() { Binding = 0, Type = ShaderBindingType.UniformBuffer, Name = "globals" },
+            });
+
+        // Textured shader (texture × vertex color × material color factor)
+        _texturedShader = CreateShaderFromEmbedded(
+            "YesZ.Rendering.Shaders.textured3d.wgsl",
+            "textured3d",
+            flags,
+            new List<ShaderBinding>
+            {
+                new() { Binding = 0, Type = ShaderBindingType.UniformBuffer, Name = "globals" },
+                new() { Binding = 1, Type = ShaderBindingType.UniformBuffer, Name = "material" },
+                new() { Binding = 2, Type = ShaderBindingType.Texture2D, Name = "base_color_texture" },
+                new() { Binding = 3, Type = ShaderBindingType.Sampler, Name = "base_color_sampler" },
+            });
+
+        // Default 1×1 white texture — untextured materials sample this (identity multiply)
+        var white = new byte[] { 255, 255, 255, 255 };
+        _defaultWhiteTexture = Graphics.Driver.CreateTexture(1, 1, white, TextureFormat.RGBA8, TextureFilter.Point, "DefaultWhite");
 
         _initialized = true;
+    }
+
+    /// <summary>
+    /// Create a new Material3D using the textured shader and default white texture.
+    /// </summary>
+    public static Material3D CreateMaterial()
+    {
+        if (!_initialized)
+            Initialize();
+
+        return new Material3D(_texturedShader!.Handle, _defaultWhiteTexture);
+    }
+
+    /// <summary>
+    /// Set the active material for subsequent DrawMesh calls.
+    /// Binds the material's shader, texture, and uploads uniform data.
+    /// Pass null to revert to the unlit (vertex-color-only) shader.
+    /// </summary>
+    public static void SetMaterial(Material3D? material)
+    {
+        _currentMaterial = material;
+
+        if (material == null) return;
+
+        // Upload material uniform data
+        var uniforms = new MaterialUniforms
+        {
+            BaseColorFactor = material.BaseColorFactor,
+            Metallic = material.Metallic,
+            Roughness = material.Roughness,
+        };
+        Graphics.SetUniform("material", in uniforms);
     }
 
     /// <summary>
@@ -75,10 +124,11 @@ public static class Graphics3D
     /// <summary>
     /// Draw a 3D mesh with the given world transform.
     /// Computes MVP and issues a draw command through NoZ's batch system.
+    /// Uses the current material's shader if set, otherwise falls back to unlit.
     /// </summary>
     public static void DrawMesh(Mesh3D mesh, Matrix4x4 worldMatrix)
     {
-        if (_camera == null || _shader == null) return;
+        if (_camera == null) return;
 
         // MVP = model × view × projection (row-major multiplication order)
         var mvp = worldMatrix * _viewProjection;
@@ -90,8 +140,18 @@ public static class Graphics3D
         // so the GPU receives the correct bytes for WGSL's column-major `M * v`.
         Graphics.SetPassProjection(Matrix4x4.Transpose(mvp));
 
-        // Set shader and mesh in batch state
-        Graphics.SetShader(_shader);
+        // Use material shader if set, otherwise fall back to unlit
+        var shader = _currentMaterial != null ? _texturedShader : _unlitShader;
+        if (shader == null) return;
+
+        Graphics.SetShader(shader);
+
+        // Bind material texture if using textured shader
+        if (_currentMaterial != null)
+        {
+            Graphics.SetTexture(_currentMaterial.BaseColorTexture, 0, TextureFilter.Linear);
+        }
+
         Graphics.SetMesh(mesh.RenderMesh);
 
         // Issue draw command
@@ -107,9 +167,30 @@ public static class Graphics3D
         // Restore 2D projection so subsequent UI draws use the correct matrix
         Graphics.SetPassProjection(_savedProjection);
         _camera = null;
+        _currentMaterial = null;
     }
 
-    private static string LoadEmbeddedShader(string resourceName)
+    private static Shader CreateShaderFromEmbedded(
+        string resourceName,
+        string shaderName,
+        ShaderFlags flags,
+        List<ShaderBinding> bindings)
+    {
+        var wgslSource = LoadEmbeddedResource(resourceName);
+        var handle = Graphics.Driver.CreateShader(shaderName, wgslSource, wgslSource, bindings);
+
+        try
+        {
+            return Shader.CreateRaw(shaderName, handle, flags, bindings, MeshVertex3D.VertexHash);
+        }
+        catch
+        {
+            Graphics.Driver.DestroyShader(handle);
+            throw;
+        }
+    }
+
+    private static string LoadEmbeddedResource(string resourceName)
     {
         var assembly = Assembly.GetExecutingAssembly();
         using var stream = assembly.GetManifestResourceStream(resourceName)

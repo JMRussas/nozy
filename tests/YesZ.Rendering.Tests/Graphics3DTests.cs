@@ -13,16 +13,15 @@ namespace YesZ.Rendering.Tests;
 public class Graphics3DTests
 {
     [Fact]
-    public void EmbeddedShader_Exists()
+    public void EmbeddedShader_Unlit_Exists()
     {
-        // Verify the WGSL shader is embedded in the assembly
         var assembly = typeof(Graphics3D).Assembly;
         var resourceNames = assembly.GetManifestResourceNames();
         Assert.Contains("YesZ.Rendering.Shaders.unlit3d.wgsl", resourceNames);
     }
 
     [Fact]
-    public void EmbeddedShader_HasContent()
+    public void EmbeddedShader_Unlit_HasContent()
     {
         var assembly = typeof(Graphics3D).Assembly;
         using var stream = assembly.GetManifestResourceStream("YesZ.Rendering.Shaders.unlit3d.wgsl");
@@ -34,5 +33,31 @@ public class Graphics3DTests
         Assert.Contains("vs_main", content);
         Assert.Contains("fs_main", content);
         Assert.Contains("globals", content);
+    }
+
+    [Fact]
+    public void EmbeddedShader_Textured_Exists()
+    {
+        var assembly = typeof(Graphics3D).Assembly;
+        var resourceNames = assembly.GetManifestResourceNames();
+        Assert.Contains("YesZ.Rendering.Shaders.textured3d.wgsl", resourceNames);
+    }
+
+    [Fact]
+    public void EmbeddedShader_Textured_HasContent()
+    {
+        var assembly = typeof(Graphics3D).Assembly;
+        using var stream = assembly.GetManifestResourceStream("YesZ.Rendering.Shaders.textured3d.wgsl");
+        Assert.NotNull(stream);
+        Assert.True(stream!.Length > 0);
+
+        using var reader = new StreamReader(stream);
+        var content = reader.ReadToEnd();
+        Assert.Contains("vs_main", content);
+        Assert.Contains("fs_main", content);
+        Assert.Contains("globals", content);
+        Assert.Contains("material", content);
+        Assert.Contains("base_color_texture", content);
+        Assert.Contains("textureSample", content);
     }
 }
