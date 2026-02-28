@@ -1,10 +1,10 @@
 //  YesZ - HelloCube Application
 //
-//  Renders a spinning colored cube with 2D UI overlay.
-//  Demonstrates Graphics3D.Begin/DrawMesh/End with NoZ 2D coexistence.
+//  Renders a spinning textured cube with 2D UI overlay.
+//  Demonstrates Graphics3D material system with NoZ 2D coexistence.
 //
 //  Depends on: YesZ.Core (Camera3D, Transform3D, Mesh3D, Mesh3DBuilder),
-//              YesZ.Rendering (Graphics3D), NoZ (IApplication, Graphics, UI, Color, Time)
+//              YesZ.Rendering (Graphics3D, Material3D, TextureLoader), NoZ (IApplication, Graphics, UI, Color, Time)
 //  Used by:    Program.cs
 
 using System.Numerics;
@@ -18,6 +18,7 @@ public class HelloCubeApp : IApplication
 {
     private Camera3D? _camera;
     private Mesh3D? _cube;
+    private Material3D? _material;
     private Transform3D _cubeTransform;
     private float _rotationAngle;
 
@@ -69,6 +70,16 @@ public class HelloCubeApp : IApplication
 
         // Initialize 3D rendering system
         Graphics3D.Initialize();
+
+        // Create checkerboard texture and material
+        var texture = TextureLoader.CreateCheckerboard(
+            256,
+            new Color(0.9f, 0.85f, 0.7f),
+            new Color(0.4f, 0.35f, 0.25f),
+            cellSize: 32);
+
+        _material = Graphics3D.CreateMaterial();
+        _material.BaseColorTexture = texture;
     }
 
     public void Update()
@@ -88,6 +99,7 @@ public class HelloCubeApp : IApplication
 
         // 3D rendering pass
         Graphics3D.Begin(_camera);
+        Graphics3D.SetMaterial(_material);
         Graphics3D.DrawMesh(_cube, _cubeTransform.LocalMatrix);
         Graphics3D.End();
     }
@@ -99,7 +111,7 @@ public class HelloCubeApp : IApplication
             using (UI.BeginColumn(BoxStyle))
             {
                 UI.Label("YesZ", TitleStyle);
-                UI.Label("Phase 1b - First 3D Render", SubtitleStyle);
+                UI.Label("Phase 2 - Materials & Texturing", SubtitleStyle);
             }
         }
     }

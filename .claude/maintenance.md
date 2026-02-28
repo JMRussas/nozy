@@ -59,9 +59,16 @@ Track every modification to NoZ source here. This is the conflict prediction lis
 | 2026-02-28 | `platform/webgpu/WebGPUGraphicsDriver.RenderPass.cs` | Added depth attachment to `BeginScenePass`/`ResumeScenePass`, set `HasDepthAttachment` state | Phase 1a: Wire depth buffer through render passes |
 | 2026-02-28 | `platform/webgpu/WebGPUGraphicsDriver.Shaders.cs` | Added `DepthStencilState` to `CreateRenderPipeline`, `HasDepthAttachment` to `PsoKey` | Phase 1a: Depth/stencil pipeline state derived from ShaderFlags |
 
+| 2026-02-28 | `engine/src/graphics/Graphics.State.cs` | `SetUniform()` now keeps copy in `_currentUniforms` dictionary for per-batch snapshotting | Phase 2: Per-batch uniform snapshots — fix `SetUniform` being global state |
+| 2026-02-28 | `engine/src/graphics/Graphics.cs` | Added `UniformSnapshotIndex` to `BatchState`, `GetOrAddUniformSnapshot()`, `UniformSnapshotMatches()`, `RestoreUniformSnapshot()`, snapshot clear in frame reset | Phase 2: Per-batch uniform snapshots — mirrors `GlobalsSnapshot` pattern |
+
 ### Phase 1a Note
 
 Phase 1a (depth pipeline): `ShaderFlags.Depth`/`DepthLess` existed upstream but were not wired through to pipeline creation. Fork changes thread them through `ShaderInfo.Flags` → `PsoKey.HasDepthAttachment` → `CreateRenderPipeline()` → `DepthStencilState`, and add depth texture creation/attachment to render passes.
+
+### Phase 2 Note
+
+Phase 2 (uniform snapshots): `Graphics.SetUniform()` stored data in a driver-level dictionary that was NOT restored per-batch during deferred execution. This meant only the last value written was visible to all batches — making per-material uniforms impossible. Fix: mirror the `GlobalsSnapshot` pattern by snapshotting uniform data in `AddBatchState()` and restoring it per-batch in `ExecuteBatches()`. **No driver interface or implementation changes needed** — the fix is entirely in `Graphics.cs` and `Graphics.State.cs`. Intended as an upstream contribution to NoZ.
 
 ## Gotchas & Pitfalls
 

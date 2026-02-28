@@ -7,7 +7,7 @@
 | 0 | Scaffold | Project builds, HelloCube opens window with 2D UI | — | Done |
 | 1a | Fork: Depth Pipeline | Existing 2D rendering works with depth texture attached | 0 | Done (already in fork) |
 | 1b | First 3D Render | HelloCube renders a spinning colored cube with depth-correct faces | 1a | Done |
-| 2 | Materials & Texturing | HelloCube renders a textured cube | 1b | Not started |
+| 2 | Materials & Texturing | HelloCube renders a textured cube | 1b | Done |
 | 3a | Light Infrastructure | Light types compile, tests pass, API callable | 0 | Not started |
 | 3b | Lit Shading | HelloCube shows a lit cube with directional light shading | 2, 3a | Not started |
 | 3c | Multi-Light + Point Lights | HelloCube with directional + point light(s) | 3b | Not started |
@@ -437,10 +437,19 @@ NoZ shaders are binary assets built by the NoZ Editor. YesZ needs WGSL shaders c
 ## Phase 2: Materials & Texturing
 
 **Milestone:** HelloCube renders a textured cube (e.g., crate texture loaded from a PNG file).
+**Status:** Done
 
 **Dependencies:** Phase 1b (vertex format with UVs, shader system, Graphics3D API)
-**Fork changes:** None expected — uses existing `BindTexture`, `CreateUniformBuffer`, `ShaderBindingType` APIs
+**Fork changes:** None — uses existing `SetTexture`, `SetUniform`, `ShaderBindingType` APIs
 **Enables:** Phase 3b (lit materials extend material uniform with lighting params), Phase 4b (glTF material → `Material3D` mapping), Phase 5d (skinned + textured rendering), Phase 7a (post-processing needs texture binding)
+
+### Implementation notes (deviations from original design)
+
+**No Model matrix in MaterialUniforms.** The original design put the model matrix in `MaterialUniforms` (96 bytes). However, NoZ's batch system is deferred — `SetUniform` is global driver state, not per-batch. The last `SetUniform` call wins for all batches at flush time. The MVP-in-globals pattern (model × view × proj baked into globals.projection) remains the correct per-object differentiation mechanism. `MaterialUniforms` contains only material params (baseColorFactor, metallic, roughness) at 32 bytes.
+
+**~~One active material per frame~~ — RESOLVED.** Per-batch uniform snapshots were added to the NoZ fork (`Graphics.cs`, `Graphics.State.cs`). `SetUniform` data is now snapshotted in `AddBatchState()` and restored per-batch during `ExecuteBatches()`, mirroring the `GlobalsSnapshot` pattern. Multiple materials per frame now work correctly. Intended as upstream contribution to NoZ.
+
+**Procedural checkerboard texture** instead of PNG file for the sample — avoids external asset dependencies while demonstrating the texture pipeline. File-based loading is available via `TextureLoader.LoadFromFile()`.
 
 ### What's built
 
