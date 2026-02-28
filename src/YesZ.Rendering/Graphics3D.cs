@@ -1,7 +1,7 @@
 //  YesZ - 3D Graphics
 //
 //  Static entry point for 3D rendering.
-//  Begin() sets the 3D perspective projection via the globals system.
+//  Begin() sets the 3D perspective projection via the globals system and clears per-frame light state.
 //  DrawMesh() computes per-object MVP and issues draw commands through NoZ's batch system.
 //  End() restores 2D state for NoZ UI overlay.
 //
@@ -14,7 +14,12 @@
 //  data. Per-batch uniform snapshots in NoZ's Graphics ensure each batch gets
 //  the correct material uniform values during deferred execution.
 //
-//  Depends on: YesZ.Core (Camera3D, Mesh3D, MeshVertex3D), YesZ.Rendering (Material3D, MaterialUniforms),
+//  Lighting: SetDirectionalLight(), SetAmbientLight(), AddPointLight() configure
+//  the LightEnvironment for the current frame. Point lights are cleared each frame
+//  in Begin(). Light data is uploaded to the GPU in Phase 3b.
+//
+//  Depends on: YesZ.Core (Camera3D, Mesh3D, MeshVertex3D, LightEnvironment, DirectionalLight, PointLight, AmbientLight),
+//              YesZ.Rendering (Material3D, MaterialUniforms),
 //              NoZ (Graphics, Shader, ShaderFlags, ShaderBinding, ShaderBindingType, TextureFormat, TextureFilter)
 //  Used by:    Game code, samples
 
@@ -34,6 +39,7 @@ public static class Graphics3D
     private static bool _initialized;
     private static nuint _defaultWhiteTexture;
     private static Material3D? _currentMaterial;
+    private static readonly LightEnvironment _lights = new();
 
     /// <summary>
     /// Initialize the 3D rendering system. Must be called after Graphics is initialized
@@ -108,8 +114,38 @@ public static class Graphics3D
     }
 
     /// <summary>
-    /// Begin 3D rendering pass. Saves the current 2D projection and stores
-    /// the camera for per-draw MVP computation.
+    /// Set the directional light for the current frame.
+    /// </summary>
+    public static void SetDirectionalLight(in DirectionalLight light)
+    {
+        _lights.Directional = light;
+    }
+
+    /// <summary>
+    /// Set the ambient light for the current frame.
+    /// </summary>
+    public static void SetAmbientLight(in AmbientLight light)
+    {
+        _lights.Ambient = light;
+    }
+
+    /// <summary>
+    /// Add a point light for the current frame.
+    /// Up to <see cref="LightEnvironment.MaxPointLights"/> can be added per frame.
+    /// </summary>
+    public static void AddPointLight(in PointLight light)
+    {
+        _lights.AddPointLight(in light);
+    }
+
+    /// <summary>
+    /// Read-only access to the current light environment (for testing and diagnostics).
+    /// </summary>
+    public static LightEnvironment Lights => _lights;
+
+    /// <summary>
+    /// Begin 3D rendering pass. Saves the current 2D projection, stores
+    /// the camera for per-draw MVP computation, and clears per-frame light state.
     /// </summary>
     public static void Begin(Camera3D camera)
     {
@@ -119,6 +155,7 @@ public static class Graphics3D
         _savedProjection = Graphics.GetPassProjection();
         _camera = camera;
         _viewProjection = camera.ViewProjectionMatrix;
+        _lights.ClearPointLights();
     }
 
     /// <summary>
