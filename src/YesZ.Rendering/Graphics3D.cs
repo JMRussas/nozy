@@ -24,6 +24,7 @@ public static class Graphics3D
     private static Shader? _shader;
     private static Camera3D? _camera;
     private static Matrix4x4 _savedProjection;
+    private static Matrix4x4 _viewProjection;
     private static bool _initialized;
 
     /// <summary>
@@ -42,9 +43,17 @@ public static class Graphics3D
         };
 
         var handle = Graphics.Driver.CreateShader("unlit3d", wgslSource, wgslSource, bindings);
-
         var flags = ShaderFlags.Depth | ShaderFlags.DepthLess;
-        _shader = Shader.CreateRaw("unlit3d", handle, flags, bindings, MeshVertex3D.VertexHash);
+
+        try
+        {
+            _shader = Shader.CreateRaw("unlit3d", handle, flags, bindings, MeshVertex3D.VertexHash);
+        }
+        catch
+        {
+            Graphics.Driver.DestroyShader(handle);
+            throw;
+        }
 
         _initialized = true;
     }
@@ -60,6 +69,7 @@ public static class Graphics3D
 
         _savedProjection = Graphics.GetPassProjection();
         _camera = camera;
+        _viewProjection = camera.ViewProjectionMatrix;
     }
 
     /// <summary>
@@ -71,7 +81,7 @@ public static class Graphics3D
         if (_camera == null || _shader == null) return;
 
         // MVP = model × view × projection (row-major multiplication order)
-        var mvp = worldMatrix * _camera.ViewProjectionMatrix;
+        var mvp = worldMatrix * _viewProjection;
 
         // NoZ's UploadGlobals transposes the projection before uploading to the GPU.
         // NoZ's 2D SetCamera constructs matrices pre-transposed for this cycle, but

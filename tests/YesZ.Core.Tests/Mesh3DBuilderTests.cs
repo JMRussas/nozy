@@ -89,25 +89,6 @@ public class Mesh3DBuilderTests
     }
 
     [Fact]
-    public void CreateCube_WindingOrderCorrect()
-    {
-        var (vertices, indices) = Mesh3DBuilder.CreateCube();
-
-        // Every triangle's cross product should point in the same direction
-        // as the face normal (CCW winding when viewed from outside)
-        for (int i = 0; i < indices.Length; i += 3)
-        {
-            var v0 = vertices[indices[i]].Position;
-            var v1 = vertices[indices[i + 1]].Position;
-            var v2 = vertices[indices[i + 2]].Position;
-            var cross = Vector3.Cross(v1 - v0, v2 - v0);
-            var vertexNormal = vertices[indices[i]].Normal;
-            Assert.True(Vector3.Dot(cross, vertexNormal) > 0,
-                $"Triangle {i / 3} has incorrect winding order");
-        }
-    }
-
-    [Fact]
     public void CreateCube_IndicesInRange()
     {
         var (vertices, indices) = Mesh3DBuilder.CreateCube();

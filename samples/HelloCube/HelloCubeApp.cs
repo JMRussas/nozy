@@ -16,8 +16,8 @@ namespace YesZ.Samples.HelloCube;
 
 public class HelloCubeApp : IApplication
 {
-    private Camera3D _camera = null!;
-    private Mesh3D _cube = null!;
+    private Camera3D? _camera;
+    private Mesh3D? _cube;
     private Transform3D _cubeTransform;
     private float _rotationAngle;
 
@@ -53,15 +53,6 @@ public class HelloCubeApp : IApplication
 
     public void LoadAssets()
     {
-        // Load required NoZ built-in assets from the editor library.
-        // Shaders: Graphics (sprite), TextRender (text), UI (ui), general (texture)
-        // Font: needed for UI labels
-        Asset.Load(AssetType.Shader, "sprite");
-        Asset.Load(AssetType.Shader, "text");
-        Asset.Load(AssetType.Shader, "ui");
-        Asset.Load(AssetType.Shader, "texture");
-        Asset.Load(AssetType.Font, "seguisb");
-
         // Create cube mesh
         var (vertices, indices) = Mesh3DBuilder.CreateCube();
         _cube = Mesh3D.Create(vertices, indices);
@@ -82,6 +73,8 @@ public class HelloCubeApp : IApplication
 
     public void Update()
     {
+        if (_camera == null || _cube == null) return;
+
         Graphics.ClearColor = Color.FromRgb(0x0F172A);
 
         // Update aspect ratio from window size

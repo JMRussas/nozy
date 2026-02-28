@@ -17,6 +17,8 @@ public class Mesh3D : IDisposable
     public RenderMesh RenderMesh { get; }
     public int IndexCount { get; }
 
+    private bool _disposed;
+
     private Mesh3D(RenderMesh renderMesh, int indexCount)
     {
         RenderMesh = renderMesh;
@@ -40,9 +42,12 @@ public class Mesh3D : IDisposable
 
     public void Dispose()
     {
+        if (_disposed) return;
+        _disposed = true;
+
         if (RenderMesh.Handle != nuint.Zero)
-        {
             Graphics.Driver.DestroyMesh(RenderMesh.Handle);
-        }
+
+        GC.SuppressFinalize(this);
     }
 }

@@ -1,7 +1,7 @@
 //  YesZ - 3D Camera
 //
 //  Perspective camera with view and projection matrices.
-//  Provides screen-to-ray conversion for picking.
+//  Matrices are computed fresh on each property access (no internal caching).
 //
 //  Depends on: System.Numerics
 //  Used by:    YesZ.Rendering, game code

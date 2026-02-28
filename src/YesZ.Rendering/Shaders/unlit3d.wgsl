@@ -5,9 +5,11 @@
 //
 // Flags: ShaderFlags.Depth | ShaderFlags.DepthLess
 
+// Layout must match NoZ's Globals buffer (see Graphics.UploadGlobals).
+// Do not reorder or remove fields.
 struct Globals {
     projection: mat4x4f,
-    time: f32,
+    time: f32,             // Unused here — required for layout compatibility with NoZ
 }
 @group(0) @binding(0) var<uniform> globals: Globals;
 
