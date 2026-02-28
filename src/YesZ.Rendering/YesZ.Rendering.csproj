@@ -10,6 +10,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Shaders\**\*.wgsl" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\YesZ.Core\YesZ.Core.csproj" />
     <ProjectReference Include="..\..\engine\noz\engine\NoZ.csproj" />
   </ItemGroup>

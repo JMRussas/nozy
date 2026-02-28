@@ -21,6 +21,10 @@
 └─────────────────────────────────────────────────┘
 ```
 
+## Roadmap
+
+See [roadmap.md](roadmap.md) for the full phase plan, milestones, and open design decisions.
+
 ## Design Principles
 
 1. **YesZ is parallel to NoZ's 2D, not a replacement.** Both systems share the same IGraphicsDriver and WebGPU context.
@@ -52,19 +56,32 @@
 | `SDLPlatform` | platform/desktop/ | SDL3 windowing |
 | `WebGPUGraphicsDriver` | platform/webgpu/ | WebGPU rendering |
 
-## Render Flow (Target State)
+## Render Flow (Current — Phase 1b)
 
 ```
 Frame Start
 ├── Graphics3D.Begin(camera3D)
-│   ├── Enable depth test + depth write
-│   ├── Set perspective projection uniform
-│   ├── Clear depth buffer
-│   └── Set cull mode (back-face)
-├── [Game draws 3D content via Graphics3D.DrawMesh()]
+│   ├── Save current 2D pass projection
+│   └── Store camera reference for MVP computation
+├── Graphics3D.DrawMesh(mesh, worldMatrix)    ← per object
+│   ├── Compute MVP = worldMatrix × camera.ViewProjectionMatrix
+│   ├── SetPassProjection(MVP) → creates globals snapshot
+│   ├── SetShader(unlit3d) + SetMesh(mesh)
+│   └── DrawElements() → records batch command
 ├── Graphics3D.End()
-│   ├── Disable depth test
-│   └── Restore 2D orthographic projection
+│   └── Restore 2D pass projection
 ├── [Game draws 2D UI via NoZ Graphics/UI]
-└── Frame End (NoZ batches and submits all draw commands)
+└── Frame End
+    ├── Sort + batch all draw commands
+    ├── 3D draws: depth test (Less), depth write → back faces hidden
+    └── 2D draws: depth test (Always), no depth write → renders on top
 ```
+
+### Key Design: MVP in Globals
+
+3D uses MVP (model × view × projection) stored in the globals system as the "projection"
+matrix. Each DrawMesh creates a unique globals snapshot, producing a unique batch state.
+This integrates with NoZ's batch system without per-draw uniform buffer tracking.
+
+Limitation: max 64 unique transforms per frame (globals buffer limit). Phase 2+ will
+revisit when lighting needs separate world-space positions.
