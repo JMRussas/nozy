@@ -11,6 +11,7 @@ namespace NoZ;
 public static class Application
 {
     private static bool _running;
+    private static bool _focused = true;
     private static bool _assetTypesRegistered = false;
 
     private static IApplication _instance = null!;
@@ -134,6 +135,9 @@ public static class Application
         while (RunFrame())
         {
             Platform.SwapBuffers();
+
+            if (!_focused)
+                Thread.Sleep(100);
         }
     }
 
@@ -215,9 +219,15 @@ public static class Application
     private static void OnPlatformEvent(PlatformEvent evt)
     {
         if (evt.Type == PlatformEventType.WindowFocus)
+        {
+            _focused = true;
             FocusChanged?.Invoke(true);
+        }
         else if (evt.Type == PlatformEventType.WindowUnfocus)
+        {
+            _focused = false;
             FocusChanged?.Invoke(false);
+        }
     }
 
     public static void OpenURL(string url) => Platform.OpenURL(url);
