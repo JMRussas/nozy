@@ -182,7 +182,7 @@ public class ShapeTool(
         _shape.ClearAnchorSelection();
 
         var firstAnchor = _shape.AnchorCount;
-        var pathIndex = _shape.AddPath(_fillColor, operation: _operation, docLayer: (byte)_editor.Document.CurrentDocumentLayer);
+        var pathIndex = _shape.AddPath(_fillColor, operation: _operation);
         if (pathIndex == ushort.MaxValue)
         {
             Finish();

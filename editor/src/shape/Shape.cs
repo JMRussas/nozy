@@ -88,7 +88,6 @@ public sealed unsafe partial class Shape : IDisposable
         public Color32 FillColor;
         public Color32 StrokeColor;
         public byte StrokeWidth;
-        public byte DocLayer;  // index into document layer list
         public PathFlags Flags;
         public PathOperation Operation;
 
@@ -852,16 +851,10 @@ public sealed unsafe partial class Shape : IDisposable
         path.StrokeWidth = width;
     }
 
-    public void SetPathDocLayer(ushort pathIndex, byte docLayer)
-    {
-        _paths[pathIndex].DocLayer = docLayer;
-    }
-
     public ushort AddPath(
         Color32 fillColor,
         Color32 strokeColor = default,
         byte strokeWidth = 1,
-        byte docLayer = 0,
         PathOperation operation = PathOperation.Normal)
     {
         if (PathCount >= MaxPaths) return ushort.MaxValue;
@@ -874,7 +867,6 @@ public sealed unsafe partial class Shape : IDisposable
             FillColor = fillColor,
             StrokeColor = strokeColor,
             StrokeWidth = strokeWidth,
-            DocLayer = docLayer,
             Operation = operation,
         };
 
@@ -1430,42 +1422,6 @@ public sealed unsafe partial class Shape : IDisposable
             _samples[i] = source._samples[i];
     }
 
-    /// <summary>
-    /// Appends all paths and anchors from source into this shape, setting DocLayer on each copied path.
-    /// Used for building composite shapes from per-layer data.
-    /// </summary>
-    public void AppendFrom(Shape source, byte docLayer)
-    {
-        if (source.PathCount == 0)
-            return;
-
-        var anchorOffset = AnchorCount;
-
-        // Copy anchors
-        for (var i = 0; i < source.AnchorCount; i++)
-        {
-            var anchor = source._anchors[i];
-            anchor.Path = (ushort)(anchor.Path + PathCount);
-            _anchors[AnchorCount + i] = anchor;
-        }
-
-        // Copy samples
-        for (var i = 0; i < source.AnchorCount * MaxSegmentSamples; i++)
-            _samples[AnchorCount * MaxSegmentSamples + i] = source._samples[i];
-
-        // Copy paths with remapped anchor start and DocLayer
-        for (var i = 0; i < source.PathCount; i++)
-        {
-            var path = source._paths[i];
-            path.AnchorStart = (ushort)(path.AnchorStart + anchorOffset);
-            path.DocLayer = docLayer;
-            _paths[PathCount + i] = path;
-        }
-
-        AnchorCount = (ushort)(AnchorCount + source.AnchorCount);
-        PathCount = (ushort)(PathCount + source.PathCount);
-    }
-
     public void Clear()
     {
         AnchorCount = 0;
@@ -1617,7 +1573,6 @@ public sealed unsafe partial class Shape : IDisposable
             AnchorCount = (ushort)path2Count,
             FillColor = srcPath.FillColor,
             StrokeColor = srcPath.StrokeColor,
-            DocLayer = srcPath.DocLayer,
             Operation = srcPath.Operation
         };
 
@@ -1808,26 +1763,22 @@ public sealed unsafe partial class Shape : IDisposable
     }
 
 
-    public RectInt GetRasterBoundsFor(IReadOnlyList<byte> docLayers, Color32? fillColor = null)
+    public RectInt GetRasterBounds(Color32? fillColor = null)
     {
         var dpi = EditorApplication.Config.PixelsPerUnit;
         var min = new Vector2(float.MaxValue, float.MaxValue);
         var max = new Vector2(float.MinValue, float.MinValue);
         var hasContent = false;
-        var stroke = false;
 
         var maxHalfStroke = 0f;
 
         for (ushort p = 0; p < PathCount; p++)
         {
             ref var path = ref _paths[p];
-            if (!docLayers.Contains(path.DocLayer))
-                continue;
             if (fillColor != null && path.FillColor != fillColor.Value)
                 continue;
 
             hasContent = true;
-            stroke |= path.StrokeColor.A > 0;
 
             if (path.StrokeWidth > 0 && path.StrokeColor.A > 0)
                 maxHalfStroke = MathF.Max(maxHalfStroke, path.StrokeWidth * StrokeScale);

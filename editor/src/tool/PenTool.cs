@@ -304,7 +304,7 @@ public class PenTool : Tool
             signedArea += (v1.X - v0.X) * (v1.Y + v0.Y);
         }
 
-        var pathIndex = _shape.AddPath(_fillColor, operation: _operation, docLayer: (byte)_editor.Document.CurrentDocumentLayer);
+        var pathIndex = _shape.AddPath(_fillColor, operation: _operation);
         if (pathIndex == ushort.MaxValue)
         {
             Finish();

@@ -61,18 +61,6 @@ public partial class SpriteEditor : DocumentEditor
     private DocumentLayer CurrentLayer =>
         Document.DocumentLayers[Document.CurrentDocumentLayer];
 
-    private bool IsPathOnVisibleLayer(Shape.Path path)
-    {
-        var layers = Document.DocumentLayers;
-        return path.DocLayer < layers.Count && layers[path.DocLayer].Visible;
-    }
-
-    private bool IsPathOnLockedLayer(Shape.Path path)
-    {
-        var layers = Document.DocumentLayers;
-        return path.DocLayer < layers.Count && layers[path.DocLayer].Locked;
-    }
-
     private bool IsCurrentLayerLocked()
     {
         var layer = Document.GetCurrentDocumentLayer();
@@ -196,8 +184,6 @@ public partial class SpriteEditor : DocumentEditor
         if (_rasterDirty)
             UpdateRaster();
 
-        var shape = CurrentShape;
-
         DrawRaster();
 
         using (Gizmos.PushState(EditorLayer.DocumentEditor))
@@ -206,8 +192,7 @@ public partial class SpriteEditor : DocumentEditor
             Graphics.SetSortGroup(5);
             Document.DrawOrigin();
             Graphics.SetSortGroup(4);
-            DrawSegments(shape);
-            DrawAnchors(shape);
+            DrawAllLayerWireframes();
         }
 
         if (Document.ShowSkeletonOverlay)
@@ -577,7 +562,6 @@ public partial class SpriteEditor : DocumentEditor
 
             Document.CurrentFillColor = path.FillColor;
             Document.CurrentStrokeColor = path.StrokeColor;
-            Document.CurrentDocumentLayer = path.DocLayer;
             Document.CurrentStrokeWidth = (byte)int.Max(1, (int)path.StrokeWidth);
             Document.CurrentOperation = path.Operation;
             return;
@@ -849,9 +833,7 @@ public partial class SpriteEditor : DocumentEditor
             return;
         }
 
-        // Build composite shape for rendering
-        var composite = Document.GetCompositeShape(_currentTimeSlot);
-        UpdateMeshSDF(composite);
+        UpdateMesh();
         _rasterDirty = false;
     }
 
@@ -1117,23 +1099,6 @@ public partial class SpriteEditor : DocumentEditor
         EditorUI.Popup(ElementId.StrokeWidth, Content);
     }
 
-    public void SetPathDocLayer(byte docLayer)
-    {
-        Undo.Record(Document);
-
-        var shape = CurrentShape;
-        for (ushort p = 0; p < shape.PathCount; p++)
-        {
-            ref readonly var path = ref shape.GetPath(p);
-            if (!path.IsSelected) continue;
-            shape.SetPathDocLayer(p, docLayer);
-        }
-
-        Document.UpdateBounds();
-        Document.MarkModified();
-        MarkRasterDirty();
-    }
-
     public void DeleteSelected()
     {
         Undo.Record(Document);
@@ -1173,7 +1138,6 @@ public partial class SpriteEditor : DocumentEditor
                 fillColor: srcPath.FillColor,
                 strokeColor: srcPath.StrokeColor,
                 strokeWidth: srcPath.StrokeWidth,
-                docLayer: srcPath.DocLayer,
                 operation: srcPath.Operation);
             if (newPathIndex == ushort.MaxValue)
                 break;
@@ -1337,91 +1301,90 @@ public partial class SpriteEditor : DocumentEditor
     {
         Matrix3x2.Invert(Document.Transform, out var invTransform);
         var localMousePos = Vector2.Transform(Workspace.MouseWorldPosition, invTransform);
-        var shape = CurrentShape;
         var shift = Input.IsShiftDown(InputScope.All);
+        var layers = Document.DocumentLayers;
 
-        Span<Shape.HitResult> hits = stackalloc Shape.HitResult[Shape.MaxAnchors];
-        var hitCount = shape.HitTestAll(localMousePos, hits);
-
-        // Separate hits by type and sort by path index descending (back to front, higher = on top)
-        Span<ushort> anchorHits = stackalloc ushort[hitCount];
-        Span<ushort> segmentHits = stackalloc ushort[hitCount];
-        Span<ushort> pathHits = stackalloc ushort[Shape.MaxPaths];
-        var anchorCount = 0;
-        var segmentCount = 0;
-        var pathCount = shape.GetPathsContainingPoint(localMousePos, pathHits);
-
-        for (var i = 0; i < hitCount; i++)
+        // Hit test all visible/unlocked layers from top to bottom (highest index = on top)
+        for (int layerIdx = layers.Count - 1; layerIdx >= 0; layerIdx--)
         {
-            // Skip hits on hidden or locked layers
-            var hitPathIndex = hits[i].PathIndex;
-            if (hitPathIndex != ushort.MaxValue)
+            var layer = layers[layerIdx];
+            if (!layer.Visible || layer.Locked) continue;
+
+            var frameIdx = Document.GetLayerFrameAtTimeSlot(layerIdx, _currentTimeSlot);
+            var shape = layer.Frames[frameIdx].Shape;
+
+            Span<Shape.HitResult> hits = stackalloc Shape.HitResult[Shape.MaxAnchors];
+            var hitCount = shape.HitTestAll(localMousePos, hits);
+
+            Span<ushort> anchorHits = stackalloc ushort[hitCount];
+            Span<ushort> segmentHits = stackalloc ushort[hitCount];
+            Span<ushort> pathHits = stackalloc ushort[Shape.MaxPaths];
+            var anchorCount = 0;
+            var segmentCount = 0;
+            var pathCount = shape.GetPathsContainingPoint(localMousePos, pathHits);
+
+            for (var i = 0; i < hitCount; i++)
             {
-                ref readonly var hitPath = ref shape.GetPath(hitPathIndex);
-                if (!IsPathOnVisibleLayer(hitPath) || IsPathOnLockedLayer(hitPath))
-                    continue;
+                if (hits[i].AnchorIndex != ushort.MaxValue)
+                    anchorHits[anchorCount++] = hits[i].AnchorIndex;
+                else if (hits[i].SegmentIndex != ushort.MaxValue)
+                    segmentHits[segmentCount++] = hits[i].SegmentIndex;
             }
 
-            if (hits[i].AnchorIndex != ushort.MaxValue)
-                anchorHits[anchorCount++] = hits[i].AnchorIndex;
-            else if (hits[i].SegmentIndex != ushort.MaxValue)
-                segmentHits[segmentCount++] = hits[i].SegmentIndex;
-        }
+            if (anchorCount == 0 && segmentCount == 0 && pathCount == 0)
+                continue;
 
-        // Filter path hits for hidden/locked layers
-        var filteredPathCount = 0;
-        for (var i = 0; i < pathCount; i++)
-        {
-            ref readonly var hitPath = ref shape.GetPath(pathHits[i]);
-            if (IsPathOnVisibleLayer(hitPath) && !IsPathOnLockedLayer(hitPath))
-                pathHits[filteredPathCount++] = pathHits[i];
-        }
-        pathCount = filteredPathCount;
+            // Sort by path index descending (higher path index = drawn on top)
+            SortByPathIndexDescending(shape, anchorHits[..anchorCount]);
+            SortByPathIndexDescending(shape, segmentHits[..segmentCount]);
+            pathHits[..pathCount].Reverse();
 
-        // Sort by path index descending (higher path index = drawn on top)
-        SortByPathIndexDescending(shape, anchorHits[..anchorCount]);
-        SortByPathIndexDescending(shape, segmentHits[..segmentCount]);
-        pathHits[..pathCount].Reverse();
+            // Auto-activate this layer
+            if (Document.CurrentDocumentLayer != layerIdx)
+            {
+                CurrentShape.ClearAnchorSelection();
+                Document.CurrentDocumentLayer = layerIdx;
+            }
 
-        // Priority: anchors > segments > paths
-        if (anchorCount > 0)
-        {
-            if (shift)
-                ShiftSelectNext(anchorHits[..anchorCount], shape.IsAnchorSelected, shape.SetAnchorSelected);
-            else
+            // Priority: anchors > segments > paths
+            if (anchorCount > 0)
             {
-                var nextIdx = FindNextInCycle(anchorHits[..anchorCount], shape.IsAnchorSelected);
-                SelectAnchor(anchorHits[nextIdx], toggle: false);
+                if (shift)
+                    ShiftSelectNext(anchorHits[..anchorCount], shape.IsAnchorSelected, shape.SetAnchorSelected);
+                else
+                {
+                    var nextIdx = FindNextInCycle(anchorHits[..anchorCount], shape.IsAnchorSelected);
+                    SelectAnchor(anchorHits[nextIdx], toggle: false);
+                }
             }
-        }
-        else if (segmentCount > 0)
-        {
-            if (shift)
-                ShiftSelectNextSegment(shape, segmentHits[..segmentCount]);
-            else
+            else if (segmentCount > 0)
             {
-                var nextIdx = FindNextInCycle(segmentHits[..segmentCount], shape.IsSegmentSelected);
-                SelectSegment(segmentHits[nextIdx], toggle: false);
+                if (shift)
+                    ShiftSelectNextSegment(shape, segmentHits[..segmentCount]);
+                else
+                {
+                    var nextIdx = FindNextInCycle(segmentHits[..segmentCount], shape.IsSegmentSelected);
+                    SelectSegment(segmentHits[nextIdx], toggle: false);
+                }
             }
-        }
-        else if (pathCount > 0)
-        {
-            if (shift)
-                ShiftSelectNext(pathHits[..pathCount], shape.IsPathSelected, i => shape.SetPathSelected(i, true), i => shape.SetPathSelected(i, false));
-            else
+            else if (pathCount > 0)
             {
-                var nextIdx = FindNextInCycle(pathHits[..pathCount], shape.IsPathSelected);
-                SelectPath(pathHits[nextIdx], toggle: false);
+                if (shift)
+                    ShiftSelectNext(pathHits[..pathCount], shape.IsPathSelected, i => shape.SetPathSelected(i, true), i => shape.SetPathSelected(i, false));
+                else
+                {
+                    var nextIdx = FindNextInCycle(pathHits[..pathCount], shape.IsPathSelected);
+                    SelectPath(pathHits[nextIdx], toggle: false);
+                }
             }
-        }
-        else
-        {
-            if (!shift)
-                shape.ClearAnchorSelection();
+
+            UpdateSelection();
             return;
         }
 
-        UpdateSelection();
+        // Nothing hit on any layer — clear selection
+        if (!shift)
+            CurrentShape.ClearAnchorSelection();
     }
 
     private static int FindNextInCycle(Span<ushort> items, Func<ushort, bool> isSelected)
@@ -1690,17 +1653,6 @@ public partial class SpriteEditor : DocumentEditor
         var localRect = Rect.FromMinMax(minLocal, maxLocal);
         shape.SelectAnchors(localRect);
 
-        // Deselect anchors on hidden or locked layers
-        for (ushort i = 0; i < shape.AnchorCount; i++)
-        {
-            if (!shape.IsAnchorSelected(i)) continue;
-            var pathIndex = FindPathForAnchor(shape, i);
-            if (pathIndex == ushort.MaxValue) continue;
-            ref readonly var path = ref shape.GetPath(pathIndex);
-            if (!IsPathOnVisibleLayer(path) || IsPathOnLockedLayer(path))
-                shape.SetAnchorSelected(i, false);
-        }
-
         UpdateSelection();
     }
 
@@ -1889,7 +1841,7 @@ public partial class SpriteEditor : DocumentEditor
             }
         }
 
-        DrawMeshSDF();
+        DrawMesh();
     }
 
     private static void DrawSegment(Shape shape, ushort pathIndex, ushort segmentIndex, float width, ushort order = 0)
@@ -1908,29 +1860,52 @@ public partial class SpriteEditor : DocumentEditor
         Gizmos.DrawLine(prev, nextAnchor.Position, width, order: order);
     }
 
-    private void DrawSegments(Shape shape)
+    private void DrawAllLayerWireframes()
+    {
+        var layers = Document.DocumentLayers;
+
+        // Draw non-active visible layers first (dimmed)
+        for (int layerIdx = 0; layerIdx < layers.Count; layerIdx++)
+        {
+            if (layerIdx == Document.CurrentDocumentLayer) continue;
+            var layer = layers[layerIdx];
+            if (!layer.Visible) continue;
+
+            var frameIdx = Document.GetLayerFrameAtTimeSlot(layerIdx, _currentTimeSlot);
+            var shape = layer.Frames[frameIdx].Shape;
+            DrawSegments(shape, dimmed: true);
+        }
+
+        // Draw active layer on top (full brightness + anchors)
+        {
+            var shape = CurrentShape;
+            DrawSegments(shape, dimmed: false);
+            DrawAnchors(shape);
+        }
+    }
+
+    private static void DrawSegments(Shape shape, bool dimmed)
     {
         using (Gizmos.PushState(EditorLayer.DocumentEditor))
         {
-            Gizmos.SetColor(EditorStyle.Workspace.LineColor);
+            var lineColor = dimmed
+                ? EditorStyle.Workspace.LineColor.WithAlpha(0.3f)
+                : EditorStyle.Workspace.LineColor;
+
+            Gizmos.SetColor(lineColor);
             for (ushort anchorIndex = 0; anchorIndex < shape.AnchorCount; anchorIndex++)
             {
                 if (!shape.IsSegmentSelected(anchorIndex))
-                {
-                    var pathIndex = FindPathForAnchor(shape, anchorIndex);
-                    if (pathIndex != ushort.MaxValue && IsPathOnVisibleLayer(shape.GetPath(pathIndex)))
-                        DrawSegment(shape, pathIndex, anchorIndex, EditorStyle.Shape.SegmentLineWidth, 1);
-                }
+                    DrawSegment(shape, FindPathForAnchor(shape, anchorIndex), anchorIndex, EditorStyle.Shape.SegmentLineWidth, 1);
             }
 
-            Gizmos.SetColor(EditorStyle.Workspace.SelectionColor);
-            for (ushort anchorIndex = 0; anchorIndex < shape.AnchorCount; anchorIndex++)
+            if (!dimmed)
             {
-                if (shape.IsSegmentSelected(anchorIndex))
+                Gizmos.SetColor(EditorStyle.Workspace.SelectionColor);
+                for (ushort anchorIndex = 0; anchorIndex < shape.AnchorCount; anchorIndex++)
                 {
-                    var pathIndex = FindPathForAnchor(shape, anchorIndex);
-                    if (pathIndex != ushort.MaxValue && IsPathOnVisibleLayer(shape.GetPath(pathIndex)))
-                        DrawSegment(shape, pathIndex, anchorIndex, EditorStyle.Shape.SegmentLineWidth, 2);
+                    if (shape.IsSegmentSelected(anchorIndex))
+                        DrawSegment(shape, FindPathForAnchor(shape, anchorIndex), anchorIndex, EditorStyle.Shape.SegmentLineWidth, 2);
                 }
             }
         }
@@ -1948,16 +1923,13 @@ public partial class SpriteEditor : DocumentEditor
         Gizmos.DrawRect(worldPosition, EditorStyle.Shape.AnchorSize, order: 5);
     }
 
-    private void DrawAnchors(Shape shape)
+    private static void DrawAnchors(Shape shape)
     {
         using var _ = Gizmos.PushState(EditorLayer.DocumentEditor);
         for (ushort i = 0; i < shape.AnchorCount; i++)
         {
             ref readonly var anchor = ref shape.GetAnchor(i);
             if (anchor.IsSelected) continue;
-            var pathIndex = FindPathForAnchor(shape, i);
-            if (pathIndex != ushort.MaxValue && !IsPathOnVisibleLayer(shape.GetPath(pathIndex)))
-                continue;
             DrawAnchor(anchor.Position);
         }
 
@@ -1965,9 +1937,6 @@ public partial class SpriteEditor : DocumentEditor
         {
             ref readonly var anchor = ref shape.GetAnchor(i);
             if (!anchor.IsSelected) continue;
-            var pathIndex = FindPathForAnchor(shape, i);
-            if (pathIndex != ushort.MaxValue && !IsPathOnVisibleLayer(shape.GetPath(pathIndex)))
-                continue;
             DrawSelectedAnchor(anchor.Position);
         }
     }

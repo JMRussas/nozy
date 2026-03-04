@@ -185,8 +185,7 @@ public class SpriteDocument : Document, ISpriteSource
     {
         public readonly byte SortOrder = sortOrder;
         public readonly StringId Bone = bone;
-        public readonly List<ushort> PathIndices = new();
-        public readonly List<byte> DocLayers = new();  // which doc layers contribute to this slot
+        public readonly List<(byte LayerIndex, Shape Shape)> LayerShapes = new();
     }
 
     public const int MaxDocumentLayers = 32;
@@ -194,8 +193,6 @@ public class SpriteDocument : Document, ISpriteSource
     private readonly List<DocumentLayer> _documentLayers = new();
     private readonly List<Rect> _atlasUV = new();
     private Sprite? _sprite;
-    private readonly Shape _compositeShape = new();
-
     public float Depth;
     public RectInt RasterBounds { get; private set; }
     public EdgeInsets Edges { get; set; } = EdgeInsets.Zero;
@@ -246,20 +243,6 @@ public class SpriteDocument : Document, ISpriteSource
         }
         // Past the end: hold last frame
         return layer.FrameCount - 1;
-    }
-
-    /// <summary>Build a composite shape from all layers at the given time slot.</summary>
-    public Shape GetCompositeShape(int timeSlot)
-    {
-        _compositeShape.Clear();
-        for (var layerIdx = 0; layerIdx < _documentLayers.Count; layerIdx++)
-        {
-            var layer = _documentLayers[layerIdx];
-            var frameIdx = GetLayerFrameAtTimeSlot(layerIdx, timeSlot);
-            _compositeShape.AppendFrom(layer.Frames[frameIdx].Shape, (byte)layerIdx);
-        }
-        _compositeShape.UpdateBounds();
-        return _compositeShape;
     }
 
     public int MeshSlotCount
@@ -668,11 +651,12 @@ public class SpriteDocument : Document, ISpriteSource
             }
         }
 
-        // Mark each path's target layer
+        // Build per-path layer mapping
+        var pathLayerMap = new Dictionary<(ushort frameIndex, ushort pathIndex), byte>();
         foreach (var (frameIndex, pathIndex, sortOrder, bone) in legacyPaths)
         {
             var key = (sortOrder, bone);
-            legacyFrames[frameIndex].Shape.SetPathDocLayer(pathIndex, layerMap[key]);
+            pathLayerMap[(frameIndex, pathIndex)] = layerMap[key];
         }
 
         // If no legacy layer info, create a default layer
@@ -680,10 +664,11 @@ public class SpriteDocument : Document, ISpriteSource
             _documentLayers.Add(new DocumentLayer { Name = "Layer 1" });
 
         // Distribute paths from legacy frames to per-layer frames
-        DistributeLegacyFrames(legacyFrames, legacyFrameCount);
+        DistributeLegacyFrames(legacyFrames, legacyFrameCount, pathLayerMap);
     }
 
-    private void DistributeLegacyFrames(LayerFrame[] legacyFrames, ushort legacyFrameCount)
+    private void DistributeLegacyFrames(LayerFrame[] legacyFrames, ushort legacyFrameCount,
+        Dictionary<(ushort frameIndex, ushort pathIndex), byte> pathLayerMap)
     {
         // Set frame counts
         foreach (var layer in _documentLayers)
@@ -701,7 +686,10 @@ public class SpriteDocument : Document, ISpriteSource
             for (ushort pi = 0; pi < srcShape.PathCount; pi++)
             {
                 ref readonly var path = ref srcShape.GetPath(pi);
-                var layerIdx = Math.Min(path.DocLayer, (byte)(_documentLayers.Count - 1));
+                byte layerIdx = 0;
+                if (pathLayerMap.TryGetValue((fi, pi), out var mapped))
+                    layerIdx = Math.Min(mapped, (byte)(_documentLayers.Count - 1));
+
                 var dstShape = _documentLayers[layerIdx].Frames[fi].Shape;
 
                 // Copy path and its anchors to the destination layer shape
@@ -1075,8 +1063,8 @@ public class SpriteDocument : Document, ISpriteSource
         if (size.X <= 0 || size.Y <= 0 || Atlas == null)
             return;
 
-        var composite = GetCompositeShape(0);
-        if (composite.PathCount == 0)
+        var hasContent = _documentLayers.Any(l => l.Frames[0].Shape.PathCount > 0);
+        if (!hasContent)
         {
             DrawBounds();
             return;
@@ -1431,12 +1419,11 @@ public class SpriteDocument : Document, ISpriteSource
         var targetRect = new RectInt(0, 0, w, h);
         var sourceOffset = -RasterBounds.Position;
 
-        var compositeShape = GetCompositeShape(0);
         var slots = GetMeshSlots(0);
         foreach (var slot in slots)
         {
-            if (slot.PathIndices.Count > 0)
-                RasterizeSlot(compositeShape, slot, pixels, targetRect, sourceOffset, dpi);
+            if (HasPaths(slot))
+                RasterizeSlot(slot, pixels, targetRect, sourceOffset, dpi);
         }
 
         // Convert to ImageSharp image: composite path colors over white background
@@ -1667,7 +1654,6 @@ public class SpriteDocument : Document, ISpriteSource
         var frameIndex = rect.FrameIndex;
         var dpi = EditorApplication.Config.PixelsPerUnit;
 
-        var composite = GetCompositeShape(frameIndex);
         var slots = GetMeshSlots(frameIndex);
         var slotBounds = GetMeshSlotBounds(frameIndex);
         var padding2 = padding * 2;
@@ -1691,11 +1677,11 @@ public class SpriteDocument : Document, ISpriteSource
 
             // Check if any document layer in this slot is a generated layer
             var blittedGenerated = false;
-            foreach (var docLayerIdx in slot.DocLayers)
+            foreach (var (layerIdx, _) in slot.LayerShapes)
             {
-                if (docLayerIdx < _documentLayers.Count && _documentLayers[docLayerIdx].Type == DocumentLayerType.Generated)
+                if (layerIdx < _documentLayers.Count && _documentLayers[layerIdx].Type == DocumentLayerType.Generated)
                 {
-                    if (TryBlitGeneratedImage(docLayerIdx, image, rect, padding))
+                    if (TryBlitGeneratedImage(layerIdx, image, rect, padding))
                     {
                         blittedGenerated = true;
                         break;
@@ -1703,8 +1689,8 @@ public class SpriteDocument : Document, ISpriteSource
                 }
             }
 
-            if (!blittedGenerated && slot.PathIndices.Count > 0)
-                RasterizeSlot(composite, slot, image, targetRect, sourceOffset, dpi);
+            if (!blittedGenerated && HasPaths(slot))
+                RasterizeSlot(slot, image, targetRect, sourceOffset, dpi);
 
             // Bleed RGB into transparent pixels to prevent fringing with linear filtering.
             image.BleedColors(targetRect);
@@ -1713,125 +1699,137 @@ public class SpriteDocument : Document, ISpriteSource
         }
     }
 
+    private static bool HasPaths(MeshSlot slot)
+    {
+        foreach (var (_, shape) in slot.LayerShapes)
+        {
+            if (shape.PathCount > 0) return true;
+        }
+        return false;
+    }
+
     private static void RasterizeSlot(
-        Shape shape,
         MeshSlot slot,
         PixelData<Color32> image,
         RectInt targetRect,
         Vector2Int sourceOffset,
         int dpi)
     {
-        // Collect subtract paths with their indices — each only affects paths below it
-        List<(ushort PathIndex, Clipper2Lib.PathsD Contours)>? subtractEntries = null;
-        foreach (var pi in slot.PathIndices)
+        // Collect all subtract paths across all layers in this slot.
+        // Each entry tracks (layerIndex, pathIndex) for ordering.
+        List<(int LayerIndex, ushort PathIndex, Clipper2Lib.PathsD Contours)>? subtractEntries = null;
+        foreach (var (layerIdx, shape) in slot.LayerShapes)
         {
-            ref readonly var path = ref shape.GetPath(pi);
-            if (!path.IsSubtract || path.AnchorCount < 3) continue;
-
-            var subShape = new Msdf.Shape();
-            Msdf.ShapeClipper.AppendContour(subShape, shape, pi);
-            var subContours = Msdf.ShapeClipper.ShapeToPaths(subShape, 8);
-            if (subContours.Count > 0)
+            for (ushort pi = 0; pi < shape.PathCount; pi++)
             {
-                subtractEntries ??= new();
-                subtractEntries.Add((pi, subContours));
+                ref readonly var path = ref shape.GetPath(pi);
+                if (!path.IsSubtract || path.AnchorCount < 3) continue;
+
+                var subShape = new Msdf.Shape();
+                Msdf.ShapeClipper.AppendContour(subShape, shape, pi);
+                var subContours = Msdf.ShapeClipper.ShapeToPaths(subShape, 8);
+                if (subContours.Count > 0)
+                {
+                    subtractEntries ??= new();
+                    subtractEntries.Add((layerIdx, pi, subContours));
+                }
             }
         }
 
-        // Rasterize each non-subtract path: stroke first, then fill on top
-        // Track accumulated geometry for clip operations
+        // Rasterize each layer's paths in order (lower layer index = drawn first = behind)
+        // Track accumulated geometry for clip operations across all layers
         Clipper2Lib.PathsD? accumulatedPaths = null;
 
-        foreach (var pi in slot.PathIndices)
+        foreach (var (layerIdx, shape) in slot.LayerShapes)
         {
-            ref readonly var path = ref shape.GetPath(pi);
-            if (path.IsSubtract || path.AnchorCount < 3) continue;
-
-            // Build contours for this path
-            var pathShape = new Msdf.Shape();
-            Msdf.ShapeClipper.AppendContour(pathShape, shape, pi);
-            pathShape = Msdf.ShapeClipper.Union(pathShape);
-            var contours = Msdf.ShapeClipper.ShapeToPaths(pathShape, 8);
-            if (contours.Count == 0) continue;
-
-            if (path.IsClip)
+            for (ushort pi = 0; pi < shape.PathCount; pi++)
             {
-                // Clip: intersect with accumulated geometry below
-                if (accumulatedPaths is not { Count: > 0 }) continue;
-                contours = Clipper2Lib.Clipper.BooleanOp(Clipper2Lib.ClipType.Intersection,
-                    contours, accumulatedPaths, Clipper2Lib.FillRule.NonZero, precision: 6);
+                ref readonly var path = ref shape.GetPath(pi);
+                if (path.IsSubtract || path.AnchorCount < 3) continue;
+
+                // Build contours for this path
+                var pathShape = new Msdf.Shape();
+                Msdf.ShapeClipper.AppendContour(pathShape, shape, pi);
+                pathShape = Msdf.ShapeClipper.Union(pathShape);
+                var contours = Msdf.ShapeClipper.ShapeToPaths(pathShape, 8);
                 if (contours.Count == 0) continue;
-            }
-            else
-            {
-                // Normal path: add fill area to accumulated geometry for future clips
-                // Use contracted contours (excluding stroke) so clip paths don't cover strokes
-                var accContours = contours;
-                if (path.StrokeColor.A > 0 && path.StrokeWidth > 0)
+
+                if (path.IsClip)
+                {
+                    // Clip: intersect with accumulated geometry below
+                    if (accumulatedPaths is not { Count: > 0 }) continue;
+                    contours = Clipper2Lib.Clipper.BooleanOp(Clipper2Lib.ClipType.Intersection,
+                        contours, accumulatedPaths, Clipper2Lib.FillRule.NonZero, precision: 6);
+                    if (contours.Count == 0) continue;
+                }
+                else
+                {
+                    // Normal path: add fill area to accumulated geometry for future clips
+                    var accContours = contours;
+                    if (path.StrokeColor.A > 0 && path.StrokeWidth > 0)
+                    {
+                        var halfStroke = path.StrokeWidth * Shape.StrokeScale;
+                        var contracted = Clipper2Lib.Clipper.InflatePaths(contours, -halfStroke,
+                            Clipper2Lib.JoinType.Round, Clipper2Lib.EndType.Polygon, precision: 6);
+                        if (contracted.Count > 0)
+                            accContours = contracted;
+                    }
+
+                    if (accumulatedPaths == null)
+                        accumulatedPaths = new Clipper2Lib.PathsD(accContours);
+                    else
+                        accumulatedPaths = Clipper2Lib.Clipper.BooleanOp(Clipper2Lib.ClipType.Union,
+                            accumulatedPaths, accContours, Clipper2Lib.FillRule.NonZero, precision: 6);
+                }
+
+                // Apply subtract paths from above (higher layer, or same layer but higher path index)
+                if (subtractEntries != null)
+                {
+                    Clipper2Lib.PathsD? subtractPaths = null;
+                    foreach (var (subLayerIdx, subPi, subContours) in subtractEntries)
+                    {
+                        if (subLayerIdx < layerIdx) continue;
+                        if (subLayerIdx == layerIdx && subPi <= pi) continue;
+                        subtractPaths ??= new Clipper2Lib.PathsD();
+                        subtractPaths.AddRange(subContours);
+                    }
+
+                    if (subtractPaths is { Count: > 0 })
+                    {
+                        contours = Clipper2Lib.Clipper.BooleanOp(Clipper2Lib.ClipType.Difference,
+                            contours, subtractPaths, Clipper2Lib.FillRule.NonZero, precision: 6);
+                        if (contours.Count == 0) continue;
+                    }
+                }
+
+                var hasStroke = path.StrokeColor.A > 0 && path.StrokeWidth > 0;
+                var hasFill = path.FillColor.A > 0;
+
+                // Stroke: rasterize the ring (full shape minus contracted interior)
+                if (hasStroke)
                 {
                     var halfStroke = path.StrokeWidth * Shape.StrokeScale;
                     var contracted = Clipper2Lib.Clipper.InflatePaths(contours, -halfStroke,
                         Clipper2Lib.JoinType.Round, Clipper2Lib.EndType.Polygon, precision: 6);
-                    if (contracted.Count > 0)
-                        accContours = contracted;
+
+                    if (hasFill)
+                    {
+                        Rasterizer.Fill(contours, image, targetRect, sourceOffset, dpi, path.StrokeColor);
+                        if (contracted.Count > 0)
+                            Rasterizer.Fill(contracted, image, targetRect, sourceOffset, dpi, path.FillColor);
+                    }
+                    else
+                    {
+                        var ring = Clipper2Lib.Clipper.BooleanOp(Clipper2Lib.ClipType.Difference,
+                            contours, contracted, Clipper2Lib.FillRule.NonZero, precision: 6);
+                        if (ring.Count > 0)
+                            Rasterizer.Fill(ring, image, targetRect, sourceOffset, dpi, path.StrokeColor);
+                    }
                 }
-
-                if (accumulatedPaths == null)
-                    accumulatedPaths = new Clipper2Lib.PathsD(accContours);
-                else
-                    accumulatedPaths = Clipper2Lib.Clipper.BooleanOp(Clipper2Lib.ClipType.Union,
-                        accumulatedPaths, accContours, Clipper2Lib.FillRule.NonZero, precision: 6);
-            }
-
-            // Apply subtract paths that are above this path (higher index = on top)
-            if (subtractEntries != null)
-            {
-                Clipper2Lib.PathsD? subtractPaths = null;
-                foreach (var (subIdx, subContours) in subtractEntries)
+                else if (hasFill)
                 {
-                    if (subIdx <= pi) continue;
-                    subtractPaths ??= new Clipper2Lib.PathsD();
-                    subtractPaths.AddRange(subContours);
+                    Rasterizer.Fill(contours, image, targetRect, sourceOffset, dpi, path.FillColor);
                 }
-
-                if (subtractPaths is { Count: > 0 })
-                {
-                    contours = Clipper2Lib.Clipper.BooleanOp(Clipper2Lib.ClipType.Difference,
-                        contours, subtractPaths, Clipper2Lib.FillRule.NonZero, precision: 6);
-                    if (contours.Count == 0) continue;
-                }
-            }
-
-            var hasStroke = path.StrokeColor.A > 0 && path.StrokeWidth > 0;
-            var hasFill = path.FillColor.A > 0;
-
-            // Stroke: rasterize the ring (full shape minus contracted interior)
-            if (hasStroke)
-            {
-                var halfStroke = path.StrokeWidth * Shape.StrokeScale;
-                var contracted = Clipper2Lib.Clipper.InflatePaths(contours, -halfStroke,
-                    Clipper2Lib.JoinType.Round, Clipper2Lib.EndType.Polygon, precision: 6);
-
-                if (hasFill)
-                {
-                    // Stroke behind fill: rasterize full shape with stroke color
-                    Rasterizer.Fill(contours, image, targetRect, sourceOffset, dpi, path.StrokeColor);
-                    // Then fill with contracted shape on top
-                    if (contracted.Count > 0)
-                        Rasterizer.Fill(contracted, image, targetRect, sourceOffset, dpi, path.FillColor);
-                }
-                else
-                {
-                    // Stroke only: rasterize just the ring
-                    var ring = Clipper2Lib.Clipper.BooleanOp(Clipper2Lib.ClipType.Difference,
-                        contours, contracted, Clipper2Lib.FillRule.NonZero, precision: 6);
-                    if (ring.Count > 0)
-                        Rasterizer.Fill(ring, image, targetRect, sourceOffset, dpi, path.StrokeColor);
-                }
-            }
-            else if (hasFill)
-            {
-                Rasterizer.Fill(contours, image, targetRect, sourceOffset, dpi, path.FillColor);
             }
         }
     }
@@ -2065,8 +2063,7 @@ public class SpriteDocument : Document, ISpriteSource
             var bounds = RectInt.Zero;
             for (var ts = 0; ts < totalTimeSlots; ts++)
             {
-                var composite = GetCompositeShape(ts);
-                var slotBounds = composite.GetRasterBoundsFor(slot.DocLayers);
+                var slotBounds = GetSlotBounds(slot, ts);
                 if (slotBounds.Width <= 0 || slotBounds.Height <= 0)
                     continue;
                 bounds = bounds.Width <= 0 ? slotBounds : RectInt.Union(bounds, slotBounds);
@@ -2080,10 +2077,25 @@ public class SpriteDocument : Document, ISpriteSource
     {
         var slots = GetMeshSlots(timeSlot);
         var result = new List<RectInt>(slots.Count);
-        var composite = GetCompositeShape(timeSlot);
         foreach (var slot in slots)
-            result.Add(composite.GetRasterBoundsFor(slot.DocLayers));
+            result.Add(GetSlotBounds(slot, timeSlot));
         return result;
+    }
+
+    private RectInt GetSlotBounds(MeshSlot slot, int timeSlot)
+    {
+        var bounds = RectInt.Zero;
+        var first = true;
+        foreach (var (layerIdx, _) in slot.LayerShapes)
+        {
+            var frameIdx = GetLayerFrameAtTimeSlot(layerIdx, timeSlot);
+            var shape = _documentLayers[layerIdx].Frames[frameIdx].Shape;
+            var sb = shape.GetRasterBounds();
+            if (sb.Width <= 0 || sb.Height <= 0) continue;
+            bounds = first ? sb : RectInt.Union(bounds, sb);
+            first = false;
+        }
+        return bounds;
     }
 
     public Vector2Int GetFrameAtlasSize(ushort timeSlot)
@@ -2112,20 +2124,11 @@ public class SpriteDocument : Document, ISpriteSource
     public List<MeshSlot> GetMeshSlots(ushort timeSlot)
     {
         var slots = new List<MeshSlot>();
-        var shape = GetCompositeShape(timeSlot);
 
         EnsureDefaultLayer();
 
-        // Collect subtract paths first — they'll be appended to all slots
-        var subtractPaths = new List<ushort>();
-        for (ushort i = 0; i < shape.PathCount; i++)
-        {
-            if (shape.GetPath(i).IsSubtract)
-                subtractPaths.Add(i);
-        }
-
-        // Iterate document layers in order, collecting paths per layer.
-        // Auto-merge adjacent layers with same (SortOrder, Bone) into one MeshSlot.
+        // Iterate document layers in order, grouping by (SortOrder, Bone).
+        // Adjacent layers with same (SortOrder, Bone) auto-merge into one MeshSlot.
         MeshSlot? currentSlot = null;
 
         for (var layerIdx = 0; layerIdx < _documentLayers.Count; layerIdx++)
@@ -2133,6 +2136,8 @@ public class SpriteDocument : Document, ISpriteSource
             var docLayer = _documentLayers[layerIdx];
             var sortOrder = docLayer.SortOrder;
             var bone = docLayer.Bone;
+            var frameIdx = GetLayerFrameAtTimeSlot(layerIdx, timeSlot);
+            var shape = docLayer.Frames[frameIdx].Shape;
 
             // Auto-merge: extend current slot if same sort order and bone
             if (currentSlot != null && currentSlot.SortOrder == sortOrder && currentSlot.Bone == bone)
@@ -2145,23 +2150,7 @@ public class SpriteDocument : Document, ISpriteSource
                 slots.Add(currentSlot);
             }
 
-            currentSlot.DocLayers.Add((byte)layerIdx);
-
-            // Add paths belonging to this document layer
-            for (ushort pi = 0; pi < shape.PathCount; pi++)
-            {
-                ref readonly var path = ref shape.GetPath(pi);
-                if (path.IsSubtract) continue; // handled separately
-                if (path.DocLayer != layerIdx) continue;
-                currentSlot.PathIndices.Add(pi);
-            }
-        }
-
-        // Append subtract paths to all slots
-        foreach (var slot in slots)
-        {
-            foreach (var subtractIdx in subtractPaths)
-                slot.PathIndices.Add(subtractIdx);
+            currentSlot.LayerShapes.Add(((byte)layerIdx, shape));
         }
 
         return slots;
