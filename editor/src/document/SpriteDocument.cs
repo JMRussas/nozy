@@ -14,36 +14,52 @@ using SixLabors.ImageSharp.Processing;
 
 namespace NoZ.Editor;
 
-public enum DocumentLayerType : byte
+public class GenerationConfig
 {
-    Vector,
-    Generated,
+    public string Prompt = "";
+    public string NegativePrompt = "";
+    public string Style = "";
+    public long Seed;
+    public float ControlNetStrength = 0.3f;
+    public float StyleStrength = 0.7f;
+    public bool Auto;
+
+    // Editor-only state (not persisted)
+    public Texture? GeneratedTexture;
+    public bool IsGenerating;
+
+    public bool HasPrompt => !string.IsNullOrEmpty(Prompt);
+
+    public GenerationConfig Clone() => new()
+    {
+        Prompt = Prompt,
+        NegativePrompt = NegativePrompt,
+        Style = Style,
+        Seed = Seed,
+        ControlNetStrength = ControlNetStrength,
+        StyleStrength = StyleStrength,
+        Auto = Auto,
+    };
 }
 
 public class DocumentLayer
 {
     public string Name = "";
-    public DocumentLayerType Type;
     public bool Visible = true;
     public bool Locked;
     public float Opacity = 1.0f;
     public byte SortOrder;
     public StringId Bone;
 
+    /// <summary>Non-null when this layer is generative.</summary>
+    public GenerationConfig? Generation;
+
     // Per-layer frame timeline
     public readonly LayerFrame[] Frames = new LayerFrame[Sprite.MaxFrames];
     public ushort FrameCount = 1;
 
-    // Generated layer properties (only used when Type == Generated)
-    public string Prompt = "";
-    public string NegativePrompt = "";
-    public string Style = "";
-    public long Seed;
-    public bool Auto;
-    public Texture? GeneratedTexture;
-    public bool IsGenerating;
-
-    public bool HasGeneration => Type == DocumentLayerType.Generated && !string.IsNullOrEmpty(Prompt);
+    public bool IsGenerated => Generation != null;
+    public bool HasGeneration => Generation is { HasPrompt: true };
 
     /// <summary>Total time slots this layer occupies (each frame = 1 + Hold slots).</summary>
     public int TotalTimeSlots
@@ -106,17 +122,12 @@ public class DocumentLayer
         var clone = new DocumentLayer
         {
             Name = Name,
-            Type = Type,
             Visible = Visible,
             Locked = Locked,
             Opacity = Opacity,
             SortOrder = SortOrder,
             Bone = Bone,
-            Prompt = Prompt,
-            NegativePrompt = NegativePrompt,
-            Style = Style,
-            Seed = Seed,
-            Auto = Auto,
+            Generation = Generation?.Clone(),
             FrameCount = FrameCount,
         };
         for (var i = 0; i < FrameCount; i++)
@@ -259,13 +270,9 @@ public class SpriteDocument : Document, ISpriteSource
     public bool ShowSkeletonOverlay { get; set; }
     public Vector2Int? ConstrainedSize { get; set; }
 
-    private string _generationHash = "";
-
-    /// <summary>Returns true if any document layer is a Generated layer with a prompt.</summary>
     public bool HasGeneration => _documentLayers.Any(l => l.HasGeneration);
 
-    /// <summary>Returns true if any generated layer is currently generating.</summary>
-    public bool IsGenerating => _documentLayers.Any(l => l.IsGenerating);
+    public bool IsGenerating => _documentLayers.Any(l => l.Generation?.IsGenerating == true);
 
     public void EnsureDefaultLayer()
     {
@@ -278,16 +285,16 @@ public class SpriteDocument : Document, ISpriteSource
             ? _documentLayers[CurrentDocumentLayer]
             : null;
 
-    public int AddDocumentLayer(DocumentLayerType type = DocumentLayerType.Vector)
+    public int AddDocumentLayer(bool generated = false)
     {
         if (_documentLayers.Count >= MaxDocumentLayers)
             return -1;
 
-        var name = type == DocumentLayerType.Generated
-            ? $"Generated {_documentLayers.Count(l => l.Type == DocumentLayerType.Generated) + 1}"
+        var name = generated
+            ? $"Generated {_documentLayers.Count(l => l.IsGenerated) + 1}"
             : $"Layer {_documentLayers.Count + 1}";
 
-        _documentLayers.Add(new DocumentLayer { Name = name, Type = type });
+        _documentLayers.Add(new DocumentLayer { Name = name, Generation = generated ? new GenerationConfig() : null });
         CurrentDocumentLayer = _documentLayers.Count - 1;
         MarkModified();
         return CurrentDocumentLayer;
@@ -604,7 +611,7 @@ public class SpriteDocument : Document, ISpriteSource
             if (tk.ExpectIdentifier("sort"))
                 layer.SortOrder = (byte)tk.ExpectInt();
             else if (tk.ExpectIdentifier("generated"))
-                layer.Type = DocumentLayerType.Generated;
+                layer.Generation = new GenerationConfig();
             else if (tk.ExpectIdentifier("locked"))
                 layer.Locked = true;
             else if (tk.ExpectIdentifier("hidden"))
@@ -983,7 +990,7 @@ public class SpriteDocument : Document, ISpriteSource
             writer.Write($"layer \"{layer.Name}\"");
             if (layer.SortOrder != 0)
                 writer.Write($" sort {layer.SortOrder}");
-            if (layer.Type == DocumentLayerType.Generated)
+            if (layer.IsGenerated)
                 writer.Write(" generated");
             if (layer.Locked)
                 writer.Write(" locked");
@@ -1184,14 +1191,17 @@ public class SpriteDocument : Document, ISpriteSource
         for (var i = 0; i < _documentLayers.Count; i++)
         {
             var layer = _documentLayers[i];
-            if (layer.Type != DocumentLayerType.Generated)
+            if (!layer.IsGenerated)
                 continue;
+            var gen = layer.Generation!;
             var section = $"generate.layer{i}";
-            layer.Prompt = meta.GetString(section, "prompt", layer.Prompt);
-            layer.NegativePrompt = meta.GetString(section, "negative_prompt", layer.NegativePrompt);
-            layer.Style = meta.GetString(section, "style", layer.Style);
-            layer.Seed = meta.GetLong(section, "seed", layer.Seed);
-            layer.Auto = meta.GetBool(section, "auto", layer.Auto);
+            gen.Prompt = meta.GetString(section, "prompt", gen.Prompt);
+            gen.NegativePrompt = meta.GetString(section, "negative_prompt", gen.NegativePrompt);
+            gen.Style = meta.GetString(section, "style", gen.Style);
+            gen.Seed = meta.GetLong(section, "seed", gen.Seed);
+            gen.Auto = meta.GetBool(section, "auto", gen.Auto);
+            gen.ControlNetStrength = meta.GetFloat(section, "controlnet_strength", gen.ControlNetStrength);
+            gen.StyleStrength = meta.GetFloat(section, "style_strength", gen.StyleStrength);
         }
 
         // Legacy migration: old [generate] section at document level
@@ -1199,17 +1209,18 @@ public class SpriteDocument : Document, ISpriteSource
         if (!string.IsNullOrEmpty(legacyPrompt) && !_documentLayers.Any(l => l.HasGeneration))
         {
             // Find or create a generated layer for the legacy config
-            var genLayer = _documentLayers.FirstOrDefault(l => l.Type == DocumentLayerType.Generated);
+            var genLayer = _documentLayers.FirstOrDefault(l => l.IsGenerated);
             if (genLayer == null)
             {
-                genLayer = new DocumentLayer { Name = "Generated", Type = DocumentLayerType.Generated };
+                genLayer = new DocumentLayer { Name = "Generated", Generation = new GenerationConfig() };
                 _documentLayers.Insert(0, genLayer); // insert at bottom
             }
-            genLayer.Prompt = legacyPrompt;
-            genLayer.NegativePrompt = meta.GetString("generate", "negative_prompt", "");
-            genLayer.Style = meta.GetString("generate", "style", "");
-            genLayer.Seed = meta.GetLong("generate", "seed", 0);
-            genLayer.Auto = meta.GetBool("generate", "auto", false);
+            var gen = genLayer.Generation!;
+            gen.Prompt = legacyPrompt;
+            gen.NegativePrompt = meta.GetString("generate", "negative_prompt", "");
+            gen.Style = meta.GetString("generate", "style", "");
+            gen.Seed = meta.GetLong("generate", "seed", 0);
+            gen.Auto = meta.GetBool("generate", "auto", false);
         }
     }
 
@@ -1245,17 +1256,22 @@ public class SpriteDocument : Document, ISpriteSource
         {
             var layer = _documentLayers[i];
             var section = $"generate.layer{i}";
-            if (layer.Type == DocumentLayerType.Generated && layer.HasGeneration)
+            if (layer.HasGeneration)
             {
-                meta.SetString(section, "prompt", layer.Prompt);
-                if (!string.IsNullOrEmpty(layer.NegativePrompt))
-                    meta.SetString(section, "negative_prompt", layer.NegativePrompt);
-                if (!string.IsNullOrEmpty(layer.Style))
-                    meta.SetString(section, "style", layer.Style);
-                if (layer.Seed != 0)
-                    meta.SetLong(section, "seed", layer.Seed);
-                if (layer.Auto)
+                var gen = layer.Generation!;
+                meta.SetString(section, "prompt", gen.Prompt);
+                if (!string.IsNullOrEmpty(gen.NegativePrompt))
+                    meta.SetString(section, "negative_prompt", gen.NegativePrompt);
+                if (!string.IsNullOrEmpty(gen.Style))
+                    meta.SetString(section, "style", gen.Style);
+                if (gen.Seed != 0)
+                    meta.SetLong(section, "seed", gen.Seed);
+                if (gen.Auto)
                     meta.SetBool(section, "auto", true);
+                if (gen.ControlNetStrength != 0.3f)
+                    meta.SetFloat(section, "controlnet_strength", gen.ControlNetStrength);
+                if (gen.StyleStrength != 0.7f)
+                    meta.SetFloat(section, "style_strength", gen.StyleStrength);
             }
             else
             {
@@ -1298,11 +1314,12 @@ public class SpriteDocument : Document, ISpriteSource
         for (var i = 0; i < _documentLayers.Count; i++)
         {
             var layer = _documentLayers[i];
-            if (layer.Type != DocumentLayerType.Generated)
+            if (!layer.IsGenerated)
                 continue;
 
-            layer.GeneratedTexture?.Dispose();
-            layer.GeneratedTexture = null;
+            var gen = layer.Generation!;
+            gen.GeneratedTexture?.Dispose();
+            gen.GeneratedTexture = null;
 
             // Try new path first, then legacy path for migration
             var genPath = GetGeneratedImagePath(i);
@@ -1323,7 +1340,7 @@ public class SpriteDocument : Document, ISpriteSource
                 var h = srcImage.Height;
                 var pixels = new byte[w * h * 4];
                 srcImage.CopyPixelDataTo(pixels);
-                layer.GeneratedTexture = Texture.Create(w, h, pixels, TextureFormat.RGBA8, TextureFilter.Linear, $"{Name}_gen{i}");
+                gen.GeneratedTexture = Texture.Create(w, h, pixels, TextureFormat.RGBA8, TextureFilter.Linear, $"{Name}_gen{i}");
                 Log.Info($"Loaded generated texture for '{Name}' layer {i} ({w}x{h})");
             }
             catch (Exception ex)
@@ -1333,16 +1350,16 @@ public class SpriteDocument : Document, ISpriteSource
         }
     }
 
-    private string ComputeGenerationHash(DocumentLayer layer)
+    private string ComputeGenerationHash(GenerationConfig gen)
     {
-        var input = $"{layer.Prompt}|{layer.NegativePrompt}|{layer.Style}|{layer.Seed}";
+        var input = $"{gen.Prompt}|{gen.NegativePrompt}|{gen.Style}|{gen.Seed}";
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
         return Convert.ToHexString(bytes);
     }
 
 
 
-    private bool TryBlitGeneratedImage(int layerIndex, PixelData<Color32> image, in AtlasSpriteRect rect, int padding)
+    private bool TryBlitGeneratedImage(int layerIndex, PixelData<Color32> image, in AtlasSpriteRect rect, int padding, float opacity = 1.0f)
     {
         var genPath = GetGeneratedImagePath(layerIndex);
         if (!File.Exists(genPath))
@@ -1374,13 +1391,15 @@ public class SpriteDocument : Document, ISpriteSource
                 rect.Rect.Position + new Vector2Int(padding, padding),
                 new Vector2Int(w, h));
 
-            // Blit pixels into the atlas image
+            // Alpha-blend pixels into the atlas image
             for (int y = 0; y < h; y++)
             {
                 for (int x = 0; x < w; x++)
                 {
                     var pixel = srcImage[x, y];
-                    image[rasterRect.X + x, rasterRect.Y + y] = new Color32(pixel.R, pixel.G, pixel.B, pixel.A);
+                    var src = new Color32(pixel.R, pixel.G, pixel.B, (byte)(pixel.A * opacity));
+                    var dst = image[rasterRect.X + x, rasterRect.Y + y];
+                    image[rasterRect.X + x, rasterRect.Y + y] = Color32.Blend(src, dst);
                 }
             }
 
@@ -1405,8 +1424,9 @@ public class SpriteDocument : Document, ISpriteSource
 
     /// <summary>
     /// Rasterizes the sprite's vector paths (colored silhouette) to a PNG byte array for the generation API.
+    /// Only paths assigned to the target layer are included.
     /// </summary>
-    private byte[] RasterizeSilhouetteToPng()
+    private byte[] RasterizeSilhouetteToPng(int targetLayerIndex)
     {
         UpdateBounds();
         var dpi = EditorApplication.Config.PixelsPerUnit;
@@ -1422,8 +1442,15 @@ public class SpriteDocument : Document, ISpriteSource
         var slots = GetMeshSlots(0);
         foreach (var slot in slots)
         {
-            if (HasPaths(slot))
-                RasterizeSlot(slot, pixels, targetRect, sourceOffset, dpi);
+            // Filter to only the target layer's shape within this slot
+            var filtered = new MeshSlot(slot.SortOrder, slot.Bone);
+            foreach (var (layerIdx, shape) in slot.LayerShapes)
+            {
+                if (layerIdx == targetLayerIndex)
+                    filtered.LayerShapes.Add((layerIdx, shape));
+            }
+            if (HasPaths(filtered))
+                RasterizeSlot(filtered, pixels, targetRect, sourceOffset, dpi);
         }
 
         // Convert to ImageSharp image: composite path colors over white background
@@ -1471,10 +1498,10 @@ public class SpriteDocument : Document, ISpriteSource
         {
             layerIndex = CurrentDocumentLayer;
             if (layerIndex < 0 || layerIndex >= _documentLayers.Count ||
-                _documentLayers[layerIndex].Type != DocumentLayerType.Generated)
+                !_documentLayers[layerIndex].IsGenerated)
             {
                 // Find first generated layer
-                layerIndex = _documentLayers.FindIndex(l => l.Type == DocumentLayerType.Generated);
+                layerIndex = _documentLayers.FindIndex(l => l.IsGenerated);
             }
         }
 
@@ -1485,7 +1512,8 @@ public class SpriteDocument : Document, ISpriteSource
         }
 
         var genLayer = _documentLayers[layerIndex];
-        if (genLayer.IsGenerating)
+        var gen = genLayer.Generation!;
+        if (gen.IsGenerating)
             return;
 
         if (!ConstrainedSize.HasValue)
@@ -1494,14 +1522,14 @@ public class SpriteDocument : Document, ISpriteSource
             return;
         }
 
-        genLayer.IsGenerating = true;
+        gen.IsGenerating = true;
 
-        // Rasterize silhouette on the main thread (needs access to shape data)
-        var silhouetteBytes = RasterizeSilhouetteToPng();
+        // Rasterize silhouette on the main thread — only paths on this layer
+        var silhouetteBytes = RasterizeSilhouetteToPng(layerIndex);
         if (silhouetteBytes.Length == 0)
         {
             Log.Error("Cannot generate: sprite has no visible shapes");
-            genLayer.IsGenerating = false;
+            gen.IsGenerating = false;
             return;
         }
 
@@ -1511,13 +1539,13 @@ public class SpriteDocument : Document, ISpriteSource
         var inputs = new Dictionary<string, string>
         {
             ["sketch"] = silhouetteBase64,
-            ["prompt"] = genLayer.Prompt
+            ["prompt"] = gen.Prompt
         };
 
         // Load style reference texture for ipadapter if specified
-        if (!string.IsNullOrEmpty(genLayer.Style))
+        if (!string.IsNullOrEmpty(gen.Style))
         {
-            var styleDoc = DocumentManager.Find(AssetType.Texture, genLayer.Style) as TextureDocument;
+            var styleDoc = DocumentManager.Find(AssetType.Texture, gen.Style) as TextureDocument;
             if (styleDoc != null && File.Exists(styleDoc.Path))
             {
                 var styleBytes = File.ReadAllBytes(styleDoc.Path);
@@ -1525,7 +1553,7 @@ public class SpriteDocument : Document, ISpriteSource
             }
             else
             {
-                Log.Warning($"Style texture '{genLayer.Style}' not found");
+                Log.Warning($"Style texture '{gen.Style}' not found");
             }
         }
 
@@ -1536,7 +1564,7 @@ public class SpriteDocument : Document, ISpriteSource
             {
                 Id = "gen",
                 Type = "generate",
-                Properties = BuildGenerateNodeProperties(genLayer)
+                Properties = BuildGenerateNodeProperties(gen)
             },
             new()
             {
@@ -1563,7 +1591,7 @@ public class SpriteDocument : Document, ISpriteSource
 
         GenerationClient.Generate(request, response =>
         {
-            genLayer.IsGenerating = false;
+            gen.IsGenerating = false;
 
             if (response == null)
             {
@@ -1585,9 +1613,9 @@ public class SpriteDocument : Document, ISpriteSource
                 Log.Info($"Debug: wrote generated image to {debugPath} ({imageBytes.Length} bytes)");
 
                 // Update seed if it was random
-                if (genLayer.Seed == 0 && response.Seed != 0)
+                if (gen.Seed == 0 && response.Seed != 0)
                 {
-                    genLayer.Seed = response.Seed;
+                    gen.Seed = response.Seed;
                     MarkMetaModified();
                 }
 
@@ -1603,38 +1631,38 @@ public class SpriteDocument : Document, ISpriteSource
         });
     }
 
-    private Dictionary<string, JsonElement> BuildGenerateNodeProperties(DocumentLayer genLayer)
+    private Dictionary<string, JsonElement> BuildGenerateNodeProperties(GenerationConfig gen)
     {
         var props = new Dictionary<string, JsonElement>
         {
             ["model"] = JsonSerializer.SerializeToElement("sdxl-base"),
             ["prompt"] = JsonSerializer.SerializeToElement("@input.prompt"),
             ["negative_prompt"] = JsonSerializer.SerializeToElement(
-                string.IsNullOrEmpty(genLayer.NegativePrompt)
+                string.IsNullOrEmpty(gen.NegativePrompt)
                     ? "blurry, low quality, 3d render, photorealistic"
-                    : genLayer.NegativePrompt),
+                    : gen.NegativePrompt),
         };
 
         var controlnet = new Dictionary<string, object>
         {
             ["model"] = "scribble",
             ["image"] = "@input.sketch",
-            ["strength"] = 0.3
+            ["strength"] = gen.ControlNetStrength
         };
         props["controlnet"] = JsonSerializer.SerializeToElement(controlnet);
 
-        if (!string.IsNullOrEmpty(genLayer.Style))
+        if (!string.IsNullOrEmpty(gen.Style))
         {
             var ipadapter = new Dictionary<string, object>
             {
                 ["image"] = "@input.style_ref",
-                ["strength"] = 0.7
+                ["strength"] = gen.StyleStrength
             };
             props["ipadapter"] = JsonSerializer.SerializeToElement(ipadapter);
         }
 
-        if (genLayer.Seed != 0)
-            props["seed"] = JsonSerializer.SerializeToElement(genLayer.Seed);
+        if (gen.Seed != 0)
+            props["seed"] = JsonSerializer.SerializeToElement(gen.Seed);
 
         return props;
     }
@@ -1675,21 +1703,31 @@ public class SpriteDocument : Document, ISpriteSource
                 new Vector2Int(slotWidth, slotRasterBounds.Size.Y + padding2));
             var sourceOffset = -slotRasterBounds.Position + new Vector2Int(padding, padding);
 
-            // Check if any document layer in this slot is a generated layer
-            var blittedGenerated = false;
-            foreach (var (layerIdx, _) in slot.LayerShapes)
+            // Composite each document layer in this slot: generated layers alpha-blit,
+            // vector layers rasterize their paths. All layers blend in order.
+            var hasContent = false;
+            foreach (var (layerIdx, layerShape) in slot.LayerShapes)
             {
-                if (layerIdx < _documentLayers.Count && _documentLayers[layerIdx].Type == DocumentLayerType.Generated)
+                if (layerIdx >= _documentLayers.Count) continue;
+                var docLayer = _documentLayers[layerIdx];
+
+                if (docLayer.IsGenerated)
                 {
-                    if (TryBlitGeneratedImage(layerIdx, image, rect, padding))
-                    {
-                        blittedGenerated = true;
-                        break;
-                    }
+                    if (TryBlitGeneratedImage(layerIdx, image, rect, padding, docLayer.Opacity))
+                        hasContent = true;
+                }
+                else if (layerShape.PathCount > 0)
+                {
+                    // Build a single-layer slot for vector rasterization
+                    var singleSlot = new MeshSlot(slot.SortOrder, slot.Bone);
+                    singleSlot.LayerShapes.Add((layerIdx, layerShape));
+                    RasterizeSlot(singleSlot, image, targetRect, sourceOffset, dpi);
+                    hasContent = true;
                 }
             }
 
-            if (!blittedGenerated && HasPaths(slot))
+            // Fallback: if no per-layer content was composited, rasterize the whole slot
+            if (!hasContent && HasPaths(slot))
                 RasterizeSlot(slot, image, targetRect, sourceOffset, dpi);
 
             // Bleed RGB into transparent pixels to prevent fringing with linear filtering.

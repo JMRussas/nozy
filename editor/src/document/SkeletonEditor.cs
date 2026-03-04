@@ -29,6 +29,7 @@ internal partial class SkeletonEditor : DocumentEditor
     private readonly SavedBone[] _savedBones = new SavedBone[Skeleton.MaxBones];
     private Vector2 _selectionCenter;
     private Vector2 _selectionCenterWorld;
+    private PopupMenuItem[] _contextMenuItems = null!;
     private bool _clearSelectionOnUp;
     private bool _ignoreUp;
     private bool _showPreview = true;
@@ -57,20 +58,15 @@ internal partial class SkeletonEditor : DocumentEditor
 
         bool HasSelection() => Document.SelectedBoneCount > 0;
 
-        ContextMenu = new PopupMenuDef
-        {
-            Title = "Skeleton",
-            Items =
-            [
-                PopupMenuItem.FromCommand(renameCommand, enabled: () => Document.SelectedBoneCount == 1),
-                PopupMenuItem.FromCommand(deleteCommand, enabled: HasSelection),
-                PopupMenuItem.Separator(),
-                PopupMenuItem.FromCommand(moveCommand, enabled: HasSelection),
-                PopupMenuItem.FromCommand(scaleCommand, enabled: HasSelection),
-                PopupMenuItem.Separator(),
-                PopupMenuItem.FromCommand(exitEditCommand),
-            ]
-        };
+        _contextMenuItems = [
+            PopupMenuItem.FromCommand(renameCommand, enabled: () => Document.SelectedBoneCount == 1),
+            PopupMenuItem.FromCommand(deleteCommand, enabled: HasSelection),
+            PopupMenuItem.Separator(),
+            PopupMenuItem.FromCommand(moveCommand, enabled: HasSelection),
+            PopupMenuItem.FromCommand(scaleCommand, enabled: HasSelection),
+            PopupMenuItem.Separator(),
+            PopupMenuItem.FromCommand(exitEditCommand),
+        ];
 
         Commands = _commands;
         ClearSelection();

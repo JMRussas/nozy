@@ -38,6 +38,8 @@ public static class EditorAssets
         public const string IconExpandDown = "icon_expand_down";
         public const string IconExpandUp = "icon_expand_up";
         public const string IconFill = "icon_fill";
+        public const string IconFoldoutClosed = "icon_foldout_closed";
+        public const string IconFoldoutOpen = "icon_foldout_open";
         public const string IconKeyframe = "icon_keyframe";
         public const string IconLayer = "icon_layer";
         public const string IconLoop = "icon_loop";
@@ -150,6 +152,8 @@ public static class EditorAssets
         public static Sprite IconExpandDown { get; private set; } = null!;
         public static Sprite IconExpandUp { get; private set; } = null!;
         public static Sprite IconFill { get; private set; } = null!;
+        public static Sprite IconFoldoutClosed { get; private set; } = null!;
+        public static Sprite IconFoldoutOpen { get; private set; } = null!;
         public static Sprite IconKeyframe { get; private set; } = null!;
         public static Sprite IconLayer { get; private set; } = null!;
         public static Sprite IconLoop { get; private set; } = null!;
@@ -199,6 +203,8 @@ public static class EditorAssets
             IconExpandDown = (Sprite)Asset.Load(AssetType.Sprite, Names.IconExpandDown)!;
             IconExpandUp = (Sprite)Asset.Load(AssetType.Sprite, Names.IconExpandUp)!;
             IconFill = (Sprite)Asset.Load(AssetType.Sprite, Names.IconFill)!;
+            IconFoldoutClosed = (Sprite)Asset.Load(AssetType.Sprite, Names.IconFoldoutClosed)!;
+            IconFoldoutOpen = (Sprite)Asset.Load(AssetType.Sprite, Names.IconFoldoutOpen)!;
             IconKeyframe = (Sprite)Asset.Load(AssetType.Sprite, Names.IconKeyframe)!;
             IconLayer = (Sprite)Asset.Load(AssetType.Sprite, Names.IconLayer)!;
             IconLoop = (Sprite)Asset.Load(AssetType.Sprite, Names.IconLoop)!;
@@ -249,6 +255,8 @@ public static class EditorAssets
             IconExpandDown?.Dispose();
             IconExpandUp?.Dispose();
             IconFill?.Dispose();
+            IconFoldoutClosed?.Dispose();
+            IconFoldoutOpen?.Dispose();
             IconKeyframe?.Dispose();
             IconLayer?.Dispose();
             IconLoop?.Dispose();

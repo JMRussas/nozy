@@ -57,6 +57,12 @@ public static class EditorStyle
     public const float ButtonHeight = 32f;
     public const float ButtonBorderRadius = 8f;
 
+
+    public static class Palette
+    {
+        public static readonly Color Panel = Color.FromRgb(0x2C2C2C);
+    }
+
     // :workspace
     public static class Workspace
     {
@@ -182,6 +188,16 @@ public static class EditorStyle
     // :popup
     public static class Popup
     {
+        public static readonly PopupStyle Left = new()
+        {
+            AnchorX = Align.Min,
+            AnchorY = Align.Min,
+            Spacing = 2.0f,
+            PopupAlignX = Align.Max,
+            PopupAlignY = Align.Min,
+            ClampToScreen = true,
+        };
+
         public static readonly Color FillColor = Color.FromRgb(0x181818);
         public static readonly Color BorderColor = Color.FromRgb(0x272727);
         public readonly static ContainerStyle Root = new()
@@ -477,13 +493,11 @@ public static class EditorStyle
     // :documenteditor
     public static class DocumentEditor
     {
-        public static readonly ContainerStyle Root = Panel.Root with
+        public static readonly ContainerStyle Root = new()
         {
-            AlignX = Align.Center,
+            Color = Color.FromRgb(0x323232),
             AlignY = Align.Max,
             Height = Size.Fit,
-            Width = Size.Fit,
-            MinWidth = 100,
             Margin = Panel.BottomMargin,
             Padding = EdgeInsets.Bottom(Control.Spacing * 3)
         };
@@ -492,19 +506,28 @@ public static class EditorStyle
     // :inspector
     public static class Inspector
     {
-        public const float Width = 300f;
         public const float LabelWidth = 80f;
         public const float RowHeight = 28f;
         public const float SectionSpacing = 12f;
 
-        public static readonly ContainerStyle Root = Panel.Root with
+        public static readonly ContainerStyle Root = new()
         {
-            AlignX = Align.Max,
-            AlignY = Align.Min,
-            Width = Width,
-            Margin = EdgeInsets.Zero,
-            Padding = EdgeInsets.All(Panel.BorderWidth),
-            BorderRadius = 0
+            Width = 300.0f,
+            Color = Palette.Panel,
+        };
+
+
+        public static readonly ContainerStyle Section = new()
+        {            
+        };
+
+        public static readonly LabelStyle SectionText = Label with
+        {            
+        };
+
+        public static readonly ContainerStyle Property = new()
+        {
+            Height = Control.Height,
         };
 
         public static readonly ContainerStyle Content = new()
@@ -535,11 +558,6 @@ public static class EditorStyle
             AlignY = Align.Center
         };
 
-        public static readonly LabelStyle SectionLabel = Label with
-        {
-            FontSize = 14f,
-            Color = Color.FromRgb(0xcccccc)
-        };
 
         public static readonly TextBoxStyle TextBox = new()
         {

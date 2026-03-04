@@ -14,6 +14,7 @@ internal partial class TextureEditor : DocumentEditor
 
     private int _nextFieldId;
     private float _savedScale;
+    private PopupMenuItem[] _contextMenuItems;
     public new TextureDocument Document => (TextureDocument)base.Document;
 
     public TextureEditor(TextureDocument doc) : base(doc)
@@ -27,17 +28,12 @@ internal partial class TextureEditor : DocumentEditor
             exitEditCommand
         ];
 
-        ContextMenu = new PopupMenuDef
-        {
-            Title = "Texture",
-            Items =
-            [
-                PopupMenuItem.FromCommand(scaleCommand),
-
-                PopupMenuItem.Separator(),
-                PopupMenuItem.FromCommand(exitEditCommand),
-            ]
-        };
+        _contextMenuItems =
+        [
+            PopupMenuItem.FromCommand(scaleCommand),
+            PopupMenuItem.Separator(),
+            PopupMenuItem.FromCommand(exitEditCommand),
+        ];
     }
 
     public override void Update()

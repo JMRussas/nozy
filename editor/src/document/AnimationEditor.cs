@@ -31,6 +31,7 @@ internal partial class AnimationEditor : DocumentEditor
     private bool _showSkeleton = true;
     private bool _clearSelectionOnUp;
     private bool _ignoreUp;
+    private PopupMenuItem[] _contextMenuItems;
     private Vector2 _selectionCenter;
     private Vector2 _selectionCenterWorld;
     private bool _onionSkin;
@@ -74,17 +75,12 @@ internal partial class AnimationEditor : DocumentEditor
 
         bool HasSelection() => Document.SelectedBoneCount > 0;
 
-        ContextMenu = new PopupMenuDef
-        {
-            Title = "Animation",
-            Items =
-            [
-                PopupMenuItem.FromCommand(copyCommand, enabled: HasSelection),
-                PopupMenuItem.FromCommand(pasteCommand, enabled: Clipboard.Is<AnimationFrameData>),
-                PopupMenuItem.Separator(),
-                PopupMenuItem.FromCommand(exitEditCommand),
-            ]
-        };
+        _contextMenuItems = [
+            PopupMenuItem.FromCommand(copyCommand, enabled: HasSelection),
+            PopupMenuItem.FromCommand(pasteCommand, enabled: Clipboard.Is<AnimationFrameData>),
+            PopupMenuItem.Separator(),
+            PopupMenuItem.FromCommand(exitEditCommand),
+        ];
 
         ClearSelection();
         Document.UpdateTransforms();

@@ -6,22 +6,6 @@ using System.Numerics;
 
 namespace NoZ.Editor;
 
-public struct PopupMenuDef(
-    PopupMenuItem[] items,
-    string? title = null,
-    Sprite? icon = null,
-    bool showChecked = false,
-    bool showIcons = true)
-{
-    public string? Title = title;
-    public Sprite? Icon = icon;
-    public PopupMenuItem[] Items = items;
-    public bool ShowChecked = showChecked;
-    public bool ShowIcons = showIcons;
-
-    public static implicit operator PopupMenuDef(PopupMenuItem[] items) => new(items);
-}
-
 public struct PopupMenuItem
 {
     public string? Label;
@@ -69,6 +53,7 @@ public static partial class PopupMenu
     [ElementId("Item", count: MaxItems)]
     private static partial class ElementId { }
 
+    private static int _id;
     private static bool _visible;
     private static Vector2 _position;
     private static Vector2 _worldPosition;
@@ -76,7 +61,7 @@ public static partial class PopupMenu
     private static int _itemCount;
     private static string? _title;
     private static InputScope _scope;
-    private static PopupStyle? _popupStyle;
+    private static PopupStyle _popupStyle;
     private static readonly LevelState[] _levels = new LevelState[MaxSubmenuDepth];
 
     public static bool IsVisible => _visible;
@@ -94,60 +79,37 @@ public static partial class PopupMenu
         _title = null;
     }
 
-    public static void Open(PopupMenuDef def) =>
-        Open(def.Items, def.Title, showChecked: def.ShowChecked, showIcons: def.ShowIcons);
+    public static void Open(
+        int id,
+        PopupMenuItem[] items,
+        string? title = null) => Open(
+            id,
+            items,
+            new PopupStyle() { 
+                AnchorRect = new Rect(UI.ScreenToUI(Input.MousePosition), Vector2.Zero)
+            },
+            title);
 
-    public static void Open(PopupMenuDef def, Vector2 position) =>
-        Open(def.Items, def.Title, position, showChecked: def.ShowChecked, showIcons: def.ShowIcons);
-
-    public static void Open(PopupMenuDef def, PopupStyle popupStyle) =>
-        Open(def.Items, def.Title, popupStyle, showChecked: def.ShowChecked, showIcons: def.ShowIcons);
-
-    public static void Open(PopupMenuItem[] items, string? title = null, bool showChecked = true, bool showIcons = true) =>
-        Open(items, title, UI.ScreenToUI(Input.MousePosition), showChecked, showIcons);
-
-    public static void Open(PopupMenuItem[] items, string? title, Vector2 position, bool showChecked = true, bool showIcons = true)
+    public static void Open(
+        int id,
+        PopupMenuItem[] items,
+        PopupStyle style,
+        string? title = null)
     {
+        _id = id;
         _items = items;
         _itemCount = Math.Min(items.Length, MaxItems);
         _title = title;
-        _position = position;
-        _popupStyle = null;
+        _popupStyle = style;
         _worldPosition = Workspace.MouseWorldPosition;
         _visible = true;
         for (var i = 0; i < MaxSubmenuDepth; i++)
             _levels[i] = new LevelState { OpenSubmenu = -1, ShowChecked = true, ShowIcons = true };
-        _levels[0].ShowChecked = showChecked;
-        _levels[0].ShowIcons = showIcons;
+        _levels[0].ShowChecked = style.ShowChecked;
+        _levels[0].ShowIcons = style.ShowIcons;
         UI.ClearFocus();
 
         _scope = Input.PushScope();
-    }
-
-    public static void Open(PopupMenuItem[] items, string? title, PopupStyle popupStyle, bool showChecked = true, bool showIcons = true)
-    {
-        _items = items;
-        _itemCount = Math.Min(items.Length, MaxItems);
-        _title = title;
-        _position = Vector2.Zero;
-        _popupStyle = popupStyle;
-        _worldPosition = Workspace.MouseWorldPosition;
-        _visible = true;
-        for (var i = 0; i < MaxSubmenuDepth; i++)
-            _levels[i] = new LevelState { OpenSubmenu = -1, ShowChecked = true, ShowIcons = true };
-        _levels[0].ShowChecked = showChecked;
-        _levels[0].ShowIcons = showIcons;
-        UI.ClearFocus();
-
-        _scope = Input.PushScope();
-    }
-
-    public static void Open(Command[] commands, string? title = null)
-    {
-        var items = new PopupMenuItem[commands.Length];
-        for (var i = 0; i < commands.Length; i++)
-            items[i] = PopupMenuItem.FromCommand(commands[i]);
-        Open(items, title);
     }
 
     public static void Close()
@@ -156,9 +118,12 @@ public static partial class PopupMenu
         _items = null;
         _itemCount = 0;
         _title = null;
+        _id = 0;
         UI.ClearFocus();
         Input.PopScope(_scope);
     }
+
+    public static bool IsOpen(int id) => _visible && _id == id;
 
     public static void Update()
     {
@@ -194,7 +159,7 @@ public static partial class PopupMenu
         Action? executed = null;
         var shouldClose = false;
 
-        MenuUI(0, -1, new Rect(_position, Vector2.Zero), _popupStyle, ref executed, ref shouldClose);
+        MenuUI(0, -1, _popupStyle, ref executed, ref shouldClose);
 
         if (shouldClose)
         {
@@ -217,25 +182,13 @@ public static partial class PopupMenu
     private static void MenuUI(
         int level,
         int parentIndex,
-        Rect anchorRect,
-        PopupStyle? customStyle,
+        PopupStyle style,
         ref Action? executed,
         ref bool shouldClose)
     {
         var startIndex = level == 0 ? 0 : parentIndex + 1;
         var parentLevel = level == 0 ? -1 : _items![parentIndex].Level;
-
-        var style = customStyle ?? new PopupStyle
-        {
-            AnchorX = Align.Max,
-            AnchorY = Align.Min,
-            PopupAlignX = Align.Min,
-            PopupAlignY = Align.Min,
-            Spacing = level == 0 ? 0 : EditorStyle.Control.Spacing,
-            ClampToScreen = true,
-            AnchorRect = new Rect(anchorRect.X, anchorRect.Y - 8, anchorRect.Width, anchorRect.Height)
-        };
-
+        
         using var _ = UI.BeginPopup((byte)(ElementId.Menu+ level), style);
 
         if (UI.IsClosed())
@@ -323,7 +276,19 @@ public static partial class PopupMenu
             _levels[level + 1].ShowChecked = item.ShowChecked;
             _levels[level + 1].ShowIcons = item.ShowIcons;
             var itemRect = UI.GetElementWorldRect(itemId);
-            MenuUI(level + 1, index, itemRect, null, ref executed, ref shouldClose);
+
+            var style = new PopupStyle
+            {
+                AnchorX = Align.Max,
+                AnchorY = Align.Min,
+                PopupAlignX = Align.Min,
+                PopupAlignY = Align.Min,
+                Spacing = level == 0 ? 0 : EditorStyle.Control.Spacing,
+                ClampToScreen = true,
+                AnchorRect = itemRect
+            };
+
+            MenuUI(level + 1, index, style, ref executed, ref shouldClose);
         }
     }
 }

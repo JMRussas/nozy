@@ -48,6 +48,9 @@ public partial class SpriteEditor : DocumentEditor
     private readonly float[] _savedCurves = new float[Shape.MaxAnchors];
     private Action<Color32>? _previewFillColor;
     private Action<Color32>? _previewStrokeColor;
+    private PopupMenuItem[] _contextMenuItems;
+
+    public override bool ShowInspector => true;
 
     /// <summary>The current layer's frame index resolved from the global time slot.</summary>
     private int CurrentLayerFrameIndex =>
@@ -122,34 +125,29 @@ public partial class SpriteEditor : DocumentEditor
         bool HasSelection() => CurrentShape.HasSelection();
         bool HasSelectedPaths() => CurrentShape.HasSelectedPaths();
 
-        ContextMenu = new PopupMenuDef
-        {
-            Title = "Sprite",
-            Items =
-            [
-                PopupMenuItem.FromCommand(copyCommand, enabled: HasSelection),
-                PopupMenuItem.FromCommand(pasteCommand, enabled: () => Clipboard.Is<PathClipboardData>()),
-                PopupMenuItem.Separator(),
+        _contextMenuItems = [
+            PopupMenuItem.FromCommand(copyCommand, enabled: HasSelection),
+            PopupMenuItem.FromCommand(pasteCommand, enabled: () => Clipboard.Is<PathClipboardData>()),
+            PopupMenuItem.Separator(),
 
-                PopupMenuItem.FromCommand(moveCommand, enabled: HasSelection),
-                PopupMenuItem.FromCommand(rotateCommand, enabled: HasSelection),
-                PopupMenuItem.FromCommand(scaleCommand, enabled: HasSelection),
-                PopupMenuItem.FromCommand(flipHorizontalCommand, enabled: HasSelectedPaths),
-                PopupMenuItem.FromCommand(flipVerticalCommand, enabled: HasSelectedPaths),
-                PopupMenuItem.Separator(),
+            PopupMenuItem.FromCommand(moveCommand, enabled: HasSelection),
+            PopupMenuItem.FromCommand(rotateCommand, enabled: HasSelection),
+            PopupMenuItem.FromCommand(scaleCommand, enabled: HasSelection),
+            PopupMenuItem.FromCommand(flipHorizontalCommand, enabled: HasSelectedPaths),
+            PopupMenuItem.FromCommand(flipVerticalCommand, enabled: HasSelectedPaths),
+            PopupMenuItem.Separator(),
 
-                PopupMenuItem.Submenu("Arrange"),
-                PopupMenuItem.FromCommand(bringForwardCommand, enabled: HasSelectedPaths, level: 1),
-                PopupMenuItem.FromCommand(sendBackwardCommand, enabled: HasSelectedPaths, level: 1),
+            PopupMenuItem.Submenu("Arrange"),
+            PopupMenuItem.FromCommand(bringForwardCommand, enabled: HasSelectedPaths, level: 1),
+            PopupMenuItem.FromCommand(sendBackwardCommand, enabled: HasSelectedPaths, level: 1),
 
-                PopupMenuItem.Submenu("Set Origin"),
-                PopupMenuItem.FromCommand(originToCenterCommand, level: 1),
-                PopupMenuItem.Separator(),
-                PopupMenuItem.FromCommand(deleteCommand, enabled: HasSelection),
-                PopupMenuItem.Separator(),
-                PopupMenuItem.FromCommand(exitEditCommand),
-            ]
-        };  
+            PopupMenuItem.Submenu("Set Origin"),
+            PopupMenuItem.FromCommand(originToCenterCommand, level: 1),
+            PopupMenuItem.Separator(),
+            PopupMenuItem.FromCommand(deleteCommand, enabled: HasSelection),
+            PopupMenuItem.Separator(),
+            PopupMenuItem.FromCommand(exitEditCommand),
+        ];
     }
 
     public int CurrentTimeSlot => _currentTimeSlot;
@@ -166,6 +164,11 @@ public partial class SpriteEditor : DocumentEditor
             AtlasManager.UpdateSource(Document);
 
         base.Dispose();
+    }
+
+    public override void OpenContextMenu(int id)
+    {
+        PopupMenu.Open(id, _contextMenuItems, "Sprite");
     }
 
     public override void OnUndoRedo()
@@ -434,14 +437,14 @@ public partial class SpriteEditor : DocumentEditor
                 if (EditorUI.Button(ElementId.AddVectorLayerBtn, EditorAssets.Sprites.IconLayer, toolbar: true))
                 {
                     Undo.Record(Document);
-                    Document.AddDocumentLayer(DocumentLayerType.Vector);
+                    Document.AddDocumentLayer();
                     MarkRasterDirty();
                 }
 
                 if (EditorUI.Button(ElementId.AddGeneratedLayerBtn, EditorAssets.Sprites.IconPlay, toolbar: true))
                 {
                     Undo.Record(Document);
-                    Document.AddDocumentLayer(DocumentLayerType.Generated);
+                    Document.AddDocumentLayer(generated: true);
                     MarkRasterDirty();
                 }
 
@@ -1826,8 +1829,8 @@ public partial class SpriteEditor : DocumentEditor
         // Show generated layer images behind the vector paths when editing
         foreach (var layer in Document.DocumentLayers)
         {
-            if (layer.Type != DocumentLayerType.Generated) continue;
-            if (!layer.Visible || layer.GeneratedTexture == null) continue;
+            if (!layer.IsGenerated) continue;
+            if (!layer.Visible || layer.Generation!.GeneratedTexture == null) continue;
 
             using (Graphics.PushState())
             {
@@ -1835,7 +1838,7 @@ public partial class SpriteEditor : DocumentEditor
                 Graphics.SetLayer(EditorLayer.DocumentEditor);
                 Graphics.SetTransform(Document.Transform);
                 Graphics.SetShader(EditorAssets.Shaders.Texture);
-                Graphics.SetTexture(layer.GeneratedTexture);
+                Graphics.SetTexture(layer.Generation.GeneratedTexture);
                 Graphics.SetColor(new Color(1, 1, 1, layer.Opacity * Workspace.XrayAlpha));
                 Graphics.Draw(Document.Bounds, new Rect(0, 0, 1, 1));
             }

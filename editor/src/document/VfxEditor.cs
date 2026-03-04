@@ -53,7 +53,7 @@ internal partial class VfxEditor : DocumentEditor
         }
 
         // Inspector panel (right side)
-        InspectorUI();
+        //InspectorUI();
     }
 
     private void ToolbarUI()
@@ -68,6 +68,7 @@ internal partial class VfxEditor : DocumentEditor
         UI.Flex();
     }
 
+#if false
     private void InspectorUI()
     {
         _nextFieldId = ElementId.Field;
@@ -104,6 +105,8 @@ internal partial class VfxEditor : DocumentEditor
             }
         }
     }
+#endif
+
 
     private int NextFieldId(int count = 1)
     {

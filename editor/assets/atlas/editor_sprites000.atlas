@@ -28,6 +28,8 @@ r "icon_edit" 170 243 42 42 0
 r "icon_expand_down" 196 319 126 34 0
 r "icon_expand_up" 199 285 126 34 0
 r "icon_fill" 196 353 54 53 0
+r "icon_foldout_closed" 117 239 4 4 0
+r "icon_foldout_open" 170 285 4 4 0
 r "icon_keyframe" 243 134 58 58 0
 r "icon_layer" 243 192 52 51 0
 r "icon_loop" 212 243 44 41 0

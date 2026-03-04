@@ -148,6 +148,8 @@ public struct PopupStyle()
     public float MinWidth = 0;
     public bool AutoClose = true;
     public bool Interactive = true;
+    public bool ShowChecked = false;
+    public bool ShowIcons = false;   
 
     public Align AnchorX { readonly get => Anchor.X; set => Anchor.X = value; }
     public Align AnchorY { readonly get => Anchor.Y; set => Anchor.Y = value; }

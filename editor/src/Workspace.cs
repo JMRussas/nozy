@@ -17,6 +17,7 @@ public static partial class Workspace
     [ElementId("Toolbar")]
     [ElementId("XrayButton")]
     [ElementId("CollectionButton")]
+    [ElementId("ContextMenu")]
     [ElementId("Scene")]
     private static partial class ElementId { }
 
@@ -55,7 +56,7 @@ public static partial class Workspace
 
     private static Document? _activeDocument;
     private static DocumentEditor? _activeEditor;
-    private static PopupMenuDef _workspaceContextMenu;
+    private static PopupMenuItem[] _workspacePopupItems = null!;
 
     public static Camera Camera => _camera;
     public static bool XrayMode { get; set; }
@@ -236,7 +237,7 @@ public static partial class Workspace
         items.Add(PopupMenuItem.FromCommand(renameCommand));
         items.Add(PopupMenuItem.FromCommand(deleteCommand));
         items.Add(PopupMenuItem.FromCommand(moveCommand));
-        _workspaceContextMenu = new PopupMenuDef([.. items], "Asset");
+        _workspacePopupItems = [.. items];
     }
 
     public static void LoadUserSettings(PropertySet props)
@@ -394,7 +395,7 @@ public static partial class Workspace
                 MinWidth = buttonRect.Width,
             };
 
-            PopupMenu.Open([.. items], null, popupStyle, showChecked: true, showIcons: false);
+            PopupMenu.Open(ElementId.CollectionButton, [.. items], popupStyle);
         }
 
         static void Content()
@@ -418,22 +419,34 @@ public static partial class Workspace
     }
 
     public static void UpdateUI()
-    {
-        using (UI.BeginColumn(ElementId.Toolbar))
+    {        
+        using (UI.BeginContainer())
+            UI.Scene(ElementId.Scene, Camera, DrawScene, new SceneStyle
+            {
+                Color = EditorStyle.Workspace.FillColor,
+                SampleCount = 4
+            });
+
+
+        using (UI.BeginColumn())
         {
             ToolbarUI();
             UI.Container(new ContainerStyle { Height = 1, Color = EditorStyle.Panel.Root.BorderColor });
 
             using (UI.BeginFlex())
-                UI.Scene(ElementId.Scene, Camera, DrawScene, new SceneStyle 
-                { 
-                    Color = EditorStyle.Workspace.FillColor,
-                    SampleCount = 4 
-                });
-        }
+            {
+                using (UI.BeginRow())
+                {
+                    using (UI.BeginFlex())
+                    {
+                        ActiveEditor?.UpdateUI();
+                        ActiveTool?.UpdateUI();
+                    }
 
-        ActiveEditor?.UpdateUI();
-        ActiveTool?.UpdateUI();
+                    Inspector.UpdateUI();
+                }
+            }
+        }
     }
 
     public static void LateUpdate()
@@ -1118,16 +1131,10 @@ public static partial class Workspace
 
     private static void OpenPopupMenu()
     {
-        var menu = GetPopupMenu();
-        if (menu != null && menu.Value.Items.Length > 0)
-            PopupMenu.Open(menu.Value);
-    }
-
-    public static PopupMenuDef? GetPopupMenu()
-    {
         if (_activeEditor != null)
-            return _activeEditor.ContextMenu;
-        return _workspaceContextMenu;
+            _activeEditor.OpenContextMenu(ElementId.ContextMenu);
+        else
+            PopupMenu.Open(ElementId.ContextMenu, _workspacePopupItems, title: "Asset");
     }
 
     private static void HandleHide()
