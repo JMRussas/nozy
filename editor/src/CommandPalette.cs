@@ -33,14 +33,14 @@ public static partial class CommandPalette
         _filteredCount = 0;
 
         UpdateFilteredCommands();
-        UI.SetFocus(ElementId.Search);
+        UI.SetHot(ElementId.Search);
     }
 
     public static void Close()
     {
         if (!IsOpen) return;
 
-        UI.ClearFocus();
+        UI.ClearHot();
 
         IsOpen = false;
         _text = string.Empty;
@@ -103,8 +103,8 @@ public static partial class CommandPalette
                     UI.Image(EditorAssets.Sprites.IconSearch, EditorStyle.Control.Icon);
                    
                 using (UI.BeginFlex())
-                    if (UI.TextBox(ElementId.Search, style: EditorStyle.CommandPalette.SearchTextBox, placeholder: "Search..."))
-                        _text = new string(UI.GetTextBoxText(ElementId.Search));
+                    if (UI.TextBox(ElementId.Search, _text, EditorStyle.CommandPalette.SearchTextBox, "Search..."))
+                        _text = new string(UI.GetElementText(ElementId.Search));
             }
 
             UI.Container(EditorStyle.Popup.Separator);

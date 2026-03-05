@@ -279,7 +279,7 @@ public static partial class Workspace
 
         if (!CommandPalette.IsOpen && !PopupMenu.IsVisible && !ConfirmDialog.IsVisible)
         {
-            if (!UI.HasAnyFocus())
+            if (!UI.HasHot())
                 CommandManager.ProcessShortcuts();
 
             UpdateMouse();

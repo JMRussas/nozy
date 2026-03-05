@@ -18,7 +18,6 @@ public static partial class UI
     private static bool _mouseLeftDown;
     private static bool _mouseLeftDoubleClickPressed;
     private static int _captureElementId;
-    private static bool _focusClickedThisFrame;
 
     public static Vector2 MouseWorldPosition { get; private set; }
 
@@ -46,7 +45,7 @@ public static partial class UI
             }
         }
 
-        LogUI("Input:", values: [("FocusElementId", _focusElementId, true)]);
+        LogUI("Input:", values: [("HotId", _hotId, true)]);
 
         HandlePopupAutoClose(mouse);
 
@@ -68,15 +67,17 @@ public static partial class UI
             }
         }
 
-        // Track whether a focusable element (TextBox/TextArea) was clicked this frame
-        _focusClickedThisFrame = false;
+        _hotClickedThisFrame = false;
 
         // Process all elements
         HandleElementInput(mouse);
 
-        // Clear focus when clicking but no focusable element was hit
-        if (_mouseLeftPressed && !_focusClickedThisFrame && _focusElementId != 0)
-            ClearFocus();
+        // Clear hot when clicking outside the hot element
+        if (_mouseLeftPressed && !_hotClickedThisFrame && _hotId != 0)
+        {
+            ref var hotEs = ref GetElementState(_hotId);
+            hotEs.SetFlags(ElementFlags.Focus, ElementFlags.None);
+        }
 
         // Process scrollbar input BEFORE consuming buttons
         HandleScrollbarInput(mouse);
@@ -420,11 +421,17 @@ public static partial class UI
                 es.SetFlags(ElementFlags.Pressed, ElementFlags.Pressed);
                 _mouseLeftElementId = e.Id;
 
-                // Only TextBox/TextArea elements are focusable
                 if (e.Type == ElementType.TextBox || e.Type == ElementType.TextArea)
                 {
-                    _pendingFocusElementId = e.Id;
-                    _focusClickedThisFrame = true;
+                    // Clear Focus on previously hot text control
+                    if (_hotId != 0 && _hotId != e.Id)
+                    {
+                        ref var prevEs = ref GetElementState(_hotId);
+                        prevEs.SetFlags(ElementFlags.Focus, ElementFlags.None);
+                    }
+
+                    es.SetFlags(ElementFlags.Focus, ElementFlags.Focus);
+                    _hotClickedThisFrame = true;
                 }
             }
             else if (es.IsPressed)

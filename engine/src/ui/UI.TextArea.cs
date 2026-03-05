@@ -14,7 +14,8 @@ public static partial class UI
         Debug.Assert(e.Id != 0, "TextArea element must have a valid Id");
 
         ref var data = ref e.Data.TextArea;
-        var isFocused = e.Id != 0 && IsFocused(ref e);
+        ref var drawEs = ref GetElementState(ref e);
+        var isFocused = e.Id != 0 && drawEs.HasFocus;
         var borderRadius = isFocused ? data.FocusBorderRadius : data.BorderRadius;
         var borderWidth = isFocused ? data.FocusBorderWidth : data.BorderWidth;
         var borderColor = isFocused ? data.FocusBorderColor : data.BorderColor;
@@ -46,7 +47,7 @@ public static partial class UI
         Debug.Assert(e.Id != 0, "TextArea element must have a valid Id");
 
         ref var es = ref GetElementState(e.Id);
-        if (!IsFocused(ref e))
+        if (_hotId != e.Id)
         {
             es.SetFlags(ElementFlags.Focus | ElementFlags.Dragging, ElementFlags.None);
             es.Data.TextArea.ScrollOffset = 0.0f;
@@ -380,7 +381,7 @@ public static partial class UI
             Input.ConsumeButton(InputCode.KeyEnter);
             if (e.Data.TextArea.CommitOnEnter)
             {
-                UI.ClearFocus();
+                es.SetFlags(ElementFlags.Focus, ElementFlags.None);
                 return;
             }
             RemoveSelectedTextAreaText(ref es);
@@ -394,7 +395,7 @@ public static partial class UI
         else if (Input.WasButtonPressed(InputCode.KeyEscape, scope))
         {
             Input.ConsumeButton(InputCode.KeyEscape);
-            UI.ClearFocus();
+            es.SetFlags(ElementFlags.Focus, ElementFlags.None);
             return;
         }
         else if (Input.WasButtonPressed(InputCode.KeyBackspace, true, scope))
@@ -672,7 +673,7 @@ public static partial class UI
             ApplyOpacity(Color.White));
     }
 
-    public static ReadOnlySpan<char> GetTextAreaText(int elementId)
+    private static ReadOnlySpan<char> GetTextAreaText(int elementId)
     {
         ref var es = ref GetElementState(elementId);
         ref var e = ref GetElement(es.Index);
@@ -680,7 +681,7 @@ public static partial class UI
         return es.Data.TextArea.Text.AsReadOnlySpan();
     }
 
-    public static void SetTextAreaText(int elementId, ReadOnlySpan<char> value, bool selectAll = false)
+    private static void SetTextAreaText(int elementId, ReadOnlySpan<char> value, bool selectAll = false)
     {
         ref var es = ref GetElementState(elementId);
         ref var ta = ref es.Data.TextArea;

@@ -56,8 +56,6 @@ public static partial class UI
     private static int _elementIdStackCount;
     private static int _popupCount;
     private static int _activePopupCount;
-    private static int _focusElementId;
-    private static int _pendingFocusElementId;
     private static Vector2 _size;
     private static Vector2Int _refSize;
     private static int _activeScrollId;
@@ -391,6 +389,39 @@ public static partial class UI
         Input.ReleaseMouseCapture();
     }
 
+    public static ReadOnlySpan<char> GetElementText(int elementId)
+    {
+        ref var es = ref GetElementState(elementId);
+        ref var e = ref GetElement(es.Index);
+        return e.Type switch
+        {
+            ElementType.TextBox => es.Data.TextBox.Text.AsReadOnlySpan(),
+            ElementType.TextArea => es.Data.TextArea.Text.AsReadOnlySpan(),
+            _ => default
+        };
+    }
+
+    public static void SetElementText(int elementId, ReadOnlySpan<char> value, bool selectAll = false)
+    {
+        ref var es = ref GetElementState(elementId);
+        ref var e = ref GetElement(es.Index);
+        switch (e.Type)
+        {
+            case ElementType.TextBox:
+                es.Data.TextBox.Text = AddText(value);
+                es.Data.TextBox.TextHash = string.GetHashCode(value);
+                es.Data.TextBox.CursorIndex = value.Length;
+                es.Data.TextBox.SelectionStart = selectAll ? 0 : value.Length;
+                break;
+            case ElementType.TextArea:
+                es.Data.TextArea.Text = AddText(value);
+                es.Data.TextArea.TextHash = string.GetHashCode(value);
+                es.Data.TextArea.CursorIndex = value.Length;
+                es.Data.TextArea.SelectionStart = selectAll ? 0 : value.Length;
+                break;
+        }
+    }
+
     public static ref Tween GetElementTween(int elementId) => ref GetElementState(elementId).Tween;
 
     public static float GetScrollOffset(int elementId)
@@ -452,41 +483,15 @@ public static partial class UI
         return Vector2.Transform(Camera!.ScreenToWorld(screen), e.WorldToLocal);
     }
 
-    public static bool HasFocus()
-    {
-        if (!HasCurrentElement()) return false;
-        ref var e = ref GetSelf();
-        return _focusElementId != 0 && e.Id == _focusElementId;
-    }
-
-    public static bool HasAnyFocus() => _focusElementId != 0;
-
-    public static bool HasFocus(int elementId) =>
-        elementId != 0 &&
-        _focusElementId == elementId;
-
-    public static void SetFocus(int elementId)
-    {
-        _pendingFocusElementId = elementId;
-    }
-
-    public static void ClearFocus()
-    {
-        _focusElementId = 0;
-        _pendingFocusElementId = 0;
-    }
-
     public static bool IsClosed() =>
         HasCurrentElement() && GetSelf().Type == ElementType.Popup && _closePopups;
 
-    private static bool IsFocused(ref Element e) => IsFocused(e.Id);
-
-    public static bool IsFocused(int elementId) =>
-        elementId != 0 &&
-        _focusElementId == elementId;
-
     internal static void Begin()
     {
+        _prevHotId = _hotId;
+        _hotId = 0;
+        _valueChanged = false;
+
         _frame++;
         _previousElementCount = _elementCount;
         _refSize = GetRefSize();
@@ -538,9 +543,6 @@ public static partial class UI
 
         Camera!.SetExtents(new Rect(0, 0, _size.X, _size.Y));
         Camera!.Update();
-
-        // Apply pending focus
-        _focusElementId = _pendingFocusElementId;
 
         // Create automatic full-screen root container
         ref var root = ref CreateElement(ElementType.Container);
@@ -954,65 +956,93 @@ public static partial class UI
     // :textbox
     public static bool TextBox(
         int id,
-        string? placeholder = null) => TextBox(id, new TextBoxStyle(), placeholder);
+        ReadOnlySpan<char> text,
+        ReadOnlySpan<char> placeholder = default) => TextBox(id, text, new TextBoxStyle(), placeholder);
 
     public static bool TextBox(
         int id,
+        ReadOnlySpan<char> text,
         TextBoxStyle style,
-        string? placeholder = null)
+        ReadOnlySpan<char> placeholder = default)
     {
         ref var e = ref CreateElement(ElementType.TextBox);
         e.Data.TextBox = style.ToData();
         e.Asset = style.Font ?? _defaultFont;
 
-        if (!string.IsNullOrEmpty(placeholder))
+        if (!placeholder.IsEmpty)
             e.Data.TextBox.Placeholder = AddText(placeholder);
 
         SetId(ref e, id);
 
         ref var es = ref GetElementState(ref e);
 
-        // the ui system uses alternating text buffers so we can access previous
-        // text while building new text. Here we copy the previous text into the current buffer.
-        es.Data.TextBox.Text = AddText(es.Data.TextBox.Text.AsReadOnlySpan());
+        if (es.HasFocus)
+        {
+            SetHot(id, text);
+            es.Data.TextBox.Text = AddText(es.Data.TextBox.Text.AsReadOnlySpan());
+        }
+        else
+        {
+            es.Data.TextBox.Text = AddText(text);
+        }
 
         var changed = es.IsChanged;
         es.SetFlags(ElementFlags.Changed, ElementFlags.None);
+
+        if (changed)
+            NotifyChanged(es.Data.TextBox.TextHash);
+
         PushElement(e.Index);
         PopElement();
 
+        SetLastElement(id);
         return changed;
     }
 
     // :textarea
-    public static bool TextArea(int id, string? placeholder = null) =>
-        TextArea(id, new TextAreaStyle(), placeholder);
+    public static bool TextArea(
+        int id,
+        ReadOnlySpan<char> text,
+        ReadOnlySpan<char> placeholder = default) =>
+        TextArea(id, text, new TextAreaStyle(), placeholder);
 
     public static bool TextArea(
         int id,
+        ReadOnlySpan<char> text,
         TextAreaStyle style,
-        string? placeholder = null)
+        ReadOnlySpan<char> placeholder = default)
     {
         ref var e = ref CreateElement(ElementType.TextArea);
         e.Data.TextArea = style.ToData();
         e.Asset = style.Font ?? _defaultFont;
 
-        if (!string.IsNullOrEmpty(placeholder))
+        if (!placeholder.IsEmpty)
             e.Data.TextArea.Placeholder = AddText(placeholder);
 
         SetId(ref e, id);
 
         ref var es = ref GetElementState(ref e);
 
-        // the ui system uses alternating text buffers so we can access previous
-        // text while building new text. Here we copy the previous text into the current buffer.
-        es.Data.TextArea.Text = AddText(es.Data.TextArea.Text.AsReadOnlySpan());
+        if (es.HasFocus)
+        {
+            SetHot(id, text);
+            es.Data.TextArea.Text = AddText(es.Data.TextArea.Text.AsReadOnlySpan());
+        }
+        else
+        {
+            es.Data.TextArea.Text = AddText(text);
+        }
 
         var changed = es.IsChanged;
         es.SetFlags(ElementFlags.Changed, ElementFlags.None);
+
+        if (changed)
+            NotifyChanged(es.Data.TextArea.TextHash);
+
         PushElement(e.Index);
         PopElement();
 
+        SetLastElement(id);
         return changed;
     }
 

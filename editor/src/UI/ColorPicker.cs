@@ -49,14 +49,7 @@ internal static partial class ColorPicker
     private static PixelData<Color32>? _huePixels;
     private static PixelData<Color32>? _checkerPixels;
 
-    // True when the color change is a final commit (popup closed or swatch click),
-    // false when it's a live preview during drag. Callers should only record undo on commit.
-    internal static bool _committed;
-    internal static Color32 CurrentColor => HsvToColor32(_hue, _sat, _val, _alpha);
-
-    // Tracks the picker's own output to distinguish user interaction from external
-    // CurrentFillColor changes (e.g. selection change while popup is open).
-    internal static Color32 _lastOutputColor;
+    private static Color32 _prevColor;
 
     private static ColorMode _paletteMode = ColorMode.None;
 
@@ -66,7 +59,8 @@ internal static partial class ColorPicker
     {
         _popupId = id;
         _originalColor = color;
-        _lastOutputColor = color;
+        _prevColor = color;
+        UI.SetHot<Color32>(id, color);
         RgbToHsv(color, out _hue, out _sat, out _val);
         _alpha = color.A / 255f;
 
@@ -91,7 +85,7 @@ internal static partial class ColorPicker
         }
     }
 
-    private static bool PopupInternal(int id, ref Color32 color)
+    private static void PopupInternal(int id, ref Color32 color)
     {
         var anchorRect = UI.GetElementWorldRect(id);
         using var popup = UI.BeginPopup(
@@ -109,17 +103,17 @@ internal static partial class ColorPicker
 
         if (UI.IsClosed())
         {
-            _popupId = -1;
             color = _paletteMode != ColorMode.None ? HsvToColor32(_hue, _sat, _val, _alpha) : Color.Transparent;
-            if (color != _originalColor)
-                return true;
-
-            return false;
+            if (color != _prevColor)
+                UI.NotifyChanged(color.GetHashCode());
+            _popupId = -1;
+            return;
         }
+
+        UI.SetHot(id);
 
         using var col = UI.BeginColumn(EditorStyle.ColorPicker.Root);
 
-        // Mode selection
         using (UI.BeginRow(new ContainerStyle { Spacing = EditorStyle.Control.Spacing, Height = EditorStyle.Control.Height }))
         {
             UI.Spacer(EditorStyle.Control.Spacing);
@@ -142,8 +136,10 @@ internal static partial class ColorPicker
 
             if (EditorUI.Button(ElementId.Close, EditorAssets.Sprites.IconClose))
             {
+                // Cancel: reset hash to original so IsChanged() returns false
+                UI.NotifyChanged(_originalColor.GetHashCode());
                 _popupId = -1;
-
+                return;
             }
 
             UI.Spacer(EditorStyle.Control.Spacing);
@@ -154,7 +150,6 @@ internal static partial class ColorPicker
             SaturationAndValue();
             Hue();
             Alpha();
-
             color = HsvToColor32(_hue, _sat, _val, _alpha);
         }
         else if (_paletteMode == ColorMode.None)
@@ -167,23 +162,17 @@ internal static partial class ColorPicker
             color = HsvToColor32(_hue, _sat, _val, _alpha);
         }
 
-
-        return false;
+        if (color != _prevColor)
+        {
+            UI.NotifyChanged(color.GetHashCode());
+            _prevColor = color;
+        }
     }
 
-    internal static bool Popup(int id, ref Color32 color)
+    internal static void Popup(int id, ref Color32 color)
     {
-        if (_popupId != id)
-            return false;
-
-        if (PopupInternal(id, ref color))
-        {
-            color = _paletteMode != ColorMode.None ? HsvToColor32(_hue, _sat, _val, _alpha) : Color.Transparent;
-
-            return (color != _originalColor);
-        }
-
-        return false;
+        if (_popupId == id)
+            PopupInternal(id, ref color);
     }
 
     private static Vector2 GetNormalizedMouseInElement(int elementId)
@@ -324,7 +313,6 @@ internal static partial class ColorPicker
                         RgbToHsv(c32, out _hue, out _sat, out _val);
                         _alpha = c32.A / 255f;
                         InvalidateSVTexture();
-                        _committed = true;
                     }
                 }
             }

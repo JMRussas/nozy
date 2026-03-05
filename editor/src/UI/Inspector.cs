@@ -122,7 +122,7 @@ internal static partial class Inspector
         return false;
     }
 
-    public static bool StringProperty(ReadOnlySpan<char> value, bool multiLine = false, string? placeholder = null)
+    public static void StringProperty(ref string value, bool multiLine = false, string? placeholder = null)
     {
         var propertyId = GetNextPropertyId();
 
@@ -131,21 +131,16 @@ internal static partial class Inspector
         {
             var hovered = UI.IsHovered(propertyId);
 
-            if (!UI.IsValidElement(propertyId))
-            {
-                if (multiLine)
-                    UI.SetTextAreaText(propertyId, value);
-                else
-                    UI.SetTextBoxText(propertyId, value);
-            }
-
             if (multiLine)
-                UI.TextArea(propertyId, style: hovered ? EditorStyle.Inspector.TextAreaHovered : EditorStyle.Inspector.TextArea, placeholder: placeholder);
+                UI.TextArea(propertyId, value, hovered ? EditorStyle.Inspector.TextAreaHovered : EditorStyle.Inspector.TextArea, placeholder);
             else
-                UI.TextBox(propertyId, style: hovered ? EditorStyle.Inspector.TextBoxHovered : EditorStyle.Inspector.TextBox, placeholder: placeholder);
+                UI.TextBox(propertyId, value, hovered ? EditorStyle.Inspector.TextBoxHovered : EditorStyle.Inspector.TextBox, placeholder);
         }
 
-        return false;
+        if (UI.WasChanged())
+            value = new string(UI.GetElementText(propertyId));
+
+        UI.SetLastElement(propertyId);
     }
 
     public static bool Button(Sprite icon, bool enabled = true) =>
@@ -157,13 +152,7 @@ internal static partial class Inspector
         return EditorUI.Slider(propertyId, ref value, minValue, maxValue);
     }
 
-    public static bool ColorProperty(
-        ref Color32 color,
-        Action? onOpen = null,
-        Action? onCancel = null,
-        Action<Color32>? onPreview = null,
-        Sprite? icon = null,
-        bool isEnabled = true)
+    public static void ColorProperty(ref Color32 color, Sprite? icon = null, bool isEnabled = true)
     {
         static void Content()
         {
@@ -193,25 +182,10 @@ internal static partial class Inspector
 
         var propertyId = GetNextPropertyId();
         if (Property(propertyId, Content, icon: icon, isEnabled: isEnabled, forceHovered: ColorPicker.IsOpen(propertyId)))
-        {
-            onOpen?.Invoke();
             ColorPicker.Open(propertyId, color);
-        }
 
-        var wasOpen = ColorPicker.IsOpen(propertyId);
-        var changed = ColorPicker.Popup(propertyId, ref color);
-        var isOpen = ColorPicker.IsOpen(propertyId);
-
-        if (wasOpen && !isOpen && !changed)
-        {
-            onCancel?.Invoke();
-            return false;
-        }            
-
-        if (isOpen && _valueColor != color)
-            onPreview?.Invoke(color);
-
-        return false;
+        ColorPicker.Popup(propertyId, ref color);
+        UI.SetLastElement(propertyId);
     }
 }
 

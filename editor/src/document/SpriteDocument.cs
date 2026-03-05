@@ -427,7 +427,7 @@ public partial class SpriteDocument : Document, ISpriteSource
         {
             if (tk.ExpectIdentifier("prompt"))
                 generation.Prompt = tk.ExpectQuotedString() ?? "";
-            else if (tk.ExpectIdentifier("neg_prompt"))
+            else if (tk.ExpectIdentifier("prompt_neg"))
                 generation.NegativePrompt = tk.ExpectQuotedString() ?? "";
             else if (tk.ExpectIdentifier("seed"))
                 generation.Seed = tk.ExpectInt();
@@ -849,7 +849,7 @@ public partial class SpriteDocument : Document, ISpriteSource
                 if (!string.IsNullOrEmpty(gen.Prompt))
                     writer.WriteLine($"prompt \"{gen.Prompt.Replace("\"", "\\\"")}\"");
                 if (!string.IsNullOrEmpty(gen.NegativePrompt))
-                    writer.WriteLine($"neg_prompt\"{gen.NegativePrompt.Replace("\"", "\\\"")}\"");
+                    writer.WriteLine($"prompt_neg\"{gen.NegativePrompt.Replace("\"", "\\\"")}\"");
                 writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "seed {0}", gen.Seed));
                 writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "strength {0}", gen.Strength));
             }

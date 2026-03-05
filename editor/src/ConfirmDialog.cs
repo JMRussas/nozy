@@ -37,7 +37,7 @@ public static partial class ConfirmDialog
         _message = message;
         _onConfirm = onConfirm;
         _visible = true;
-        UI.SetFocus(ElementId.No);
+        UI.SetHot(ElementId.No);
     }
 
     public static void Close()
@@ -45,7 +45,7 @@ public static partial class ConfirmDialog
         _visible = false;
         _message = string.Empty;
         _onConfirm = null;
-        UI.ClearFocus();
+        UI.ClearHot();
     }
 
     public static void Update()

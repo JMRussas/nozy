@@ -32,6 +32,8 @@ internal static partial class EditorUI
 
             if (UI.HasCapture())
             {
+                UI.SetHot<float>(id, value);
+
                 var worldRect = UI.GetElementWorldRect(id);
                 if (worldRect.Width > 0)
                 {
@@ -48,11 +50,13 @@ internal static partial class EditorUI
                     {
                         value = newValue;
                         changed = true;
+                        UI.NotifyChanged(newValue.GetHashCode());
                     }
                 }
             }
         }
 
+        UI.SetLastElement(id);
         return changed;
     }
 }

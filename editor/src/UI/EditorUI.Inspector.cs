@@ -24,14 +24,14 @@ internal static partial class EditorUI
     public static bool FloatField(int id, ref float value, string? placeholder = null)
     {
         var changed = false;
+        Span<char> buf = stackalloc char[32];
+        value.TryFormat(buf, out var written, "G");
+
         using (UI.BeginContainer(EditorStyle.Inspector.FieldContainer))
         {
-            if (!UI.IsFocused(id))
-                UI.SetTextBoxText(id, value.ToString("G"));
-
-            if (UI.TextBox(id, EditorStyle.Inspector.TextBox, placeholder ?? "0"))
+            if (UI.TextBox(id, buf[..written], EditorStyle.Inspector.TextBox, placeholder ?? "0"))
             {
-                if (float.TryParse(UI.GetTextBoxText(id), out var parsed))
+                if (float.TryParse(UI.GetElementText(id), out var parsed))
                 {
                     value = parsed;
                     changed = true;
@@ -44,14 +44,14 @@ internal static partial class EditorUI
     public static bool IntField(int id, ref int value, string? placeholder = null)
     {
         var changed = false;
+        Span<char> buf = stackalloc char[16];
+        value.TryFormat(buf, out var written);
+
         using (UI.BeginContainer(EditorStyle.Inspector.FieldContainer))
         {
-            if (!UI.IsFocused(id))
-                UI.SetTextBoxText(id, value.ToString());
-
-            if (UI.TextBox(id, EditorStyle.Inspector.TextBox, placeholder ?? "0"))
+            if (UI.TextBox(id, buf[..written], EditorStyle.Inspector.TextBox, placeholder ?? "0"))
             {
-                if (int.TryParse(UI.GetTextBoxText(id), out var parsed))
+                if (int.TryParse(UI.GetElementText(id), out var parsed))
                 {
                     value = parsed;
                     changed = true;
@@ -232,12 +232,9 @@ internal static partial class EditorUI
                 // Text input (in a container so TextBox fills width via Percent mode)
                 using (UI.BeginContainer(ContainerStyle.Default))
                 {
-                    if (!UI.IsFocused(id))
-                        UI.SetTextBoxText(id, hex);
-
-                    if (UI.TextBox(id, EditorStyle.Inspector.TextBox, "#fff"))
+                    if (UI.TextBox(id, hex, EditorStyle.Inspector.TextBox, "#fff"))
                     {
-                        var text = UI.GetTextBoxText(id).ToString();
+                        var text = UI.GetElementText(id).ToString();
                         if (TryParseHexColor(text, out var parsed))
                         {
                             color = parsed;

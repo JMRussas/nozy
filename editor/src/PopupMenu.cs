@@ -107,7 +107,7 @@ public static partial class PopupMenu
             _levels[i] = new LevelState { OpenSubmenu = -1, ShowChecked = true, ShowIcons = true };
         _levels[0].ShowChecked = style.ShowChecked;
         _levels[0].ShowIcons = style.ShowIcons;
-        UI.ClearFocus();
+        UI.ClearHot();
 
         _scope = Input.PushScope();
     }
@@ -118,7 +118,7 @@ public static partial class PopupMenu
         _itemCount = 0;
         _title = null;
         _id = 0;
-        UI.ClearFocus();
+        UI.ClearHot();
         Input.PopScope(_scope);
     }
 

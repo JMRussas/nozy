@@ -16,7 +16,8 @@ public static partial class UI
         Debug.Assert(e.Id != 0, "TextBox element must have a valid Id");
 
         ref var data = ref e.Data.TextBox;
-        var isFocused = e.Id != 0 && IsFocused(ref e);
+        ref var drawEs = ref GetElementState(ref e);
+        var isFocused = e.Id != 0 && drawEs.HasFocus;
         var borderRadius = isFocused ? data.FocusBorderRadius : data.BorderRadius;
         var borderWidth = isFocused ? data.FocusBorderWidth : data.BorderWidth;
         var borderColor = isFocused ? data.FocusBorderColor : data.BorderColor;
@@ -48,7 +49,7 @@ public static partial class UI
         Debug.Assert(e.Id != 0, "TextBox element must have a valid Id");
 
         ref var es = ref GetElementState(e.Id);
-        if (!IsFocused(ref e))
+        if (_hotId != e.Id)
         {
             es.SetFlags(ElementFlags.Focus | ElementFlags.Dragging, ElementFlags.None);
             es.Data.TextBox.ScrollOffset = 0.0f;
@@ -280,7 +281,7 @@ public static partial class UI
         {
             Input.ConsumeButton(InputCode.KeyEnter);
             Input.ConsumeButton(InputCode.KeyEscape);
-            UI.ClearFocus();
+            es.SetFlags(ElementFlags.Focus, ElementFlags.None);
             return;
         }
 
@@ -507,7 +508,7 @@ public static partial class UI
         return text.Length;
     }
 
-    public static ReadOnlySpan<char> GetTextBoxText(int elementId)
+    private static ReadOnlySpan<char> GetTextBoxText(int elementId)
     {
         ref var es = ref GetElementState(elementId);
         ref var e = ref GetElement(es.Index);
@@ -515,7 +516,7 @@ public static partial class UI
         return es.Data.TextBox.Text.AsReadOnlySpan();
     }
 
-    public static void SetTextBoxText(int elementId, ReadOnlySpan<char> value, bool selectAll = false)
+    private static void SetTextBoxText(int elementId, ReadOnlySpan<char> value, bool selectAll = false)
     {
         ref var es = ref GetElementState(elementId);
         ref var tb = ref es.Data.TextBox;

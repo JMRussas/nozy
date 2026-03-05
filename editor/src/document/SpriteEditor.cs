@@ -43,8 +43,6 @@ public partial class SpriteEditor : DocumentEditor
     private float _playTimer;
     private readonly Vector2[] _savedPositions = new Vector2[Shape.MaxAnchors];
     private readonly float[] _savedCurves = new float[Shape.MaxAnchors];
-    private Action<Color32>? _previewFillColor;
-    private Action<Color32>? _previewStrokeColor;
     private PopupMenuItem[] _contextMenuItems;
     private bool _hasPathSelection;
     private readonly int _versionOnOpen;
@@ -1832,22 +1830,25 @@ public partial class SpriteEditor : DocumentEditor
         {
             if (isGenerated)
             {
-                var value = layer.Generation!.Strength;
-                if (Inspector.SliderProperty(ref value ))
-                {
+                var gen = layer.Generation!;
 
-                }
+                var strength = gen.Strength;
+                Inspector.SliderProperty(ref strength);
+                if (UI.HotEnter()) Undo.Record(Document);
+                if (UI.WasChanged()) { gen.Strength = strength; Document.IncrementVersion(); }
+                if (UI.HotExit() && !UI.IsChanged()) Undo.Cancel();
 
-                layer.Generation!.Strength = value;
-                if (Inspector.StringProperty(layer.Generation.Prompt, placeholder: "Positive Prompt", multiLine: true))
-                {
+                var prompt = gen.Prompt;
+                Inspector.StringProperty(ref prompt, placeholder: "Prompt", multiLine: true);
+                if (UI.HotEnter()) Undo.Record(Document);
+                if (UI.WasChanged()) { gen.Prompt = prompt; Document.IncrementVersion(); }
+                if (UI.HotExit() && !UI.IsChanged()) Undo.Cancel();
 
-                }
-                
-                if (Inspector.StringProperty(layer.Generation.NegativePrompt, placeholder: "Negaive Prompt", multiLine: true))
-                {
-
-                }
+                var negativePrompt = gen.NegativePrompt;
+                Inspector.StringProperty(ref negativePrompt, placeholder: "Negative Prompt", multiLine: true);
+                if (UI.HotEnter()) Undo.Record(Document);
+                if (UI.WasChanged()) { gen.NegativePrompt = negativePrompt; Document.IncrementVersion(); }
+                if (UI.HotExit() && !UI.IsChanged()) Undo.Cancel();
             }
         }
     }
@@ -1881,11 +1882,10 @@ public partial class SpriteEditor : DocumentEditor
             using var __ = UI.BeginFlex();
 
             var fillColor = Document.CurrentFillColor;
-            Inspector.ColorProperty(
-                ref fillColor,
-                onOpen: () => Undo.Record(Document),
-                onCancel: () => Undo.Cancel(),
-                onPreview: _previewFillColor ??= SetFillColor);
+            Inspector.ColorProperty(ref fillColor);
+            if (UI.HotEnter()) Undo.Record(Document);
+            if (UI.WasChanged()) SetFillColor(fillColor);
+            if (UI.HotExit() && !UI.IsChanged()) Undo.Cancel();
         }
 
         using (Inspector.BeginSection("STROKE"))
@@ -1894,11 +1894,10 @@ public partial class SpriteEditor : DocumentEditor
             using var __ = UI.BeginFlex();
 
             var strokeColor = Document.CurrentStrokeColor;
-            Inspector.ColorProperty(
-                ref strokeColor,
-                onOpen: () => Undo.Record(Document),
-                onCancel: () => Undo.Cancel(),
-                onPreview: _previewStrokeColor ??= SetStrokeColor);
+            Inspector.ColorProperty(ref strokeColor);
+            if (UI.HotEnter()) Undo.Record(Document);
+            if (UI.WasChanged()) SetStrokeColor(strokeColor);
+            if (UI.HotExit() && !UI.IsChanged()) Undo.Cancel();
         }
     }
 
