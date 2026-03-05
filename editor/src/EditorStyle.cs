@@ -680,13 +680,14 @@ public static class EditorStyle
         {
             Width = 300.0f,
             Color = Palette.Panel,
-            Padding = 8
+            Padding = 8,
+            Spacing = Control.Spacing
         };
 
         public static readonly ContainerStyle Section = new()
         {            
             MinHeight = Control.Height,
-            Height = Size.Fit
+            Height = Size.Fit,
         };
 
         public static readonly LabelStyle SectionText = Label with
@@ -715,6 +716,13 @@ public static class EditorStyle
             MinHeight = Control.Height,
             Padding = EdgeInsets.LeftRight(4),
             Spacing = Control.Spacing
+        };
+
+        public static readonly ContainerStyle ColorButton = new()
+        {
+            Size = Icon.Primary.Size,
+            BorderRadius = 2,
+            AlignY = Align.Center   
         };
 
         public static readonly ContainerStyle FieldContainer = new()
@@ -904,6 +912,38 @@ public static class EditorStyle
         public readonly static ContainerStyle OpacityPopupRoot = Popup.Root;
 
         public readonly static ContainerStyle ConstraintsPopupRoot = Popup.Root;
+    }
+
+    // :colorpicker
+    public static class ColorPicker
+    {
+        private const float Width = 300;
+        private const float Padding = 8;
+        public const float SVSize = Width - 4;
+        public const float SliderWidth = Width - Padding * 2;
+        public const float SliderHeight = 20;
+
+        public readonly static ContainerStyle Root = Popup.Root with
+        {
+            Spacing = Control.Spacing * 2,
+            Padding = Padding,
+            Width = Width,
+            Height = Size.Fit
+        };
+
+        public readonly static ContainerStyle SaturationAndValue = new()
+        {
+            Size = SVSize,
+            Margin = EdgeInsets.LeftRight(-(Padding - 2))
+        };
+
+        public readonly static ContainerStyle Slider = new()
+        {
+            Height = SliderHeight,
+            Clip = true,
+        };
+
+        public readonly static ImageStyle SliderImage = ImageStyle.Fill with { BorderRadius = 10 };
     }
 
     // :atlaseditor

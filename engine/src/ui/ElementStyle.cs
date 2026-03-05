@@ -109,6 +109,7 @@ public struct ImageStyle()
 
     public static readonly ImageStyle Default = new();
     public static readonly ImageStyle Center = new() { Align = NoZ.Align.Center };
+    public static readonly ImageStyle Fill = new() { Stretch = ImageStretch.Fill };
 }
 
 public struct RectangleStyle()

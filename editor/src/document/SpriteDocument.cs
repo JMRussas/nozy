@@ -1576,6 +1576,9 @@ public partial class SpriteDocument : Document, ISpriteSource
 
         foreach (var (layerIdx, shape) in slot.LayerShapes)
         {
+            // Snapshot accumulated paths at layer start for clip (cross-layer only)
+            var lowerLayerPaths = accumulatedPaths;
+
             for (ushort pi = 0; pi < shape.PathCount; pi++)
             {
                 ref readonly var path = ref shape.GetPath(pi);
@@ -1590,10 +1593,10 @@ public partial class SpriteDocument : Document, ISpriteSource
 
                 if (path.IsClip)
                 {
-                    // Clip: intersect with accumulated geometry below
-                    if (accumulatedPaths is not { Count: > 0 }) continue;
+                    // Clip: intersect with accumulated geometry from lower layers only
+                    if (lowerLayerPaths is not { Count: > 0 }) continue;
                     contours = Clipper2Lib.Clipper.BooleanOp(Clipper2Lib.ClipType.Intersection,
-                        contours, accumulatedPaths, Clipper2Lib.FillRule.NonZero, precision: 6);
+                        contours, lowerLayerPaths, Clipper2Lib.FillRule.NonZero, precision: 6);
                     if (contours.Count == 0) continue;
                 }
                 else
@@ -1616,14 +1619,14 @@ public partial class SpriteDocument : Document, ISpriteSource
                             accumulatedPaths, accContours, Clipper2Lib.FillRule.NonZero, precision: 6);
                 }
 
-                // Apply subtract paths from above (higher layer, or same layer but higher path index)
+                // Apply subtract paths from same layer only (higher path index subtracts from lower)
                 if (subtractEntries != null)
                 {
                     Clipper2Lib.PathsD? subtractPaths = null;
                     foreach (var (subLayerIdx, subPi, subContours) in subtractEntries)
                     {
-                        if (subLayerIdx < layerIdx) continue;
-                        if (subLayerIdx == layerIdx && subPi <= pi) continue;
+                        if (subLayerIdx != layerIdx) continue;
+                        if (subPi <= pi) continue;
                         subtractPaths ??= new Clipper2Lib.PathsD();
                         subtractPaths.AddRange(subContours);
                     }

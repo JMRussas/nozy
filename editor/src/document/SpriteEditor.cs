@@ -46,6 +46,7 @@ public partial class SpriteEditor : DocumentEditor
     private readonly Vector2[] _savedPositions = new Vector2[Shape.MaxAnchors];
     private readonly float[] _savedCurves = new float[Shape.MaxAnchors];
     private Action<Color32>? _previewFillColor;
+    private Action<float>? _previewFillOpacity;
     private Action<Color32>? _previewStrokeColor;
     private PopupMenuItem[] _contextMenuItems;
     private bool _hasPathSelection;
@@ -64,8 +65,11 @@ public partial class SpriteEditor : DocumentEditor
     private SpriteLayer CurrentLayer =>
         Document.Layers[Document.ActiveLayerIndex];
 
+    private readonly int _versionOnOpen;
+
     public SpriteEditor(SpriteDocument doc) : base(doc)
     {
+        _versionOnOpen = doc.Version;
         var deleteCommand = new Command { Name = "Delete", Handler = DeleteSelected, Key = InputCode.KeyX, Icon = EditorAssets.Sprites.IconDelete };
         var exitEditCommand = new Command { Name = "Exit Edit Mode", Handler = Workspace.EndEdit, Key = InputCode.KeyTab };
         var moveCommand = new Command { Name = "Move", Handler = BeginMoveTool, Key = InputCode.KeyG, Icon = EditorAssets.Sprites.IconMove };
@@ -150,7 +154,7 @@ public partial class SpriteEditor : DocumentEditor
         ClearSelection();
         EditorUI.ClosePopup();
 
-        if (Document.IsModified)
+        if (Document.Version != _versionOnOpen)
             AtlasManager.UpdateSource(Document);
 
         base.Dispose();
@@ -731,56 +735,26 @@ public partial class SpriteEditor : DocumentEditor
         Document.IncrementVersion();
     }
 
-    private void PreviewFillColor(Color32 color)
-    {
-        EnumerateSelectedPaths((layer, shape, p) =>
-        {
-            shape.SetPathFillColor(p, color);
-            Document.IncrementVersion();
-        });
-    }
-
-    private void PreviewStrokeColor(Color32 color)
-    {
-        EnumerateSelectedPaths((layer, shape, p) =>
-        {
-            shape.SetPathStroke(p, color, Document.CurrentStrokeWidth);
-            Document.IncrementVersion();
-        });
-    }
-
-    public void SetFill(Color32 color)
+    private void SetFillColor(Color32 color)
     {
         Document.CurrentFillColor = color;
 
-        Undo.Record(Document);
-
-        var shape = CurrentShape;
-        for (ushort p = 0; p < shape.PathCount; p++)
+        EnumerateSelectedPaths((layer, shape, p) =>
         {
-            ref readonly var path = ref shape.GetPath(p);
-            if (!path.IsSelected) continue;
             shape.SetPathFillColor(p, color);
-        }
-
-        Document.IncrementVersion();
+            _meshVersion = -1;
+        });
     }
 
-    public void SetStroke(Color32 color)
+    private void SetStrokeColor(Color32 color)
     {
         Document.CurrentStrokeColor = color;
 
-        Undo.Record(Document);
-
-        var shape = CurrentShape;
-        for (ushort p = 0; p < shape.PathCount; p++)
+        EnumerateSelectedPaths((layer, shape, p) =>
         {
-            ref readonly var path = ref shape.GetPath(p);
-            if (!path.IsSelected) continue;
             shape.SetPathStroke(p, color, Document.CurrentStrokeWidth);
-        }
-
-        Document.IncrementVersion();
+            _meshVersion = -1;
+        });
     }
 
     private void SetStrokeWidth(byte width)
@@ -848,6 +822,7 @@ public partial class SpriteEditor : DocumentEditor
     private void SetPathOperation(PathOperation operation)
     {
         Undo.Record(Document);
+        Document.CurrentOperation = operation;
         EnumerateSelectedPaths((layer, shape, p) =>
         {
             shape.SetPathOperation(p, operation);
@@ -982,9 +957,53 @@ public partial class SpriteEditor : DocumentEditor
     {
         Undo.Record(Document);
 
+        // Compute world-space bounding box from all anchor positions across all layers/frames
+        var min = new Vector2(float.MaxValue, float.MaxValue);
+        var max = new Vector2(float.MinValue, float.MinValue);
+        var hasAnchors = false;
+
         foreach (var layer in Document.Layers)
+        {
             for (ushort fi = 0; fi < layer.FrameCount; fi++)
-                layer.Frames[fi].Shape.CenterOnOrigin();
+            {
+                var shape = layer.Frames[fi].Shape;
+                if (shape.AnchorCount == 0) continue;
+                hasAnchors = true;
+                shape.UpdateSamples();
+
+                for (ushort a = 0; a < shape.AnchorCount; a++)
+                {
+                    ref readonly var anchor = ref shape.GetAnchor(a);
+                    min = Vector2.Min(min, anchor.Position);
+                    max = Vector2.Max(max, anchor.Position);
+
+                    if (MathF.Abs(anchor.Curve) > 0.0001f)
+                    {
+                        var samples = shape.GetSegmentSamples(a);
+                        for (var s = 0; s < Shape.MaxSegmentSamples; s++)
+                        {
+                            min = Vector2.Min(min, samples[s]);
+                            max = Vector2.Max(max, samples[s]);
+                        }
+                    }
+                }
+            }
+        }
+
+        if (hasAnchors)
+        {
+            // Pixel-snap the center for clean alignment
+            var dpi = EditorApplication.Config.PixelsPerUnit;
+            var invDpi = 1f / dpi;
+            var centerWorld = (min + max) * 0.5f;
+            var center = new Vector2(
+                MathF.Round(centerWorld.X * dpi) * invDpi,
+                MathF.Round(centerWorld.Y * dpi) * invDpi);
+
+            foreach (var layer in Document.Layers)
+                for (ushort fi = 0; fi < layer.FrameCount; fi++)
+                    layer.Frames[fi].Shape.SetOrigin(center);
+        }
 
         Document.UpdateBounds();
         Document.IncrementVersion();
@@ -1344,6 +1363,7 @@ public partial class SpriteEditor : DocumentEditor
                     shape.SnapSelectedAnchorsToPixelGrid();
                 shape.UpdateSamples();
                 shape.UpdateBounds();
+                Document.IncrementVersion();
             },
             commit: _ =>
             {
@@ -1401,7 +1421,7 @@ public partial class SpriteEditor : DocumentEditor
             shape,
             Document.Transform,
             _savedCurves,
-            update: () => { },
+            update: () => Document.IncrementVersion(),
             commit: () =>
             {
                 Document.IncrementVersion();
@@ -1809,36 +1829,35 @@ public partial class SpriteEditor : DocumentEditor
         // Skeleton
         using (Inspector.BeginRow())
         {
-            if (Document.Binding.IsBound)
-                UI.BeginFlex();
-            
-            var skeletonLabel = Document.Binding.IsBound
-                ? StringId.Get(Document.Binding.Skeleton!.Name).ToString()
-                : "None";
+            using (UI.BeginFlex())
+            {
+                var skeletonLabel = Document.Binding.IsBound
+                    ? StringId.Get(Document.Binding.Skeleton!.Name).ToString()
+                    : "None";
 
-            Inspector.DropdownProperty(
-                skeletonLabel,
-                () => {
-                    var items = new List<PopupMenuItem>();
-
-                    foreach (var doc in DocumentManager.Documents)
+                Inspector.DropdownProperty(
+                    skeletonLabel,
+                    () =>
                     {
-                        if (doc is not SkeletonDocument skeleton || skeleton.BoneCount == 0)
-                            continue;
+                        var items = new List<PopupMenuItem>();
 
-                        var name = StringId.Get(skeleton.Name).ToString();
-                        items.Add(new PopupMenuItem { Label = name, Handler = () => CommitSkeletonBinding(skeleton) });
-                    }
+                        foreach (var doc in DocumentManager.Documents)
+                        {
+                            if (doc is not SkeletonDocument skeleton || skeleton.BoneCount == 0)
+                                continue;
 
-                    items.Add(new PopupMenuItem { Label = "None", Handler = ClearSkeletonBinding });
-                    return items.ToArray();
-                },
-                icon: EditorAssets.Sprites.IconBone);
+                            var name = StringId.Get(skeleton.Name).ToString();
+                            items.Add(new PopupMenuItem { Label = name, Handler = () => CommitSkeletonBinding(skeleton) });
+                        }
+
+                        items.Add(new PopupMenuItem { Label = "None", Handler = ClearSkeletonBinding });
+                        return items.ToArray();
+                    },
+                    icon: EditorAssets.Sprites.IconBone);
+            }
 
             if (Document.Binding.IsBound)
             {
-                UI.EndFlex();
-
                 var showInSkeleton = Document.ShowInSkeleton;
                 if (Inspector.ToggleProperty(EditorAssets.Sprites.IconPreview, ref showInSkeleton))
                 {
@@ -1866,8 +1885,6 @@ public partial class SpriteEditor : DocumentEditor
         {
             using (Inspector.BeginRow())
             {
-                UI.Flex();
-
                 var operation = Document.CurrentOperation == PathOperation.Normal;
                 if (Inspector.ToggleProperty(EditorAssets.Sprites.IconFill, ref operation))
                     SetPathOperation(PathOperation.Normal);
@@ -1879,29 +1896,33 @@ public partial class SpriteEditor : DocumentEditor
                 operation = Document.CurrentOperation == PathOperation.Clip;
                 if (Inspector.ToggleProperty(EditorAssets.Sprites.IconClip, ref operation))
                     SetPathOperation(PathOperation.Clip);
-
-                UI.Flex();
             }
+        }
+        
+        using (Inspector.BeginSection("FILL"))
+        using (Inspector.BeginRow())
+        {
+            using var __ = UI.BeginFlex();
 
-            using (Inspector.BeginRow())
-            {
-                var fillColor = Document.CurrentFillColor;
-                if (Inspector.ColorProperty(
-                    EditorAssets.Sprites.IconFill,
-                    ref fillColor,
-                    onPreview: _previewFillColor ??= PreviewFillColor))
-                    SetFill(fillColor);
-            }
+            var fillColor = Document.CurrentFillColor;
+            Inspector.ColorProperty(
+                ref fillColor,
+                onOpen: () => Undo.Record(Document),
+                onCancel: () => Undo.Cancel(),
+                onPreview: _previewFillColor ??= SetFillColor);
+        }
 
-            using (Inspector.BeginRow())
-            {
-                var strokeColor = Document.CurrentStrokeColor;
-                if (Inspector.ColorProperty(
-                    EditorAssets.Sprites.IconStroke,
-                    ref strokeColor,
-                    onPreview: _previewStrokeColor ??= PreviewStrokeColor))
-                    SetStroke(strokeColor);
-            }
+        using (Inspector.BeginSection("STROKE"))
+        using (Inspector.BeginRow())
+        {
+            using var __ = UI.BeginFlex();
+
+            var strokeColor = Document.CurrentStrokeColor;
+            Inspector.ColorProperty(
+                ref strokeColor,
+                onOpen: () => Undo.Record(Document),
+                onCancel: () => Undo.Cancel(),
+                onPreview: _previewStrokeColor ??= SetStrokeColor);
         }
     }
 

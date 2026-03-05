@@ -81,6 +81,9 @@ public partial class SpriteEditor
             {
                 if (!layers[layerIdx].Visible) continue;
 
+                // Snapshot accumulated paths at layer start for clip (cross-layer only)
+                var lowerLayerPaths = accumulatedPaths;
+
                 for (ushort pi = 0; pi < shape.PathCount; pi++)
                 {
                     ref readonly var path = ref shape.GetPath(pi);
@@ -94,9 +97,9 @@ public partial class SpriteEditor
 
                     if (path.IsClip)
                     {
-                        if (accumulatedPaths is not { Count: > 0 }) continue;
+                        if (lowerLayerPaths is not { Count: > 0 }) continue;
                         contours = Clipper.BooleanOp(ClipType.Intersection,
-                            contours, accumulatedPaths, FillRule.NonZero, precision: 6);
+                            contours, lowerLayerPaths, FillRule.NonZero, precision: 6);
                         if (contours.Count == 0) continue;
                     }
                     else
@@ -118,14 +121,14 @@ public partial class SpriteEditor
                                 accumulatedPaths, accContours, FillRule.NonZero, precision: 6);
                     }
 
-                    // Apply subtract paths from above (higher layer, or same layer but higher path index)
+                    // Apply subtract paths from same layer only (higher path index subtracts from lower)
                     if (subtractEntries != null)
                     {
                         PathsD? subtractPaths = null;
                         foreach (var (subLayerIdx, subPi, subContours) in subtractEntries)
                         {
-                            if (subLayerIdx < layerIdx) continue;
-                            if (subLayerIdx == layerIdx && subPi <= pi) continue;
+                            if (subLayerIdx != layerIdx) continue;
+                            if (subPi <= pi) continue;
                             subtractPaths ??= new PathsD();
                             subtractPaths.AddRange(subContours);
                         }
