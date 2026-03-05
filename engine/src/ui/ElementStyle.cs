@@ -226,6 +226,7 @@ public struct TextAreaStyle()
     public Color FocusBorderColor = Color.Transparent;
     public EdgeInsets Padding = EdgeInsets.Zero;
     public InputScope Scope = InputScope.All;
+    public bool CommitOnEnter = false;
 
     public BorderStyle Border
     {
@@ -254,7 +255,8 @@ public struct TextAreaStyle()
         FocusBorderWidth = FocusBorderWidth,
         FocusBorderColor = FocusBorderColor,
         Padding = Padding,
-        Scope = Scope
+        Scope = Scope,
+        CommitOnEnter = CommitOnEnter
     };
 }
 

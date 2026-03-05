@@ -38,34 +38,29 @@ public partial class SpriteEditor : DocumentEditor
     [ElementId("RemoveLayerButton")]
     private static partial class ElementId { }
 
-    public new SpriteDocument Document => (SpriteDocument)base.Document;
-
     private int _currentTimeSlot;
     private bool _isPlaying;
     private float _playTimer;
     private readonly Vector2[] _savedPositions = new Vector2[Shape.MaxAnchors];
     private readonly float[] _savedCurves = new float[Shape.MaxAnchors];
     private Action<Color32>? _previewFillColor;
-    private Action<float>? _previewFillOpacity;
     private Action<Color32>? _previewStrokeColor;
     private PopupMenuItem[] _contextMenuItems;
     private bool _hasPathSelection;
+    private readonly int _versionOnOpen;
+
+    public new SpriteDocument Document => (SpriteDocument)base.Document;
 
     public override bool ShowInspector => true;
 
-    /// <summary>The current layer's frame index resolved from the global time slot.</summary>
     private int CurrentLayerFrameIndex =>
         Document.GetLayerFrameAtTimeSlot(Document.ActiveLayerIndex, _currentTimeSlot);
 
-    /// <summary>The current layer's current frame's shape (for editing).</summary>
     private Shape CurrentShape =>
         Document.Layers[Document.ActiveLayerIndex].Frames[CurrentLayerFrameIndex].Shape;
 
-    /// <summary>The current document layer.</summary>
     private SpriteLayer CurrentLayer =>
         Document.Layers[Document.ActiveLayerIndex];
-
-    private readonly int _versionOnOpen;
 
     public SpriteEditor(SpriteDocument doc) : base(doc)
     {
@@ -186,6 +181,7 @@ public partial class SpriteEditor : DocumentEditor
 
         UpdateMesh();
         DrawMesh();
+        DrawGeneratedLayers();
 
         if (Document.ShowSkeletonOverlay)
             DrawSkeletonOverlay();
@@ -211,70 +207,6 @@ public partial class SpriteEditor : DocumentEditor
         }
 
         EditorUI.PanelSeparator();
-
-        using (UI.BeginFlex())
-        {
-
-#if false
-            // Fill color picker
-            var fillColor = Document.CurrentFillColor;
-            if (EditorUI.ColorPickerButton(
-                ElementId.FillColorButton,
-                ref fillColor,
-                onPreview: _previewFillColor ??= PreviewFillColor,
-                icon: EditorAssets.Sprites.IconFill))
-            {
-                SetFill(fillColor);
-            }
-
-            // Stroke color picker
-            var strokeColor = Document.CurrentStrokeColor;
-            if (EditorUI.ColorPickerButton(
-                ElementId.StrokeColorButton,
-                ref strokeColor,
-                onPreview: _previewStrokeColor ??= PreviewStrokeColor,
-                icon: EditorAssets.Sprites.IconStroke))
-            {
-                SetStroke(strokeColor);
-            }
-
-
-            StrokeWidthButtonUI();
-
-            {
-                var opIcon = Document.CurrentOperation == PathOperation.Clip
-                    ? EditorAssets.Sprites.IconClip
-                    : EditorAssets.Sprites.IconSubtract;
-                var opSelected = Document.CurrentOperation != PathOperation.Normal;
-                if (EditorUI.Button(ElementId.SubtractButton, opIcon, selected: opSelected, toolbar: true))
-                    CyclePathOperation();
-            }
-
-            EditorUI.ToolbarSpacer();
-
-            BoneBindingUI();
-
-            if (EditorUI.Button(ElementId.AddFrameButton, EditorAssets.Sprites.IconKeyframe, toolbar: true))
-                InsertFrameAfter();
-
-            if (EditorUI.Button(ElementId.PlayButton, EditorAssets.Sprites.IconPlay, selected: _isPlaying, toolbar: true))
-                TogglePlayback();
-
-            // AI Generation button — only shown when [generate] section exists in meta
-            if (Document.HasGeneration)
-            {
-                EditorUI.ToolbarSpacer();
-                if (EditorUI.Button(ElementId.GenerateButton, EditorAssets.Sprites.IconPlay, selected: Document.IsGenerating, toolbar: true))
-                    Document.GenerateAsync();
-            }
-
-            if (EditorUI.Button(ElementId.TileButton, EditorAssets.Sprites.IconTiling, Document.ShowTiling, toolbar: true))
-            {
-                Undo.Record(Document);
-                Document.ShowTiling = !Document.ShowTiling;
-            }
-#endif
-        }
     }
 
     public override void UpdateUI()
@@ -282,11 +214,8 @@ public partial class SpriteEditor : DocumentEditor
         using (UI.BeginColumn(ElementId.Root, EditorStyle.DocumentEditor.Root))
         {
             ToolbarUI();
-                        
             EditorUI.PanelSeparator();
-
             LayerDopeSheetUI();
-            //UI.Spacer(EditorStyle.Control.Spacing);
         }
     }
 
@@ -1903,8 +1832,22 @@ public partial class SpriteEditor : DocumentEditor
         {
             if (isGenerated)
             {
-                Inspector.StringProperty(placeholder: "Positive Prompt", multiLine: true);
-                Inspector.StringProperty(placeholder: "Negaive Prompt", multiLine: true);
+                var value = layer.Generation!.Strength;
+                if (Inspector.SliderProperty(ref value ))
+                {
+
+                }
+
+                layer.Generation!.Strength = value;
+                if (Inspector.StringProperty(layer.Generation.Prompt, placeholder: "Positive Prompt", multiLine: true))
+                {
+
+                }
+                
+                if (Inspector.StringProperty(layer.Generation.NegativePrompt, placeholder: "Negaive Prompt", multiLine: true))
+                {
+
+                }
             }
         }
     }

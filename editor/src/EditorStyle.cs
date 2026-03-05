@@ -755,7 +755,8 @@ public static class EditorStyle
             FocusBorderRadius = Control.RootHovered.BorderRadius,
             FocusBorderWidth = Control.RootHovered.BorderWidth,
             FocusBorderColor = Control.RootHovered.BorderColor,
-            Padding = EdgeInsets.Symmetric(8, 10)
+            Padding = EdgeInsets.Symmetric(8, 10),
+            CommitOnEnter = true
         };
 
         public static readonly TextAreaStyle TextAreaHovered = TextArea with
@@ -764,6 +765,11 @@ public static class EditorStyle
             BorderWidth = Control.RootHovered.BorderWidth,
             BorderColor = Control.RootHovered.BorderColor,
         };
+
+
+
+
+
 
         public static readonly ContainerStyle FieldContainer = new()
         {
@@ -821,6 +827,45 @@ public static class EditorStyle
 
 
 
+    }
+
+    // :slider
+    public static class Slider
+    {
+        public const float TrackHeight = 6;
+        public const float ThumbSize = 16;
+
+        public static readonly ContainerStyle Root = new()
+        {
+            Height = Control.Height,
+            MinWidth = 100,
+        };
+
+        public static readonly ContainerStyle Track = new()
+        {
+            Height = TrackHeight,
+            Color = Color.FromRgb(0x1d1d1d),
+            Border = new BorderStyle { Radius = TrackHeight / 2 },
+            AlignY = Align.Center,
+        };
+
+        public static readonly ContainerStyle Fill = new()
+        {
+            Height = TrackHeight,
+            Color = Palette.Selection,
+            Border = new BorderStyle { Radius = TrackHeight / 2 },
+            AlignY = Align.Center,
+        };
+
+        public static readonly ContainerStyle Thumb = new()
+        {
+            Width = ThumbSize,
+            Height = ThumbSize,
+            Color = Palette.TextPrimary,
+            Border = new BorderStyle { Radius = ThumbSize / 2 },
+            AlignY = Align.Center,
+            AlignX = Align.Min,
+        };
     }
 
     // :animationeditor

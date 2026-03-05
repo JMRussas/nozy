@@ -10,12 +10,11 @@ public class GenerationConfig
     public string NegativePrompt = "";
     public string Style = "";
     public long Seed;
-    public float ControlNetStrength = 0.3f;
+    public float Strength = 0.3f;
     public float StyleStrength = 0.7f;
     public bool Auto;
 
     // Editor-only state (not persisted)
-    public Texture? GeneratedTexture;
     public bool IsGenerating;
 
     public bool HasPrompt => !string.IsNullOrEmpty(Prompt);
@@ -26,7 +25,7 @@ public class GenerationConfig
         NegativePrompt = NegativePrompt,
         Style = Style,
         Seed = Seed,
-        ControlNetStrength = ControlNetStrength,
+        Strength = Strength,
         StyleStrength = StyleStrength,
         Auto = Auto,
     };
@@ -37,9 +36,17 @@ public class SpriteFrame : IDisposable
     public readonly Shape Shape = new();
     public int Hold;
 
+    // Per-frame generated image (PNG bytes, persisted as base64 in .sprite file)
+    public byte[]? ImageData;
+    public Texture? GeneratedTexture; // Editor-only GPU texture
+
+    public bool HasGeneratedImage => ImageData is { Length: > 0 };
+
     public void Dispose()
     {
         Shape.Dispose();
+        GeneratedTexture?.Dispose();
+        GeneratedTexture = null;
     }
 }
 
@@ -89,12 +96,16 @@ public class SpriteLayer
         {
             Frames[i].Shape.CopyFrom(Frames[i - 1].Shape);
             Frames[i].Hold = Frames[i - 1].Hold;
+            Frames[i].ImageData = Frames[i - 1].ImageData;
         }
 
         if (copyFrame >= 0 && copyFrame < FrameCount)
             Frames[insertAt].Shape.CopyFrom(Frames[copyFrame].Shape);
 
         Frames[insertAt].Hold = 0;
+        Frames[insertAt].ImageData = null;
+        Frames[insertAt].GeneratedTexture?.Dispose();
+        Frames[insertAt].GeneratedTexture = null;
         return insertAt;
     }
 
@@ -107,10 +118,14 @@ public class SpriteLayer
         {
             Frames[i].Shape.CopyFrom(Frames[i + 1].Shape);
             Frames[i].Hold = Frames[i + 1].Hold;
+            Frames[i].ImageData = Frames[i + 1].ImageData;
+            Frames[i].GeneratedTexture = Frames[i + 1].GeneratedTexture;
         }
 
         Frames[FrameCount - 1].Shape.Clear();
         Frames[FrameCount - 1].Hold = 0;
+        Frames[FrameCount - 1].ImageData = null;
+        Frames[FrameCount - 1].GeneratedTexture = null;
         FrameCount--;
         return Math.Min(frameIndex, FrameCount - 1);
     }
@@ -133,6 +148,7 @@ public class SpriteLayer
         {
             clone.Frames[i].Shape.CopyFrom(Frames[i].Shape);
             clone.Frames[i].Hold = Frames[i].Hold;
+            clone.Frames[i].ImageData = Frames[i].ImageData?.ToArray();
         }
         return clone;
     }

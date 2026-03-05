@@ -515,22 +515,22 @@ public static partial class UI
         return es.Data.TextBox.Text.AsReadOnlySpan();
     }
 
-    public static void SetTextBoxText(int elementId, string text, bool selectAll = false)
+    public static void SetTextBoxText(int elementId, ReadOnlySpan<char> value, bool selectAll = false)
     {
         ref var es = ref GetElementState(elementId);
         ref var tb = ref es.Data.TextBox;
-        tb.Text = AddText(text);
-        tb.TextHash = string.GetHashCode(text);
+        tb.Text = AddText(value);
+        tb.TextHash = string.GetHashCode(value);
 
         if (selectAll)
         {
             tb.SelectionStart = 0;
-            tb.CursorIndex = text.Length;
+            tb.CursorIndex = value.Length;
         }
         else
         {
-            tb.CursorIndex = text.Length;
-            tb.SelectionStart = text.Length;
+            tb.CursorIndex = value.Length;
+            tb.SelectionStart = value.Length;
         }
     }
 

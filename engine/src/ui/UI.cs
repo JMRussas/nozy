@@ -187,6 +187,9 @@ public static partial class UI
         return depth;
     }
 
+    public static bool IsValidElement(int elementId) =>
+        elementId > 0 && elementId <= MaxElementId && _elementStates[elementId].LastFrame >= _frame - 1;
+
     private static ref Element GetParent() => 
         ref _elements[_elementStackCount - 2];
 

@@ -66,6 +66,7 @@ public static class EditorAssets
         public const string IconTiling = "icon_tiling";
         public const string IconUnlock = "icon_unlock";
         public const string IconXray = "icon_xray";
+        public const string NewSprite = "new_sprite";
         public const string Seguisb = "seguisb";
         public const string Sprite = "sprite";
         public const string Text = "text";
@@ -185,6 +186,7 @@ public static class EditorAssets
         public static Sprite IconTiling { get; private set; } = null!;
         public static Sprite IconUnlock { get; private set; } = null!;
         public static Sprite IconXray { get; private set; } = null!;
+        public static Sprite NewSprite { get; private set; } = null!;
 
         public static void Load()
         {
@@ -241,6 +243,7 @@ public static class EditorAssets
             IconTiling = (Sprite)Asset.Load(AssetType.Sprite, Names.IconTiling)!;
             IconUnlock = (Sprite)Asset.Load(AssetType.Sprite, Names.IconUnlock)!;
             IconXray = (Sprite)Asset.Load(AssetType.Sprite, Names.IconXray)!;
+            NewSprite = (Sprite)Asset.Load(AssetType.Sprite, Names.NewSprite)!;
         }
 
         public static void Unload()
@@ -298,6 +301,7 @@ public static class EditorAssets
             IconTiling?.Dispose();
             IconUnlock?.Dispose();
             IconXray?.Dispose();
+            NewSprite?.Dispose();
         }
     }
 

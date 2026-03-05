@@ -80,6 +80,7 @@ public partial class SpriteEditor
             foreach (var (layerIdx, shape) in slot.LayerShapes)
             {
                 if (!layers[layerIdx].Visible) continue;
+                if (layers[layerIdx].IsGenerated) continue; // Generated layers render their image instead
 
                 // Snapshot accumulated paths at layer start for clip (cross-layer only)
                 var lowerLayerPaths = accumulatedPaths;
@@ -260,6 +261,47 @@ public partial class SpriteEditor
                 Graphics.Draw(
                     _meshVertices.AsSpan(slot.VertexOffset, slot.VertexCount),
                     _meshIndices.AsSpan(slot.IndexOffset, slot.IndexCount));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Renders generated images for generated layers at SortGroup 3 (same as mesh fill).
+    /// Wireframes are still drawn at SortGroup 4 on top of these.
+    /// </summary>
+    private void DrawGeneratedLayers()
+    {
+        var layers = Document.Layers;
+        var ppu = EditorApplication.Config.PixelsPerUnitInv;
+
+        for (int li = 0; li < layers.Count; li++)
+        {
+            var layer = layers[li];
+            if (!layer.Visible || !layer.IsGenerated) continue;
+
+            var fi = SpriteDocument.GetLayerFrameAtTimeSlot(layer, _currentTimeSlot);
+            var frame = layer.Frames[fi];
+            if (frame.GeneratedTexture == null) continue;
+
+            var bounds = frame.Shape.RasterBounds;
+            if (bounds.Width <= 0 || bounds.Height <= 0)
+                bounds = Document.RasterBounds;
+
+            var rect = new Rect(
+                bounds.X * ppu,
+                bounds.Y * ppu,
+                bounds.Width * ppu,
+                bounds.Height * ppu);
+
+            using (Graphics.PushState())
+            {
+                Graphics.SetSortGroup(3);
+                Graphics.SetLayer(EditorLayer.DocumentEditor);
+                Graphics.SetTransform(Document.Transform);
+                Graphics.SetTexture(frame.GeneratedTexture);
+                Graphics.SetShader(EditorAssets.Shaders.Texture);
+                Graphics.SetColor(Color.White.WithAlpha(layer.Opacity * Workspace.XrayAlpha));
+                Graphics.Draw(rect);
             }
         }
     }

@@ -378,6 +378,11 @@ public static partial class UI
         else if (Input.WasButtonPressed(InputCode.KeyEnter, scope))
         {
             Input.ConsumeButton(InputCode.KeyEnter);
+            if (e.Data.TextArea.CommitOnEnter)
+            {
+                UI.ClearFocus();
+                return;
+            }
             RemoveSelectedTextAreaText(ref es);
             text = ta.Text.AsReadOnlySpan();
             SetTextAreaText(ref es, InsertText(text, ta.CursorIndex, "\n"));
@@ -675,22 +680,22 @@ public static partial class UI
         return es.Data.TextArea.Text.AsReadOnlySpan();
     }
 
-    public static void SetTextAreaText(int elementId, string text, bool selectAll = false)
+    public static void SetTextAreaText(int elementId, ReadOnlySpan<char> value, bool selectAll = false)
     {
         ref var es = ref GetElementState(elementId);
         ref var ta = ref es.Data.TextArea;
-        ta.Text = AddText(text);
-        ta.TextHash = string.GetHashCode(text);
+        ta.Text = AddText(value);
+        ta.TextHash = string.GetHashCode(value);
 
         if (selectAll)
         {
             ta.SelectionStart = 0;
-            ta.CursorIndex = text.Length;
+            ta.CursorIndex = value.Length;
         }
         else
         {
-            ta.CursorIndex = text.Length;
-            ta.SelectionStart = text.Length;
+            ta.CursorIndex = value.Length;
+            ta.SelectionStart = value.Length;
         }
     }
 }

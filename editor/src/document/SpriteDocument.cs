@@ -299,7 +299,6 @@ public partial class SpriteDocument : Document, ISpriteSource
                 hasDocLayers = true;
                 var layer = _layers[currentLayerIndex];
 
-                // Parse frames/paths within this layer
                 while (!tk.IsEOF)
                 {
                     if (tk.ExpectIdentifier("frame"))
@@ -309,7 +308,7 @@ public partial class SpriteDocument : Document, ISpriteSource
                             break;
 
                         // First frame already exists (FrameCount starts at 1), subsequent ones increment
-                        if (fi > 0 || layer.Frames[0].Shape.PathCount > 0)
+                        if (fi > 0 || layer.Frames[0].Shape.PathCount > 0 || layer.Frames[0].HasGeneratedImage)
                             layer.FrameCount = (ushort)(fi + 1);
                         else
                             layer.FrameCount = 1;
@@ -322,6 +321,13 @@ public partial class SpriteDocument : Document, ISpriteSource
                             f.Hold = hold;
                             if (currentLayerIndex > 0 && hold > 0)
                                 layer0HoldsOnly = false;
+                        }
+
+                        if (tk.ExpectIdentifier("image"))
+                        {
+                            var base64 = tk.ExpectQuotedString();
+                            if (!string.IsNullOrEmpty(base64))
+                                f.ImageData = Convert.FromBase64String(base64);
                         }
 
                         // Parse paths within this frame
@@ -413,6 +419,25 @@ public partial class SpriteDocument : Document, ISpriteSource
         EnsureDefaultLayer();
     }
 
+    private static void ParseGenerate(ref Tokenizer tk, SpriteLayer layer)
+    {
+        var generation = new GenerationConfig();
+        layer.Generation = generation;
+        while (!tk.IsEOF)
+        {
+            if (tk.ExpectIdentifier("prompt"))
+                generation.Prompt = tk.ExpectQuotedString() ?? "";
+            else if (tk.ExpectIdentifier("neg_prompt"))
+                generation.NegativePrompt = tk.ExpectQuotedString() ?? "";
+            else if (tk.ExpectIdentifier("seed"))
+                generation.Seed = tk.ExpectInt();
+            else if (tk.ExpectIdentifier("strength"))
+                generation.Strength = tk.ExpectFloat(0.3f);
+            else
+                break;
+        }
+    }
+
     private void ParseDocumentLayer(ref Tokenizer tk)
     {
         var layer = new SpriteLayer
@@ -425,8 +450,8 @@ public partial class SpriteDocument : Document, ISpriteSource
         {
             if (tk.ExpectIdentifier("sort"))
                 layer.SortOrder = (byte)tk.ExpectInt();
-            else if (tk.ExpectIdentifier("generated"))
-                layer.Generation = new GenerationConfig();
+            else if (tk.ExpectIdentifier("generate"))
+                ParseGenerate(ref tk, layer);
             else if (tk.ExpectIdentifier("locked"))
                 layer.Locked = true;
             else if (tk.ExpectIdentifier("hidden"))
@@ -805,8 +830,6 @@ public partial class SpriteDocument : Document, ISpriteSource
             writer.Write($"layer \"{layer.Name}\"");
             if (layer.SortOrder != 0)
                 writer.Write($" sort {layer.SortOrder}");
-            if (layer.IsGenerated)
-                writer.Write(" generated");
             if (layer.Locked)
                 writer.Write(" locked");
             if (!layer.Visible)
@@ -816,6 +839,20 @@ public partial class SpriteDocument : Document, ISpriteSource
             if (layer.Opacity < 1.0f)
                 writer.Write(string.Format(CultureInfo.InvariantCulture, " opacity {0}", layer.Opacity));
             writer.WriteLine();
+
+            // Write generation settings (stored in the .sprite file, not .meta)
+            if (layer.IsGenerated)
+            {
+                writer.WriteLine("generate");
+
+                var gen = layer.Generation!;
+                if (!string.IsNullOrEmpty(gen.Prompt))
+                    writer.WriteLine($"prompt \"{gen.Prompt.Replace("\"", "\\\"")}\"");
+                if (!string.IsNullOrEmpty(gen.NegativePrompt))
+                    writer.WriteLine($"neg_prompt\"{gen.NegativePrompt.Replace("\"", "\\\"")}\"");
+                writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "seed {0}", gen.Seed));
+                writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "strength {0}", gen.Strength));
+            }
 
             // Write this layer's frames
             for (ushort frameIndex = 0; frameIndex < layer.FrameCount; frameIndex++)
@@ -831,6 +868,10 @@ public partial class SpriteDocument : Document, ISpriteSource
                         writer.Write($" hold {f.Hold}");
                     writer.WriteLine();
                 }
+
+                // Write per-frame generated image as base64
+                if (layer.IsGenerated && f.HasGeneratedImage)
+                    writer.WriteLine($"generate_image \"{Convert.ToBase64String(f.ImageData!)}\"");
 
                 if (shape.PathCount > 0)
                     SaveLayerFrame(shape, writer);
@@ -1001,42 +1042,6 @@ public partial class SpriteDocument : Document, ISpriteSource
         ShowTiling = meta.GetBool("sprite", "show_tiling", false);
         ShowSkeletonOverlay = meta.GetBool("sprite", "show_skeleton_overlay", false);
         ConstrainedSize = ParseConstrainedSize(meta.GetString("sprite", "constrained_size", ""));
-
-        // Load per-layer generation params from meta (new format: [generate.layer0], [generate.layer1], ...)
-        for (var i = 0; i < _layers.Count; i++)
-        {
-            var layer = _layers[i];
-            if (!layer.IsGenerated)
-                continue;
-            var gen = layer.Generation!;
-            var section = $"generate.layer{i}";
-            gen.Prompt = meta.GetString(section, "prompt", gen.Prompt);
-            gen.NegativePrompt = meta.GetString(section, "negative_prompt", gen.NegativePrompt);
-            gen.Style = meta.GetString(section, "style", gen.Style);
-            gen.Seed = meta.GetLong(section, "seed", gen.Seed);
-            gen.Auto = meta.GetBool(section, "auto", gen.Auto);
-            gen.ControlNetStrength = meta.GetFloat(section, "controlnet_strength", gen.ControlNetStrength);
-            gen.StyleStrength = meta.GetFloat(section, "style_strength", gen.StyleStrength);
-        }
-
-        // Legacy migration: old [generate] section at document level
-        var legacyPrompt = meta.GetString("generate", "prompt", "");
-        if (!string.IsNullOrEmpty(legacyPrompt) && !_layers.Any(l => l.HasGeneration))
-        {
-            // Find or create a generated layer for the legacy config
-            var genLayer = _layers.FirstOrDefault(l => l.IsGenerated);
-            if (genLayer == null)
-            {
-                genLayer = new SpriteLayer { Name = "Generated", Generation = new GenerationConfig() };
-                _layers.Insert(0, genLayer); // insert at bottom
-            }
-            var gen = genLayer.Generation!;
-            gen.Prompt = legacyPrompt;
-            gen.NegativePrompt = meta.GetString("generate", "negative_prompt", "");
-            gen.Style = meta.GetString("generate", "style", "");
-            gen.Seed = meta.GetLong("generate", "seed", 0);
-            gen.Auto = meta.GetBool("generate", "auto", false);
-        }
     }
 
     private static Vector2Int? ParseConstrainedSize(string value)
@@ -1058,46 +1063,17 @@ public partial class SpriteDocument : Document, ISpriteSource
         meta.SetBool("sprite", "show_in_skeleton", ShowInSkeleton);
         meta.SetBool("sprite", "show_tiling", ShowTiling);
         meta.SetBool("sprite", "show_skeleton_overlay", ShowSkeletonOverlay);
+
         if (ConstrainedSize.HasValue)
             meta.SetString("sprite", "constrained_size", $"{ConstrainedSize.Value.X}x{ConstrainedSize.Value.Y}");
         else
             meta.RemoveKey("sprite", "constrained_size");
-        meta.ClearGroup("skeleton");  // Legacy cleanup - skeleton now in .sprite file
-        meta.ClearGroup("bone");  // Legacy cleanup
-        meta.ClearGroup("generate");  // Legacy cleanup - generation now per-layer
-
-        // Save per-layer generation params
-        for (var i = 0; i < _layers.Count; i++)
-        {
-            var layer = _layers[i];
-            var section = $"generate.layer{i}";
-            if (layer.HasGeneration)
-            {
-                var gen = layer.Generation!;
-                meta.SetString(section, "prompt", gen.Prompt);
-                if (!string.IsNullOrEmpty(gen.NegativePrompt))
-                    meta.SetString(section, "negative_prompt", gen.NegativePrompt);
-                if (!string.IsNullOrEmpty(gen.Style))
-                    meta.SetString(section, "style", gen.Style);
-                if (gen.Seed != 0)
-                    meta.SetLong(section, "seed", gen.Seed);
-                if (gen.Auto)
-                    meta.SetBool(section, "auto", true);
-                if (gen.ControlNetStrength != 0.3f)
-                    meta.SetFloat(section, "controlnet_strength", gen.ControlNetStrength);
-                if (gen.StyleStrength != 0.7f)
-                    meta.SetFloat(section, "style_strength", gen.StyleStrength);
-            }
-            else
-            {
-                meta.ClearGroup(section);
-            }
-        }
     }
 
     public override void PostLoad()
     {
         Binding.Resolve();
+        MigrateExternalGenImages();
         LoadGeneratedTextures();
     }
 
@@ -1108,23 +1084,24 @@ public partial class SpriteDocument : Document, ISpriteSource
     /// <summary>Legacy path for migration.</summary>
     private string LegacyGeneratedImagePath => Path + ".gen";
 
-    internal void LoadGeneratedTextures()
+    /// <summary>
+    /// Migrate generated images from external .gen files into frame data.
+    /// Only applies when frames don't already have inline image data.
+    /// </summary>
+    private void MigrateExternalGenImages()
     {
         for (var i = 0; i < _layers.Count; i++)
         {
             var layer = _layers[i];
-            if (!layer.IsGenerated)
-                continue;
+            if (!layer.IsGenerated) continue;
 
-            var gen = layer.Generation!;
-            gen.GeneratedTexture?.Dispose();
-            gen.GeneratedTexture = null;
+            // Only migrate if the first frame doesn't already have inline data
+            var frame = layer.Frames[0];
+            if (frame.HasGeneratedImage) continue;
 
-            // Try new path first, then legacy path for migration
             var genPath = GetGeneratedImagePath(i);
             if (!File.Exists(genPath))
             {
-                // Migration: try legacy .gen file for the first generated layer
                 var legacyPath = LegacyGeneratedImagePath;
                 if (File.Exists(legacyPath))
                     genPath = legacyPath;
@@ -1134,17 +1111,48 @@ public partial class SpriteDocument : Document, ISpriteSource
 
             try
             {
-                using var srcImage = SixLabors.ImageSharp.Image.Load<Rgba32>(genPath);
-                var w = srcImage.Width;
-                var h = srcImage.Height;
-                var pixels = new byte[w * h * 4];
-                srcImage.CopyPixelDataTo(pixels);
-                gen.GeneratedTexture = Texture.Create(w, h, pixels, TextureFormat.RGBA8, TextureFilter.Linear, $"{Name}_gen{i}");
-                Log.Info($"Loaded generated texture for '{Name}' layer {i} ({w}x{h})");
+                frame.ImageData = File.ReadAllBytes(genPath);
+                Log.Info($"Migrated external gen image for '{Name}' layer {i}");
             }
             catch (Exception ex)
             {
-                Log.Error($"Failed to load generated texture for '{Name}' layer {i}: {ex.Message}");
+                Log.Error($"Migration failed for '{Name}' layer {i}: {ex.Message}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Create GPU textures from per-frame GeneratedImageData for editor preview.
+    /// </summary>
+    internal void LoadGeneratedTextures()
+    {
+        for (var li = 0; li < _layers.Count; li++)
+        {
+            var layer = _layers[li];
+            if (!layer.IsGenerated) continue;
+
+            for (var fi = 0; fi < layer.FrameCount; fi++)
+            {
+                var frame = layer.Frames[fi];
+                frame.GeneratedTexture?.Dispose();
+                frame.GeneratedTexture = null;
+
+                if (!frame.HasGeneratedImage) continue;
+
+                try
+                {
+                    using var ms = new MemoryStream(frame.ImageData!);
+                    using var srcImage = SixLabors.ImageSharp.Image.Load<Rgba32>(ms);
+                    var w = srcImage.Width;
+                    var h = srcImage.Height;
+                    var pixels = new byte[w * h * 4];
+                    srcImage.CopyPixelDataTo(pixels);
+                    frame.GeneratedTexture = Texture.Create(w, h, pixels, TextureFormat.RGBA8, TextureFilter.Linear, $"{Name}_gen_L{li}_F{fi}");
+                }
+                catch (Exception ex)
+                {
+                    Log.Error($"Failed to create generated texture for '{Name}' layer {li} frame {fi}: {ex.Message}");
+                }
             }
         }
     }
@@ -1158,20 +1166,18 @@ public partial class SpriteDocument : Document, ISpriteSource
 
 
 
-    private bool TryBlitGeneratedImage(int layerIndex, PixelData<Color32> image, in AtlasSpriteRect rect, int padding, float opacity = 1.0f)
+    private bool TryBlitGeneratedImage(int layerIndex, int frameIndex, PixelData<Color32> image, in AtlasSpriteRect rect, int padding, float opacity = 1.0f)
     {
-        var genPath = GetGeneratedImagePath(layerIndex);
-        if (!File.Exists(genPath))
-        {
-            // Migration: try legacy path
-            genPath = LegacyGeneratedImagePath;
-        }
-        if (!File.Exists(genPath))
+        var layer = _layers[layerIndex];
+        var fi = GetLayerFrameAtTimeSlot(layer, frameIndex);
+        var frame = layer.Frames[fi];
+        if (!frame.HasGeneratedImage)
             return false;
 
         try
         {
-            using var srcImage = SixLabors.ImageSharp.Image.Load<Rgba32>(genPath);
+            using var ms = new MemoryStream(frame.ImageData!);
+            using var srcImage = SixLabors.ImageSharp.Image.Load<Rgba32>(ms);
             var padding2 = padding * 2;
 
             // Resize to fit the atlas rect (sprite's raster bounds + padding)
@@ -1216,16 +1222,17 @@ public partial class SpriteDocument : Document, ISpriteSource
         }
         catch (Exception ex)
         {
-            Log.Error($"Failed to load generated image '{genPath}': {ex.Message}");
+            Log.Error($"Failed to blit generated image for layer {layerIndex}: {ex.Message}");
             return false;
         }
     }
 
     /// <summary>
-    /// Rasterizes the sprite's vector paths (colored silhouette) to a PNG byte array for the generation API.
+    /// Rasterizes the sprite's vector paths as a scribble image (black strokes on white background)
+    /// for use as the ControlNet input to the generation API.
     /// Only paths assigned to the target layer are included.
     /// </summary>
-    private byte[] RasterizeSilhouetteToPng(int targetLayerIndex)
+    private byte[] RasterizeScribbleToPng(int targetLayerIndex)
     {
         UpdateBounds();
         var dpi = EditorApplication.Config.PixelsPerUnit;
@@ -1237,22 +1244,49 @@ public partial class SpriteDocument : Document, ISpriteSource
         using var pixels = new PixelData<Color32>(w, h);
         var targetRect = new RectInt(0, 0, w, h);
         var sourceOffset = -RasterBounds.Position;
+        var strokeColor = new Color32(0, 0, 0, 255); // Black
+        const float scribbleStrokeWidth = 3.0f;
+        var halfStroke = scribbleStrokeWidth * Shape.StrokeScale;
 
-        var slots = GetMeshSlots(0);
-        foreach (var slot in slots)
+        // Get paths for the target layer
+        var layer = _layers[targetLayerIndex];
+        var shape = layer.Frames[0].Shape;
+
+        for (ushort pi = 0; pi < shape.PathCount; pi++)
         {
-            // Filter to only the target layer's shape within this slot
-            var filtered = new MeshSlot(slot.SortOrder, slot.Bone);
-            foreach (var (layerIdx, shape) in slot.LayerShapes)
+            ref readonly var path = ref shape.GetPath(pi);
+            if (path.IsSubtract || path.AnchorCount < 3) continue;
+
+            var pathShape = new Msdf.Shape();
+            Msdf.ShapeClipper.AppendContour(pathShape, shape, pi);
+            pathShape = Msdf.ShapeClipper.Union(pathShape);
+            var contours = Msdf.ShapeClipper.ShapeToPaths(pathShape, 8);
+            if (contours.Count == 0) continue;
+
+            // Create stroke ring: outer - inner = stroke outline
+            var outer = Clipper2Lib.Clipper.InflatePaths(contours, halfStroke,
+                Clipper2Lib.JoinType.Round, Clipper2Lib.EndType.Polygon, precision: 6);
+            if (outer.Count == 0) continue;
+
+            var inner = Clipper2Lib.Clipper.InflatePaths(contours, -halfStroke,
+                Clipper2Lib.JoinType.Round, Clipper2Lib.EndType.Polygon, precision: 6);
+
+            Clipper2Lib.PathsD ring;
+            if (inner.Count > 0)
             {
-                if (layerIdx == targetLayerIndex)
-                    filtered.LayerShapes.Add((layerIdx, shape));
+                ring = Clipper2Lib.Clipper.BooleanOp(Clipper2Lib.ClipType.Difference,
+                    outer, inner, Clipper2Lib.FillRule.NonZero, precision: 6);
             }
-            if (HasPaths(filtered))
-                RasterizeSlot(filtered, pixels, targetRect, sourceOffset, dpi);
+            else
+            {
+                ring = outer; // Very small paths: fill entirely
+            }
+
+            if (ring.Count > 0)
+                Rasterizer.Fill(ring, pixels, targetRect, sourceOffset, dpi, strokeColor);
         }
 
-        // Convert to ImageSharp image: composite path colors over white background
+        // Convert to ImageSharp image: black strokes on white background
         using var img = new Image<Rgba32>(w, h);
         for (int y = 0; y < h; y++)
         {
@@ -1278,12 +1312,12 @@ public partial class SpriteDocument : Document, ISpriteSource
         img.SaveAsPng(ms);
         var pngBytes = ms.ToArray();
 
-        // Debug: write silhouette to tmp folder for inspection
+        // Debug: write scribble to tmp folder for inspection
         try
         {
             var tmpDir = System.IO.Path.Combine(EditorApplication.ProjectPath, "tmp");
             Directory.CreateDirectory(tmpDir);
-            File.WriteAllBytes(System.IO.Path.Combine(tmpDir, $"{Name}_silhouette.png"), pngBytes);
+            File.WriteAllBytes(System.IO.Path.Combine(tmpDir, $"{Name}_scribble.png"), pngBytes);
         }
         catch { }
 
@@ -1323,16 +1357,16 @@ public partial class SpriteDocument : Document, ISpriteSource
 
         gen.IsGenerating = true;
 
-        // Rasterize silhouette on the main thread — only paths on this layer
-        var silhouetteBytes = RasterizeSilhouetteToPng(layerIndex);
-        if (silhouetteBytes.Length == 0)
+        // Rasterize paths as a scribble (black strokes) for ControlNet input
+        var scribbleBytes = RasterizeScribbleToPng(layerIndex);
+        if (scribbleBytes.Length == 0)
         {
             Log.Error("Cannot generate: sprite has no visible shapes");
             gen.IsGenerating = false;
             return;
         }
 
-        var silhouetteBase64 = $"data:image/png;base64,{Convert.ToBase64String(silhouetteBytes)}";
+        var silhouetteBase64 = $"data:image/png;base64,{Convert.ToBase64String(scribbleBytes)}";
 
         // Build the request inputs
         var inputs = new Dictionary<string, string>
@@ -1400,29 +1434,41 @@ public partial class SpriteDocument : Document, ISpriteSource
 
             try
             {
-                // Decode base64 image and save to .gen file
+                // Decode base64 image and store in frame data
                 var imageBytes = Convert.FromBase64String(response.Image);
-                File.WriteAllBytes(GetGeneratedImagePath(capturedLayerIndex), imageBytes);
+                var frame = genLayer.Frames[0]; // TODO: support current frame index
+                frame.ImageData = imageBytes;
+
+                // Recreate GPU texture from the new data
+                frame.GeneratedTexture?.Dispose();
+                frame.GeneratedTexture = null;
+                using var ms = new MemoryStream(imageBytes);
+                using var srcImage = SixLabors.ImageSharp.Image.Load<Rgba32>(ms);
+                var w = srcImage.Width;
+                var h = srcImage.Height;
+                var px = new byte[w * h * 4];
+                srcImage.CopyPixelDataTo(px);
+                frame.GeneratedTexture = Texture.Create(w, h, px, TextureFormat.RGBA8, TextureFilter.Linear, $"{Name}_gen_L{capturedLayerIndex}");
 
                 // Debug: write to tmp folder for inspection
-                var tmpDir = System.IO.Path.Combine(EditorApplication.ProjectPath, "tmp");
-                Directory.CreateDirectory(tmpDir);
-                var debugPath = System.IO.Path.Combine(tmpDir, $"{Name}_gen{capturedLayerIndex}.png");
-                File.WriteAllBytes(debugPath, imageBytes);
-                Log.Info($"Debug: wrote generated image to {debugPath} ({imageBytes.Length} bytes)");
+                try
+                {
+                    var tmpDir = System.IO.Path.Combine(EditorApplication.ProjectPath, "tmp");
+                    Directory.CreateDirectory(tmpDir);
+                    File.WriteAllBytes(System.IO.Path.Combine(tmpDir, $"{Name}_gen{capturedLayerIndex}.png"), imageBytes);
+                }
+                catch { }
 
                 // Update seed if it was random
                 if (gen.Seed == 0 && response.Seed != 0)
                     gen.Seed = response.Seed;
 
                 Log.Info($"Generation complete for '{Name}' ({response.Width}x{response.Height}, seed={response.Seed})");
-
-                // Load the generated image as a standalone texture for editor preview
-                LoadGeneratedTextures();
+                IncrementVersion();
             }
             catch (Exception ex)
             {
-                Log.Error($"Failed to save generated image for '{Name}': {ex.Message}");
+                Log.Error($"Failed to process generated image for '{Name}': {ex.Message}");
             }
         });
     }
@@ -1443,7 +1489,7 @@ public partial class SpriteDocument : Document, ISpriteSource
         {
             ["model"] = "scribble",
             ["image"] = "@input.sketch",
-            ["strength"] = gen.ControlNetStrength
+            ["strength"] = gen.Strength
         };
         props["controlnet"] = JsonSerializer.SerializeToElement(controlnet);
 
@@ -1509,7 +1555,7 @@ public partial class SpriteDocument : Document, ISpriteSource
 
                 if (docLayer.IsGenerated)
                 {
-                    if (TryBlitGeneratedImage(layerIdx, image, rect, padding, docLayer.Opacity))
+                    if (TryBlitGeneratedImage(layerIdx, frameIndex, image, rect, padding, docLayer.Opacity))
                         hasContent = true;
                 }
                 else if (layerShape.PathCount > 0)

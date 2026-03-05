@@ -54,5 +54,6 @@ r "icon_stroke" 127 596 64 64 0
 r "icon_submenu" 43 987 31 32 0
 r "icon_subtract" 127 660 64 64 0
 r "icon_tiling" 183 471 57 57 0
-r "icon_unlock" 217 435 26 33 0
+r "icon_unlock" 217 435 36 36 0
 r "icon_xray" 183 528 59 62 0
+r "new_sprite" 172 841 83 78 0

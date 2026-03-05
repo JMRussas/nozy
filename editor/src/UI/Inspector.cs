@@ -2,8 +2,6 @@
 //  NoZ - Copyright(c) 2026 NoZ Games, LLC
 //
 
-using System.Diagnostics;
-
 namespace NoZ.Editor;
 
 internal static partial class Inspector
@@ -124,7 +122,7 @@ internal static partial class Inspector
         return false;
     }
 
-    public static bool StringProperty(bool multiLine = false, string? placeholder = null)
+    public static bool StringProperty(ReadOnlySpan<char> value, bool multiLine = false, string? placeholder = null)
     {
         var propertyId = GetNextPropertyId();
 
@@ -132,6 +130,14 @@ internal static partial class Inspector
         using (UI.BeginContainer(new ContainerStyle { Width = Size.Percent(1), Height = Size.Fit }))
         {
             var hovered = UI.IsHovered(propertyId);
+
+            if (!UI.IsValidElement(propertyId))
+            {
+                if (multiLine)
+                    UI.SetTextAreaText(propertyId, value);
+                else
+                    UI.SetTextBoxText(propertyId, value);
+            }
 
             if (multiLine)
                 UI.TextArea(propertyId, style: hovered ? EditorStyle.Inspector.TextAreaHovered : EditorStyle.Inspector.TextArea, placeholder: placeholder);
@@ -144,48 +150,12 @@ internal static partial class Inspector
 
     public static bool Button(Sprite icon, bool enabled = true) =>
         EditorUI.Button(GetNextPropertyId(), icon, isEnabled: enabled);
-        
 
-#if false
-    public static bool ColorPickerButton(
-        int id,
-        ref Color32 color,
-        Action<Color32>? onPreview = null,
-        Color[]? swatches = null,
-        int swatchCount = 0,
-        Sprite? icon = null)
+    public static bool SliderProperty(ref float value, float minValue=0.0f, float maxValue=1.0f)
     {
-        var oldColor = color;
-        ColorPicker._buttonColor = _popupId == id ? ColorPicker.CurrentColor : oldColor;
-        ColorPicker._buttonIcon = icon;
-        ColorPicker._committed = false;
-
-        if (Control(id, ColorPicker.ButtonContent, selected: false, disabled: false, toolbar: false))
-        {
-            TogglePopup(id);
-            if (IsPopupOpen(id))
-                ColorPicker.Open(color, swatches, swatchCount);
-        }
-
-        ColorPicker.Popup(id, ref color);
-
-        if (color != oldColor)
-        {
-            if (ColorPicker._committed)
-                return true;
-
-            // Only trigger preview when the picker's own output changed (user dragged
-            // in the picker), not when Document.CurrentFillColor changed externally
-            // (e.g. due to a selection change while the popup is open).
-            if (color != ColorPicker._lastOutputColor)
-                onPreview?.Invoke(color);
-
-            ColorPicker._lastOutputColor = color;
-        }
-
-        return false;
+        var propertyId = GetNextPropertyId();
+        return EditorUI.Slider(propertyId, ref value, minValue, maxValue);
     }
-#endif
 
     public static bool ColorProperty(
         ref Color32 color,

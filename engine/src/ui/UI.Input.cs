@@ -18,6 +18,7 @@ public static partial class UI
     private static bool _mouseLeftDown;
     private static bool _mouseLeftDoubleClickPressed;
     private static int _captureElementId;
+    private static bool _focusClickedThisFrame;
 
     public static Vector2 MouseWorldPosition { get; private set; }
 
@@ -67,8 +68,15 @@ public static partial class UI
             }
         }
 
+        // Track whether a focusable element (TextBox/TextArea) was clicked this frame
+        _focusClickedThisFrame = false;
+
         // Process all elements
         HandleElementInput(mouse);
+
+        // Clear focus when clicking but no focusable element was hit
+        if (_mouseLeftPressed && !_focusClickedThisFrame && _focusElementId != 0)
+            ClearFocus();
 
         // Process scrollbar input BEFORE consuming buttons
         HandleScrollbarInput(mouse);
@@ -322,9 +330,6 @@ public static partial class UI
         return false;
     }
 
-    private static bool IsValidElement(int elementId) =>
-        elementId > 0 && elementId <= MaxElementId && _elementStates[elementId].LastFrame == _frame;
-
     private static bool _mouseOverScene;
 
     private static void HandleElementInput(Vector2 mouse)
@@ -414,7 +419,13 @@ public static partial class UI
             {
                 es.SetFlags(ElementFlags.Pressed, ElementFlags.Pressed);
                 _mouseLeftElementId = e.Id;
-                _pendingFocusElementId = e.Id;
+
+                // Only TextBox/TextArea elements are focusable
+                if (e.Type == ElementType.TextBox || e.Type == ElementType.TextArea)
+                {
+                    _pendingFocusElementId = e.Id;
+                    _focusClickedThisFrame = true;
+                }
             }
             else if (es.IsPressed)
             {

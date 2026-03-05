@@ -294,6 +294,7 @@ public struct TextAreaData
     public EdgeInsets Padding;
     public UnsafeSpan<char> Placeholder;
     public InputScope Scope;
+    public bool CommitOnEnter;
 
     public static TextAreaData Default => new()
     {
