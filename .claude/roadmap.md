@@ -1734,7 +1734,9 @@ This phase is 100% unit-testable. Can be developed test-first after Phase 4a.
 
 ---
 
-## Phase 5b: Skinned Vertex Format + Shader Variant
+## Phase 5b: Skinned Vertex Format + Shader Variant ✅
+
+**Status:** Complete
 
 **Milestone:** `SkinnedMeshVertex3D` compiles, registers with the graphics driver, and the skinned pipeline variant is selectable via `ShaderFlags`.
 
