@@ -1806,9 +1806,11 @@ This extends `MeshVertex3D` with two additional attributes for skinning. The 4-i
 
 ---
 
-## Phase 5c: Animation Playback
+## Phase 5c: Animation Playback ✅
 
-**Milestone:** `AnimationPlayer3D` can sample any glTF animation clip and produce correct per-joint local transforms at any time value. All interpolation modes work. Pure math — no rendering or GPU involvement.
+**Status:** Complete
+
+**Milestone:** `AnimationPlayer3D` can sample any glTF animation clip and produce correct per-joint local transforms at any time value. LINEAR and STEP interpolation modes work. Pure math — no rendering or GPU involvement.
 
 **Dependencies:** Phase 5a (Skeleton3D, AnimationClip3D)
 **Fork changes:** None
