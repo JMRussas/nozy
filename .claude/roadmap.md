@@ -17,9 +17,9 @@
 | 5a | Skeleton & Animation Data | Unit tests parse skinned .glb, produce correct skeleton + keyframes | 4a | Done |
 | 5b | Skinned Vertex Format | Skinned vertex type + shader variant compile and register | 1b, 5a | Not started |
 | 5c | Animation Playback | AnimationPlayer3D produces correct joint transforms at any time | 5a | Not started |
-| 5d | GPU Skinning | Sample app loads and displays an animated skinned glTF model | 5b, 5c, 2 | Not started |
-| 6a | Shadow Map Infrastructure | Depth-only render pass produces valid shadow texture | 3c, 1a | Not started |
-| 6b | Directional Shadows | Scene renders with directional light shadows + PCF | 6a | Not started |
+| 5d | GPU Skinning | Sample app loads and displays an animated skinned glTF model | 5b, 5c, 2 | **Done** |
+| 6a | Shadow Map Infrastructure | Depth-only render pass produces valid shadow texture | 3c, 1a | **Done** |
+| 6b | Directional Shadows | Scene renders with directional light shadows + PCF | 6a | **Done** |
 | 6c | Cascaded Shadow Maps | Large scenes show quality shadows at multiple distances | 6b | Not started |
 | 7a | Render-to-Texture | Scene renders to offscreen texture, blits to screen | 2 | Not started |
 | 7b | Tone Mapping + Gamma | HDR scene correctly tone-mapped to LDR display | 7a | Not started |

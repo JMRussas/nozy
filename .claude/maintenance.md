@@ -66,6 +66,11 @@ Track every modification to NoZ source here. This is the conflict prediction lis
 | 2026-03-06 | `platform/webgpu/WebGPUGraphicsDriver.Resources.cs` | Implemented `CreateDepthTexture`/`DestroyDepthTexture` with Depth24Plus + RenderAttachment/TextureBinding, separate render/sample views, comparison sampler | Phase 6a: Shadow map depth texture with PCF-ready comparison sampler |
 | 2026-03-06 | `platform/webgpu/WebGPUGraphicsDriver.RenderPass.cs` | Added `BeginDepthOnlyPass`/`EndDepthOnlyPass` — no color attachment, depth-only with Clear/Store | Phase 6a: Depth-only render pass variant for shadow mapping |
 | 2026-03-06 | `platform/webgpu/WebGPUGraphicsDriver.Shaders.cs` | Extended `CreateRenderPipeline` with `isDepthOnly` param — `Fragment=null`, no color targets, forced depth write + Less compare; `GetOrCreatePipeline` passes `IsDepthOnly` to PsoKey | Phase 6a: Depth-only pipeline without fragment shader |
+| 2026-03-06 | `engine/src/graphics/Shader.cs` | Added `DepthTexture2D = 5` to `ShaderBindingType` enum | Phase 6b: Bind group layout support for `texture_depth_2d` WGSL bindings |
+| 2026-03-06 | `platform/webgpu/WebGPUGraphicsDriver.Shaders.cs` | Added `DepthTexture2D` to internal `BindingType` enum; added mapping and bind group layout entry with `TextureSampleType.Depth` | Phase 6b: Depth texture bind group layout for shadow map sampling |
+| 2026-03-06 | `platform/webgpu/WebGPUGraphicsDriver.State.cs` | Added `DepthTexture2D` case in `UpdateBindGroupIfNeeded` — reads from `_depthTextures[]` via `BoundDepthTexture` | Phase 6b: Bind depth texture sample views in bind group entries |
+| 2026-03-06 | `platform/webgpu/WebGPUGraphicsDriver.Resources.cs` | Implemented `BindDepthTextureForSampling` — sets `BoundDepthTexture` state and marks bind group dirty | Phase 6b: Wire depth texture binding for shader sampling |
+| 2026-03-06 | `platform/webgpu/WebGPUGraphicsDriver.cs` | Added `BoundDepthTexture` field to `CachedState` struct | Phase 6b: Track bound depth texture for bind group creation |
 
 ### Phase 1a Note
 
