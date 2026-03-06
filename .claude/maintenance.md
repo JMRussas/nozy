@@ -61,6 +61,11 @@ Track every modification to NoZ source here. This is the conflict prediction lis
 
 | 2026-02-28 | `engine/src/graphics/Graphics.State.cs` | `SetUniform()` now keeps copy in `_currentUniforms` dictionary for per-batch snapshotting | Phase 2: Per-batch uniform snapshots — fix `SetUniform` being global state |
 | 2026-02-28 | `engine/src/graphics/Graphics.cs` | Added `UniformSnapshotIndex` to `BatchState`, `GetOrAddUniformSnapshot()`, `UniformSnapshotMatches()`, `RestoreUniformSnapshot()`, snapshot clear in frame reset | Phase 2: Per-batch uniform snapshots — mirrors `GlobalsSnapshot` pattern |
+| 2026-03-06 | `engine/src/platform/IGraphicsDriver.cs` | Added 5 default interface methods: `CreateDepthTexture`, `DestroyDepthTexture`, `BeginDepthOnlyPass`, `EndDepthOnlyPass`, `BindDepthTextureForSampling` | Phase 6a: Shadow map depth texture and depth-only pass infrastructure |
+| 2026-03-06 | `platform/webgpu/WebGPUGraphicsDriver.cs` | Added `IsDepthOnly` to `CachedState` and `PsoKey`; added `DepthTextureInfo` struct and `_depthTextures` array | Phase 6a: Depth-only pipeline state differentiation and standalone depth texture tracking |
+| 2026-03-06 | `platform/webgpu/WebGPUGraphicsDriver.Resources.cs` | Implemented `CreateDepthTexture`/`DestroyDepthTexture` with Depth24Plus + RenderAttachment/TextureBinding, separate render/sample views, comparison sampler | Phase 6a: Shadow map depth texture with PCF-ready comparison sampler |
+| 2026-03-06 | `platform/webgpu/WebGPUGraphicsDriver.RenderPass.cs` | Added `BeginDepthOnlyPass`/`EndDepthOnlyPass` — no color attachment, depth-only with Clear/Store | Phase 6a: Depth-only render pass variant for shadow mapping |
+| 2026-03-06 | `platform/webgpu/WebGPUGraphicsDriver.Shaders.cs` | Extended `CreateRenderPipeline` with `isDepthOnly` param — `Fragment=null`, no color targets, forced depth write + Less compare; `GetOrCreatePipeline` passes `IsDepthOnly` to PsoKey | Phase 6a: Depth-only pipeline without fragment shader |
 
 ### Phase 1a Note
 

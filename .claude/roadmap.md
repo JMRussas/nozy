@@ -2018,7 +2018,7 @@ The following are **not** part of Phase 5. They may become future phases if need
 
 ---
 
-## Phase 6a: Shadow Map Infrastructure
+## Phase 6a: Shadow Map Infrastructure ✅ Complete
 
 **Milestone:** A depth-only render pass executes from a directional light's perspective and produces a valid shadow depth texture. No visual output change yet.
 
