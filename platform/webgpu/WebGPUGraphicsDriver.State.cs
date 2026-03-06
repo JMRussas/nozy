@@ -257,6 +257,24 @@ public unsafe partial class WebGPUGraphicsDriver
                     break;
                 }
 
+                case ShaderBindingType.DepthTexture2D:
+                {
+                    if (_state.BoundDepthTexture == 0)
+                    {
+                        Log.Error($"Depth texture (binding {binding.Binding}) not bound!");
+                        _state.BindGroupDirty = false;
+                        return;
+                    }
+
+                    ref var dt = ref _depthTextures[(int)_state.BoundDepthTexture];
+                    entries[validEntryCount++] = new BindGroupEntry
+                    {
+                        Binding = binding.Binding,
+                        TextureView = dt.SampleView,
+                    };
+                    break;
+                }
+
                 case ShaderBindingType.Sampler:
                 {
                     int textureSlot = GetTextureSlotForBinding(binding.Binding, ref shader);

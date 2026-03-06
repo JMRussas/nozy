@@ -20,7 +20,8 @@ public enum ShaderBindingType : byte
     Texture2D = 1,
     Texture2DArray = 2,
     Sampler = 3,
-    Texture2DUnfilterable = 4  // For RGBA32F textures that use textureLoad
+    Texture2DUnfilterable = 4,  // For RGBA32F textures that use textureLoad
+    DepthTexture2D = 5          // For depth textures (texture_depth_2d) that use textureLoad
 }
 
 public struct ShaderBinding
