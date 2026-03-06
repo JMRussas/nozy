@@ -13,7 +13,7 @@
 | 3c | Multi-Light + Point Lights | HelloCube with directional + point light(s) | 3b | Done |
 | 4a | glTF Parser | Unit tests parse a .glb file, produce correct Mesh3D data | — | Done |
 | 4b | Model Rendering | HelloCube loads and displays a textured glTF model | 4a, 2 | Done |
-| 4c | Multi-Mesh + Hierarchy | Complex multi-part glTF model renders correctly | 4b | Not started |
+| 4c | Multi-Mesh + Hierarchy | Complex multi-part glTF model renders correctly | 4b | Done |
 | 5a | Skeleton & Animation Data | Unit tests parse skinned .glb, produce correct skeleton + keyframes | 4a | Not started |
 | 5b | Skinned Vertex Format | Skinned vertex type + shader variant compile and register | 1b, 5a | Not started |
 | 5c | Animation Playback | AnimationPlayer3D produces correct joint transforms at any time | 5a | Not started |
@@ -1475,7 +1475,9 @@ public static class GltfLoader
 
 ---
 
-## Phase 4c: Multi-Mesh + Node Hierarchy
+## Phase 4c: Multi-Mesh + Node Hierarchy ✅
+
+**Status:** Complete
 
 **Milestone:** Complex multi-part glTF model renders correctly with all parts positioned per the node hierarchy.
 
