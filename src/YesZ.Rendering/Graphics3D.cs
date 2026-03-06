@@ -35,6 +35,7 @@ public static class Graphics3D
     private static Shader? _texturedShader;
     private static Shader? _litShader;
     private static Shader? _skinnedLitShader;
+    private static Shader? _shadowDepthShader;
     private static Camera3D? _camera;
     private static Matrix4x4 _savedProjection;
     private static Matrix4x4 _viewProjection;
@@ -43,6 +44,11 @@ public static class Graphics3D
     private static Material3D? _currentMaterial;
     private static readonly LightEnvironment _lights = new();
     private static bool _lightsUploadedThisFrame;
+
+    // Shadow mapping state
+    private static nuint _shadowDepthTexture;
+    private static ShadowConfig _shadowConfig = new();
+    private static Matrix4x4 _lightViewProjection;
 
     /// <summary>
     /// Initialize the 3D rendering system. Must be called after Graphics is initialized
@@ -106,9 +112,24 @@ public static class Graphics3D
                 new() { Binding = 5, Type = ShaderBindingType.UniformBuffer, Name = "joints" },
             });
 
+        // Shadow depth shader (vertex-only, no fragment output)
+        _shadowDepthShader = CreateShaderFromEmbedded(
+            "YesZ.Rendering.Shaders.shadow_depth.wgsl",
+            "shadow_depth",
+            ShaderFlags.Depth | ShaderFlags.DepthLess,
+            new List<ShaderBinding>
+            {
+                new() { Binding = 0, Type = ShaderBindingType.UniformBuffer, Name = "globals" },
+                new() { Binding = 1, Type = ShaderBindingType.UniformBuffer, Name = "material" },
+            });
+
         // Default 1×1 white texture — untextured materials sample this (identity multiply)
         var white = new byte[] { 255, 255, 255, 255 };
         _defaultWhiteTexture = Graphics.Driver.CreateTexture(1, 1, white, TextureFormat.RGBA8, TextureFilter.Point, "DefaultWhite");
+
+        // Create shadow map depth texture
+        _shadowDepthTexture = Graphics.Driver.CreateDepthTexture(
+            _shadowConfig.Resolution, _shadowConfig.Resolution, "ShadowMap");
 
         _initialized = true;
     }
@@ -338,6 +359,51 @@ public static class Graphics3D
 
         foreach (var child in node.Children)
             DrawNodeAnimated(child, world, model, jointMatrices);
+    }
+
+    public static nuint ShadowDepthTextureHandle => _shadowDepthTexture;
+    public static Matrix4x4 LightViewProjection => _lightViewProjection;
+    public static ShadowConfig ShadowSettings => _shadowConfig;
+
+    public static void ConfigureShadows(ShadowConfig config)
+    {
+        if (!_initialized)
+            Initialize();
+
+        if (config.Resolution != _shadowConfig.Resolution)
+        {
+            if (_shadowDepthTexture != 0)
+                Graphics.Driver.DestroyDepthTexture(_shadowDepthTexture);
+            _shadowDepthTexture = Graphics.Driver.CreateDepthTexture(
+                config.Resolution, config.Resolution, "ShadowMap");
+        }
+        _shadowConfig = config;
+    }
+
+    public static void RenderShadowPass()
+    {
+        if (_camera == null || _shadowDepthShader == null || _shadowDepthTexture == 0) return;
+
+        // Compute light-space matrices from directional light
+        var directional = _lights.Directional;
+        var (lightView, lightProj) = LightSpaceComputer.Compute(
+            in directional, _camera, _shadowConfig.ShadowDistance);
+        _lightViewProjection = lightView * lightProj;
+
+        // NOTE: NoZ's batch system defers draw commands for later execution during
+        // the scene pass. The depth-only pass opens/closes immediately at the driver
+        // level, so draw commands issued here don't actually execute in this pass —
+        // they queue into the scene pass batch instead. Phase 6b will add immediate-
+        // mode rendering or a separate command buffer to make draws execute within
+        // the depth-only pass. For now, this exercises the pass infrastructure and
+        // computes the light-space matrix for later use.
+
+        // Begin depth-only pass
+        Graphics.Driver.BeginDepthOnlyPass(
+            _shadowDepthTexture, _shadowConfig.Resolution, _shadowConfig.Resolution);
+
+        // End depth-only pass — depth texture is cleared to 1.0
+        Graphics.Driver.EndDepthOnlyPass();
     }
 
     /// <summary>
