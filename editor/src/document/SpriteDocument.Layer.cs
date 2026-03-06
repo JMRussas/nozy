@@ -40,7 +40,7 @@ public class SpriteFrame : IDisposable
     public byte[]? ImageData;
     public Texture? GeneratedTexture; // Editor-only GPU texture
 
-    public bool HasGeneratedImage => ImageData is { Length: > 0 };
+    public bool HasImageData => ImageData is { Length: > 0 };
 
     public void Dispose()
     {

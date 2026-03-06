@@ -2,6 +2,7 @@
 //  NoZ - Copyright(c) 2026 NoZ Games, LLC
 //
 
+using NoZ.Widgets;
 using System.Numerics;
 
 namespace NoZ.Editor;
@@ -55,8 +56,7 @@ public partial class RenameTool(
         using (UI.BeginContainer(EditorStyle.RenameTool.Root with { Margin = EdgeInsets.TopLeft(uiPos.Y, uiPos.X) }))
         using (UI.BeginContainer(EditorStyle.RenameTool.Content))
         {
-            if (UI.TextBox(ElementId.TextBox, _currentText, EditorStyle.RenameTool.Text with { Scope = Scope }))
-                _currentText = new string(UI.GetElementText(ElementId.TextBox));
+            _currentText = Widget.TextBox(ElementId.TextBox, _currentText, EditorStyle.RenameTool.Text with { Scope = Scope });
 
             if (UI.HotEnter())
                 UI.SetElementText(ElementId.TextBox, _originalName, selectAll: true);

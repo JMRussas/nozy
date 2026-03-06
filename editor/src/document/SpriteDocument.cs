@@ -261,6 +261,12 @@ public partial class SpriteDocument : Document, ISpriteSource
     {
         Edges = EdgeInsets.Zero;
         Binding.Clear();
+
+        // Dispose old generated textures before clearing layers
+        foreach (var layer in _layers)
+            for (var fi = 0; fi < layer.FrameCount; fi++)
+                layer.Frames[fi].Dispose();
+
         _layers.Clear();
 
         // Re-read and re-parse the .sprite file
@@ -268,8 +274,9 @@ public partial class SpriteDocument : Document, ISpriteSource
         var tk = new Tokenizer(contents);
         Load(ref tk);
 
-        // Resolve skeleton binding
+        // Resolve skeleton binding and recreate generated textures
         Binding.Resolve();
+        LoadGeneratedTextures();
 
         // Update bounds and mark sprite dirty
         UpdateBounds();
@@ -308,7 +315,7 @@ public partial class SpriteDocument : Document, ISpriteSource
                             break;
 
                         // First frame already exists (FrameCount starts at 1), subsequent ones increment
-                        if (fi > 0 || layer.Frames[0].Shape.PathCount > 0 || layer.Frames[0].HasGeneratedImage)
+                        if (fi > 0 || layer.Frames[0].Shape.PathCount > 0 || layer.Frames[0].HasImageData)
                             layer.FrameCount = (ushort)(fi + 1);
                         else
                             layer.FrameCount = 1;
@@ -323,12 +330,6 @@ public partial class SpriteDocument : Document, ISpriteSource
                                 layer0HoldsOnly = false;
                         }
 
-                        if (tk.ExpectIdentifier("image"))
-                        {
-                            var base64 = tk.ExpectQuotedString();
-                            if (!string.IsNullOrEmpty(base64))
-                                f.ImageData = Convert.FromBase64String(base64);
-                        }
 
                         // Parse paths within this frame
                         while (!tk.IsEOF && tk.ExpectIdentifier("path"))
@@ -337,6 +338,15 @@ public partial class SpriteDocument : Document, ISpriteSource
                         // If this was the first frame and we didn't increment, ensure count is 1
                         if (layer.FrameCount == 0)
                             layer.FrameCount = 1;
+                    }
+                    else if (tk.ExpectIdentifier("image"))
+                    {
+                        if (layer.FrameCount == 0)
+                            layer.FrameCount = 1;
+
+                        var base64 = tk.ExpectQuotedString();
+                        if (!string.IsNullOrEmpty(base64))
+                            layer.Frames[layer.FrameCount - 1].ImageData = Convert.FromBase64String(base64);
                     }
                     else if (tk.ExpectIdentifier("path"))
                     {
@@ -870,8 +880,8 @@ public partial class SpriteDocument : Document, ISpriteSource
                 }
 
                 // Write per-frame generated image as base64
-                if (layer.IsGenerated && f.HasGeneratedImage)
-                    writer.WriteLine($"generate_image \"{Convert.ToBase64String(f.ImageData!)}\"");
+                if (layer.IsGenerated && f.HasImageData)
+                    writer.WriteLine($"image \"{Convert.ToBase64String(f.ImageData!)}\"");
 
                 if (shape.PathCount > 0)
                     SaveLayerFrame(shape, writer);
@@ -1073,63 +1083,19 @@ public partial class SpriteDocument : Document, ISpriteSource
     public override void PostLoad()
     {
         Binding.Resolve();
-        MigrateExternalGenImages();
         LoadGeneratedTextures();
     }
 
     #region AI Generation
 
-    private string GetGeneratedImagePath(int layerIndex) => Path + $".layer{layerIndex}.gen";
-
-    /// <summary>Legacy path for migration.</summary>
-    private string LegacyGeneratedImagePath => Path + ".gen";
-
     /// <summary>
-    /// Migrate generated images from external .gen files into frame data.
-    /// Only applies when frames don't already have inline image data.
-    /// </summary>
-    private void MigrateExternalGenImages()
-    {
-        for (var i = 0; i < _layers.Count; i++)
-        {
-            var layer = _layers[i];
-            if (!layer.IsGenerated) continue;
-
-            // Only migrate if the first frame doesn't already have inline data
-            var frame = layer.Frames[0];
-            if (frame.HasGeneratedImage) continue;
-
-            var genPath = GetGeneratedImagePath(i);
-            if (!File.Exists(genPath))
-            {
-                var legacyPath = LegacyGeneratedImagePath;
-                if (File.Exists(legacyPath))
-                    genPath = legacyPath;
-                else
-                    continue;
-            }
-
-            try
-            {
-                frame.ImageData = File.ReadAllBytes(genPath);
-                Log.Info($"Migrated external gen image for '{Name}' layer {i}");
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"Migration failed for '{Name}' layer {i}: {ex.Message}");
-            }
-        }
-    }
-
-    /// <summary>
-    /// Create GPU textures from per-frame GeneratedImageData for editor preview.
+    /// Create GPU textures from per-frame ImageData for editor preview.
     /// </summary>
     internal void LoadGeneratedTextures()
     {
         for (var li = 0; li < _layers.Count; li++)
         {
             var layer = _layers[li];
-            if (!layer.IsGenerated) continue;
 
             for (var fi = 0; fi < layer.FrameCount; fi++)
             {
@@ -1137,12 +1103,21 @@ public partial class SpriteDocument : Document, ISpriteSource
                 frame.GeneratedTexture?.Dispose();
                 frame.GeneratedTexture = null;
 
-                if (!frame.HasGeneratedImage) continue;
+                if (!frame.HasImageData) continue;
 
                 try
                 {
                     using var ms = new MemoryStream(frame.ImageData!);
                     using var srcImage = SixLabors.ImageSharp.Image.Load<Rgba32>(ms);
+
+                    // Resize to constrained size if needed
+                    if (ConstrainedSize.HasValue)
+                    {
+                        var cs = ConstrainedSize.Value;
+                        if (srcImage.Width != cs.X || srcImage.Height != cs.Y)
+                            srcImage.Mutate(x => x.Resize(cs.X, cs.Y));
+                    }
+
                     var w = srcImage.Width;
                     var h = srcImage.Height;
                     var pixels = new byte[w * h * 4];
@@ -1171,7 +1146,7 @@ public partial class SpriteDocument : Document, ISpriteSource
         var layer = _layers[layerIndex];
         var fi = GetLayerFrameAtTimeSlot(layer, frameIndex);
         var frame = layer.Frames[fi];
-        if (!frame.HasGeneratedImage)
+        if (!frame.HasImageData)
             return false;
 
         try
@@ -1434,16 +1409,26 @@ public partial class SpriteDocument : Document, ISpriteSource
 
             try
             {
-                // Decode base64 image and store in frame data
+                // Decode base64 image and resize to constrained sprite size
                 var imageBytes = Convert.FromBase64String(response.Image);
                 var frame = genLayer.Frames[0]; // TODO: support current frame index
-                frame.ImageData = imageBytes;
 
-                // Recreate GPU texture from the new data
-                frame.GeneratedTexture?.Dispose();
-                frame.GeneratedTexture = null;
                 using var ms = new MemoryStream(imageBytes);
                 using var srcImage = SixLabors.ImageSharp.Image.Load<Rgba32>(ms);
+
+                // Resize to match the sprite's constrained size
+                var cs = ConstrainedSize!.Value;
+                if (srcImage.Width != cs.X || srcImage.Height != cs.Y)
+                    srcImage.Mutate(x => x.Resize(cs.X, cs.Y));
+
+                // Re-encode resized image and store as frame data
+                using var outMs = new MemoryStream();
+                srcImage.SaveAsPng(outMs);
+                frame.ImageData = outMs.ToArray();
+
+                // Recreate GPU texture from the resized data
+                frame.GeneratedTexture?.Dispose();
+                frame.GeneratedTexture = null;
                 var w = srcImage.Width;
                 var h = srcImage.Height;
                 var px = new byte[w * h * 4];
@@ -1455,7 +1440,7 @@ public partial class SpriteDocument : Document, ISpriteSource
                 {
                     var tmpDir = System.IO.Path.Combine(EditorApplication.ProjectPath, "tmp");
                     Directory.CreateDirectory(tmpDir);
-                    File.WriteAllBytes(System.IO.Path.Combine(tmpDir, $"{Name}_gen{capturedLayerIndex}.png"), imageBytes);
+                    File.WriteAllBytes(System.IO.Path.Combine(tmpDir, $"{Name}_gen{capturedLayerIndex}.png"), frame.ImageData);
                 }
                 catch { }
 

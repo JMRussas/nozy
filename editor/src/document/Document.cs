@@ -3,10 +3,11 @@
 //
 
 using System.Numerics;
+using NoZ.Widgets;
 
 namespace NoZ.Editor;
 
-public abstract class Document : IDisposable
+public abstract class Document : IDisposable, IChangeHandler
 {
     public DocumentDef Def { get; internal set; } = null!;
     public string Name { get; set; } = "";
@@ -94,6 +95,10 @@ public abstract class Document : IDisposable
         using var sw = new StreamWriter(Path);
         Save(sw);
     }
+
+    void IChangeHandler.BeginChange() => Undo.Record(this);
+    void IChangeHandler.NotifyChange() => IncrementVersion();
+    void IChangeHandler.CancelChange() => Undo.Cancel();
 
     public void IncrementVersion()
     {

@@ -6,6 +6,7 @@
 // #define NOZ_UI_DEBUG_LINE_DIFF
 
 using NoZ.Platform;
+using NoZ.Widgets;
 using System.Diagnostics;
 using System.Numerics;
 
@@ -50,6 +51,7 @@ public static partial class UI
     private static int _currentTextBuffer;
 
     private static ushort _frame;
+    public static ushort Frame => _frame;
     private static short _elementCount;
     private static short _previousElementCount;
     private static int _elementStackCount;
@@ -209,7 +211,7 @@ public static partial class UI
         return ref _elementStates[e.Id];
     }
 
-    private static ref ElementState GetElementState(int elementId)
+    internal static ref ElementState GetElementState(int elementId)
     {
         Debug.Assert(elementId > 0 && elementId <= MaxElementId, $"Invalid ElementId: {elementId}");
         return ref _elementStates[elementId];
@@ -502,6 +504,7 @@ public static partial class UI
         _activePopupCount = 0;
         _currentTextBuffer = 1 - _currentTextBuffer;
         _textBuffers[_currentTextBuffer].Clear();
+        Widget.BeginFrame();
 
         var screenSize = Application.WindowSize.ToVector2();
         var rw = (float)_refSize.X;

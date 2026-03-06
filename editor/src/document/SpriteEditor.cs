@@ -1832,23 +1832,9 @@ public partial class SpriteEditor : DocumentEditor
             {
                 var gen = layer.Generation!;
 
-                var strength = gen.Strength;
-                Inspector.SliderProperty(ref strength);
-                if (UI.HotEnter()) Undo.Record(Document);
-                if (UI.WasChanged()) { gen.Strength = strength; Document.IncrementVersion(); }
-                if (UI.HotExit() && !UI.IsChanged()) Undo.Cancel();
-
-                var prompt = gen.Prompt;
-                Inspector.StringProperty(ref prompt, placeholder: "Prompt", multiLine: true);
-                if (UI.HotEnter()) Undo.Record(Document);
-                if (UI.WasChanged()) { gen.Prompt = prompt; Document.IncrementVersion(); }
-                if (UI.HotExit() && !UI.IsChanged()) Undo.Cancel();
-
-                var negativePrompt = gen.NegativePrompt;
-                Inspector.StringProperty(ref negativePrompt, placeholder: "Negative Prompt", multiLine: true);
-                if (UI.HotEnter()) Undo.Record(Document);
-                if (UI.WasChanged()) { gen.NegativePrompt = negativePrompt; Document.IncrementVersion(); }
-                if (UI.HotExit() && !UI.IsChanged()) Undo.Cancel();
+                gen.Strength = Inspector.SliderProperty(gen.Strength, handler: Document);
+                gen.Prompt = Inspector.StringProperty(gen.Prompt, handler: Document, placeholder: "Prompt", multiLine: true);
+                gen.NegativePrompt = Inspector.StringProperty(gen.NegativePrompt, handler: Document, placeholder: "Negative Prompt", multiLine: true);
             }
         }
     }
@@ -1881,11 +1867,8 @@ public partial class SpriteEditor : DocumentEditor
         {
             using var __ = UI.BeginFlex();
 
-            var fillColor = Document.CurrentFillColor;
-            Inspector.ColorProperty(ref fillColor);
-            if (UI.HotEnter()) Undo.Record(Document);
+            var fillColor = Inspector.ColorProperty(Document.CurrentFillColor, handler: Document);
             if (UI.WasChanged()) SetFillColor(fillColor);
-            if (UI.HotExit() && !UI.IsChanged()) Undo.Cancel();
         }
 
         using (Inspector.BeginSection("STROKE"))
@@ -1893,11 +1876,8 @@ public partial class SpriteEditor : DocumentEditor
         {
             using var __ = UI.BeginFlex();
 
-            var strokeColor = Document.CurrentStrokeColor;
-            Inspector.ColorProperty(ref strokeColor);
-            if (UI.HotEnter()) Undo.Record(Document);
+            var strokeColor = Inspector.ColorProperty(Document.CurrentStrokeColor, handler: Document);
             if (UI.WasChanged()) SetStrokeColor(strokeColor);
-            if (UI.HotExit() && !UI.IsChanged()) Undo.Cancel();
         }
     }
 

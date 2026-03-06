@@ -2,6 +2,8 @@
 //  NoZ - Copyright(c) 2026 NoZ Games, LLC
 //
 
+using NoZ.Widgets;
+
 namespace NoZ.Editor;
 
 internal static partial class Inspector
@@ -122,7 +124,7 @@ internal static partial class Inspector
         return false;
     }
 
-    public static void StringProperty(ref string value, bool multiLine = false, string? placeholder = null)
+    public static string StringProperty(string value, bool multiLine = false, string? placeholder = null, IChangeHandler? handler = null)
     {
         var propertyId = GetNextPropertyId();
 
@@ -131,28 +133,26 @@ internal static partial class Inspector
         {
             var hovered = UI.IsHovered(propertyId);
 
-            if (multiLine)
-                UI.TextArea(propertyId, value, hovered ? EditorStyle.Inspector.TextAreaHovered : EditorStyle.Inspector.TextArea, placeholder);
-            else
-                UI.TextBox(propertyId, value, hovered ? EditorStyle.Inspector.TextBoxHovered : EditorStyle.Inspector.TextBox, placeholder);
+            value = multiLine
+                ? Widget.TextArea(propertyId, value, hovered ? EditorStyle.Inspector.TextAreaHovered : EditorStyle.Inspector.TextArea, placeholder, handler)
+                : Widget.TextBox(propertyId, value, hovered ? EditorStyle.Inspector.TextBoxHovered : EditorStyle.Inspector.TextBox, placeholder, handler);
         }
 
-        if (UI.WasChanged())
-            value = new string(UI.GetElementText(propertyId));
-
-        UI.SetLastElement(propertyId);
+        return value;
     }
 
     public static bool Button(Sprite icon, bool enabled = true) =>
         EditorUI.Button(GetNextPropertyId(), icon, isEnabled: enabled);
 
-    public static bool SliderProperty(ref float value, float minValue=0.0f, float maxValue=1.0f)
+    public static float SliderProperty(float value, float minValue=0.0f, float maxValue=1.0f, IChangeHandler? handler = null)
     {
         var propertyId = GetNextPropertyId();
-        return EditorUI.Slider(propertyId, ref value, minValue, maxValue);
+        EditorUI.Slider(propertyId, ref value, minValue, maxValue);
+        Widget.HandleChange(handler);
+        return value;
     }
 
-    public static void ColorProperty(ref Color32 color, Sprite? icon = null, bool isEnabled = true)
+    public static Color32 ColorProperty(Color32 color, Sprite? icon = null, bool isEnabled = true, IChangeHandler? handler = null)
     {
         static void Content()
         {
@@ -186,6 +186,8 @@ internal static partial class Inspector
 
         ColorPicker.Popup(propertyId, ref color);
         UI.SetLastElement(propertyId);
+        Widget.HandleChange(handler);
+        return color;
     }
 }
 

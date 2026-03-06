@@ -2,6 +2,8 @@
 //  NoZ - Copyright(c) 2026 NoZ Games, LLC
 //
 
+using NoZ.Widgets;
+
 namespace NoZ.Editor;
 
 public static partial class CommandPalette
@@ -103,8 +105,7 @@ public static partial class CommandPalette
                     UI.Image(EditorAssets.Sprites.IconSearch, EditorStyle.Control.Icon);
                    
                 using (UI.BeginFlex())
-                    if (UI.TextBox(ElementId.Search, _text, EditorStyle.CommandPalette.SearchTextBox, "Search..."))
-                        _text = new string(UI.GetElementText(ElementId.Search));
+                    _text = Widget.TextBox(ElementId.Search, _text, EditorStyle.CommandPalette.SearchTextBox, "Search...");
             }
 
             UI.Container(EditorStyle.Popup.Separator);
