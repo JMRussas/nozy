@@ -8,11 +8,11 @@
 | 1a | Fork: Depth Pipeline | Existing 2D rendering works with depth texture attached | 0 | Done (already in fork) |
 | 1b | First 3D Render | HelloCube renders a spinning colored cube with depth-correct faces | 1a | Done |
 | 2 | Materials & Texturing | HelloCube renders a textured cube | 1b | Done |
-| 3a | Light Infrastructure | Light types compile, tests pass, API callable | 0 | Not started |
-| 3b | Lit Shading | HelloCube shows a lit cube with directional light shading | 2, 3a | Not started |
-| 3c | Multi-Light + Point Lights | HelloCube with directional + point light(s) | 3b | Not started |
-| 4a | glTF Parser | Unit tests parse a .glb file, produce correct Mesh3D data | — | Not started |
-| 4b | Model Rendering | HelloCube loads and displays a textured glTF model | 4a, 2 | Not started |
+| 3a | Light Infrastructure | Light types compile, tests pass, API callable | 0 | Done |
+| 3b | Lit Shading | HelloCube shows a lit cube with directional light shading | 2, 3a | Done |
+| 3c | Multi-Light + Point Lights | HelloCube with directional + point light(s) | 3b | Done |
+| 4a | glTF Parser | Unit tests parse a .glb file, produce correct Mesh3D data | — | Done |
+| 4b | Model Rendering | HelloCube loads and displays a textured glTF model | 4a, 2 | Done |
 | 4c | Multi-Mesh + Hierarchy | Complex multi-part glTF model renders correctly | 4b | Not started |
 | 5a | Skeleton & Animation Data | Unit tests parse skinned .glb, produce correct skeleton + keyframes | 4a | Not started |
 | 5b | Skinned Vertex Format | Skinned vertex type + shader variant compile and register | 1b, 5a | Not started |
