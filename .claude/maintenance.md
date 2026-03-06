@@ -71,6 +71,9 @@ Track every modification to NoZ source here. This is the conflict prediction lis
 | 2026-03-06 | `platform/webgpu/WebGPUGraphicsDriver.State.cs` | Added `DepthTexture2D` case in `UpdateBindGroupIfNeeded` — reads from `_depthTextures[]` via `BoundDepthTexture` | Phase 6b: Bind depth texture sample views in bind group entries |
 | 2026-03-06 | `platform/webgpu/WebGPUGraphicsDriver.Resources.cs` | Implemented `BindDepthTextureForSampling` — sets `BoundDepthTexture` state and marks bind group dirty | Phase 6b: Wire depth texture binding for shader sampling |
 | 2026-03-06 | `platform/webgpu/WebGPUGraphicsDriver.cs` | Added `BoundDepthTexture` field to `CachedState` struct | Phase 6b: Track bound depth texture for bind group creation |
+| 2026-03-06 | `platform/webgpu/WebGPUGraphicsDriver.cs` | Expanded `BoundDepthTexture` to 4 slots (`BoundDepthTexture0-3`) | Phase 6c: Support 4 cascade depth texture bindings |
+| 2026-03-06 | `platform/webgpu/WebGPUGraphicsDriver.Resources.cs` | `BindDepthTextureForSampling` now uses `slot` param via switch to select `BoundDepthTexture0-3` | Phase 6c: Per-slot depth texture binding for cascaded shadows |
+| 2026-03-06 | `platform/webgpu/WebGPUGraphicsDriver.State.cs` | Added `depthTextureSlot` counter in `UpdateBindGroupIfNeeded`; `DepthTexture2D` case maps successive bindings to slots 0-3 | Phase 6c: Multi-slot depth texture bind group creation |
 
 ### Phase 1a Note
 

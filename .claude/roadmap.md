@@ -2350,12 +2350,12 @@ Phase 6b is primarily visual, but bias math is testable.
 
 ---
 
-## Phase 6c: Cascaded Shadow Maps
+## Phase 6c: Cascaded Shadow Maps ✅ Complete
 
 **Milestone:** Large scenes show quality shadows at multiple distances — sharp near the camera, progressively softer/lower-resolution far away.
 
 **Dependencies:** Phase 6b (single-cascade shadow mapping)
-**Fork changes:** None expected (reuses depth-only pass from 6a, multiple times per frame)
+**Fork changes:** Expanded WebGPU driver from 1 to 4 depth texture binding slots (BoundDepthTexture0-3)
 **Enables:** (Terminal phase for shadows)
 
 ### What's built
