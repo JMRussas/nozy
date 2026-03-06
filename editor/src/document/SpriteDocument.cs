@@ -13,7 +13,7 @@ using SixLabors.ImageSharp.Processing;
 
 namespace NoZ.Editor;
 
-public partial class SpriteDocument : Document, ISpriteSource
+public partial class SpriteDocument : Document, ISpriteSource, IShapeDocument
 {
     public override bool CanSave => true;
 
@@ -80,6 +80,7 @@ public partial class SpriteDocument : Document, ISpriteSource
     public IReadOnlyList<SpriteLayer> Layers => _layers;
 
     public SpriteLayer ActiveLayer => _layers[ActiveLayerIndex];
+    public bool IsActiveLayerLocked => ActiveLayer.Locked;
 
     /// <summary>Total time slots across the longest layer.</summary>
     public int GlobalTimeSlots

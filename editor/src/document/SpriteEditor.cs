@@ -1474,13 +1474,13 @@ public partial class SpriteEditor : DocumentEditor
     private void BeginPenTool()
     {
         var shape = CurrentShape;
-        Workspace.BeginTool(new PenTool(this, shape, Document.CurrentFillColor, Document.CurrentOperation));
+        Workspace.BeginTool(new PenTool(Document, shape, Document.CurrentFillColor, Document.CurrentOperation));
     }
 
     private void BeginKnifeTool()
     {
         var shape = CurrentShape;
-        Workspace.BeginTool(new KnifeTool(this, shape, commit: () =>
+        Workspace.BeginTool(new KnifeTool(Document, shape, commit: () =>
         {
             shape.UpdateSamples();
             shape.UpdateBounds();
@@ -1490,13 +1490,13 @@ public partial class SpriteEditor : DocumentEditor
     private void BeginRectangleTool()
     {
         var shape = CurrentShape;
-        Workspace.BeginTool(new ShapeTool(this, shape, Document.CurrentFillColor, ShapeType.Rectangle, Document.CurrentOperation));
+        Workspace.BeginTool(new ShapeTool(Document, shape, Document.CurrentFillColor, ShapeType.Rectangle, Document.CurrentOperation));
     }
 
     private void BeginCircleTool()
     {
         var shape = CurrentShape;
-        Workspace.BeginTool(new ShapeTool(this, shape, Document.CurrentFillColor, ShapeType.Circle, Document.CurrentOperation));
+        Workspace.BeginTool(new ShapeTool(Document, shape, Document.CurrentFillColor, ShapeType.Circle, Document.CurrentOperation));
     }
 
     private void InsertAnchorAtHover()

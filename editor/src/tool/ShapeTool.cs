@@ -13,13 +13,13 @@ public enum ShapeType
 }
 
 public class ShapeTool(
-    SpriteEditor editor,
+    IShapeDocument document,
     Shape shape,
     Color32 fillColor,
     ShapeType shapeType,
     PathOperation operation = PathOperation.Normal) : Tool
 {
-    private readonly SpriteEditor _editor = editor;
+    private readonly IShapeDocument _document = document;
     private readonly Shape _shape = shape;
     private readonly Color32 _fillColor = fillColor;
     private readonly ShapeType _shapeType = shapeType;
@@ -42,7 +42,7 @@ public class ShapeTool(
             return;
         }
 
-        Matrix3x2.Invert(_editor.Document.Transform, out var invTransform);
+        Matrix3x2.Invert(_document.Transform, out var invTransform);
         var mouseLocal = Vector2.Transform(Workspace.MouseWorldPosition, invTransform);
 
         if (Input.IsCtrlDown(Scope))
@@ -93,7 +93,7 @@ public class ShapeTool(
 
         using (Gizmos.PushState(EditorLayer.Tool))
         {
-            Graphics.SetTransform(_editor.Document.Transform);
+            Graphics.SetTransform(_document.Transform);
 
             var lineWidth = Gizmos.GetLineWidth();
             Gizmos.SetColor(EditorStyle.Tool.LineColor);
@@ -123,7 +123,7 @@ public class ShapeTool(
         var textY = max.Y + Gizmos.ZoomRefScale * 0.1f;
 
         Graphics.SetColor(EditorStyle.Tool.LineColor);
-        Graphics.SetTransform(Matrix3x2.CreateTranslation(textX, textY) * _editor.Document.Transform);
+        Graphics.SetTransform(Matrix3x2.CreateTranslation(textX, textY) * _document.Transform);
         TextRender.Draw(text, font, fontSize);
     }
 
@@ -170,14 +170,13 @@ public class ShapeTool(
         }
 
         // Don't create paths on locked layers
-        var currentLayer = _editor.Document.ActiveLayer;
-        if (currentLayer is { Locked: true })
+        if (_document.IsActiveLayerLocked)
         {
             Finish();
             return;
         }
 
-        Undo.Record(_editor.Document);
+        Undo.Record((Document)_document);
 
         _shape.ClearAnchorSelection();
 
@@ -200,8 +199,8 @@ public class ShapeTool(
         _shape.UpdateSamples();
         _shape.UpdateBounds();
 
-        _editor.Document.IncrementVersion();
-        _editor.Document.UpdateBounds();
+        _document.IncrementVersion();
+        _document.UpdateBounds();
 
         Finish();
     }

@@ -23,7 +23,6 @@ public static class EditorAssets
         public const string Composite = "composite";
         public const string EditorPalette = "editor_palette";
         public const string EditorSprites000 = "editor_sprites000";
-        public const string GenAxe = "gen_axe";
         public const string IconAi = "icon_ai";
         public const string IconBone = "icon_bone";
         public const string IconCheck = "icon_check";
@@ -67,7 +66,6 @@ public static class EditorAssets
         public const string IconTiling = "icon_tiling";
         public const string IconUnlock = "icon_unlock";
         public const string IconXray = "icon_xray";
-        public const string NewSprite = "new_sprite";
         public const string Seguisb = "seguisb";
         public const string Sprite = "sprite";
         public const string Text = "text";
@@ -144,7 +142,6 @@ public static class EditorAssets
         public static Sprite AssetIconSound { get; private set; } = null!;
         public static Sprite AssetIconSprite { get; private set; } = null!;
         public static Sprite AssetIconVfx { get; private set; } = null!;
-        public static Sprite GenAxe { get; private set; } = null!;
         public static Sprite IconAi { get; private set; } = null!;
         public static Sprite IconBone { get; private set; } = null!;
         public static Sprite IconCheck { get; private set; } = null!;
@@ -188,7 +185,6 @@ public static class EditorAssets
         public static Sprite IconTiling { get; private set; } = null!;
         public static Sprite IconUnlock { get; private set; } = null!;
         public static Sprite IconXray { get; private set; } = null!;
-        public static Sprite NewSprite { get; private set; } = null!;
 
         public static void Load()
         {
@@ -202,7 +198,6 @@ public static class EditorAssets
             AssetIconSound = (Sprite)Asset.Load(AssetType.Sprite, Names.AssetIconSound)!;
             AssetIconSprite = (Sprite)Asset.Load(AssetType.Sprite, Names.AssetIconSprite)!;
             AssetIconVfx = (Sprite)Asset.Load(AssetType.Sprite, Names.AssetIconVfx)!;
-            GenAxe = (Sprite)Asset.Load(AssetType.Sprite, Names.GenAxe)!;
             IconAi = (Sprite)Asset.Load(AssetType.Sprite, Names.IconAi)!;
             IconBone = (Sprite)Asset.Load(AssetType.Sprite, Names.IconBone)!;
             IconCheck = (Sprite)Asset.Load(AssetType.Sprite, Names.IconCheck)!;
@@ -246,7 +241,6 @@ public static class EditorAssets
             IconTiling = (Sprite)Asset.Load(AssetType.Sprite, Names.IconTiling)!;
             IconUnlock = (Sprite)Asset.Load(AssetType.Sprite, Names.IconUnlock)!;
             IconXray = (Sprite)Asset.Load(AssetType.Sprite, Names.IconXray)!;
-            NewSprite = (Sprite)Asset.Load(AssetType.Sprite, Names.NewSprite)!;
         }
 
         public static void Unload()
@@ -261,7 +255,6 @@ public static class EditorAssets
             AssetIconSound?.Dispose();
             AssetIconSprite?.Dispose();
             AssetIconVfx?.Dispose();
-            GenAxe?.Dispose();
             IconAi?.Dispose();
             IconBone?.Dispose();
             IconCheck?.Dispose();
@@ -305,7 +298,6 @@ public static class EditorAssets
             IconTiling?.Dispose();
             IconUnlock?.Dispose();
             IconXray?.Dispose();
-            NewSprite?.Dispose();
         }
     }
 

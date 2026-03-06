@@ -16,7 +16,7 @@ public class PenTool : Tool
         public ushort ExistingAnchor; // ushort.MaxValue if new point
     }
 
-    private readonly SpriteEditor _editor;
+    private readonly IShapeDocument _document;
     private readonly Shape _shape;
     private readonly Color32 _fillColor;
     private readonly PathOperation _operation;
@@ -32,9 +32,9 @@ public class PenTool : Tool
     private bool _snappingToGrid;
     private Vector2 _gridSnapPosition;
 
-    public PenTool(SpriteEditor editor, Shape shape, Color32 fillColor, PathOperation operation = PathOperation.Normal)
+    public PenTool(IShapeDocument document, Shape shape, Color32 fillColor, PathOperation operation = PathOperation.Normal)
     {
-        _editor = editor;
+        _document = document;
         _shape = shape;
         _fillColor = fillColor;
         _operation = operation;
@@ -49,7 +49,7 @@ public class PenTool : Tool
     public override void Update()
     {
         var mouseWorld = Workspace.MouseWorldPosition;
-        Matrix3x2.Invert(_editor.Document.Transform, out var invTransform);
+        Matrix3x2.Invert(_document.Transform, out var invTransform);
         var mouseLocal = Vector2.Transform(mouseWorld, invTransform);
 
         if (Input.WasButtonPressed(InputCode.KeyEscape, Scope))
@@ -114,9 +114,9 @@ public class PenTool : Tool
         if (!_hoveringFirstPoint && !_hoveringExistingAnchor && !_hoveringSegment && Input.IsCtrlDown(Scope))
         {
             _snappingToGrid = true;
-            var worldPos = Vector2.Transform(mouseLocal, _editor.Document.Transform);
+            var worldPos = Vector2.Transform(mouseLocal, _document.Transform);
             var snapped = Grid.SnapToPixelGrid(worldPos);
-            Matrix3x2.Invert(_editor.Document.Transform, out var invTransform);
+            Matrix3x2.Invert(_document.Transform, out var invTransform);
             _gridSnapPosition = Vector2.Transform(snapped, invTransform);
         }
     }
@@ -212,7 +212,7 @@ public class PenTool : Tool
     {
         using (Gizmos.PushState(EditorLayer.Tool))
         {
-            Graphics.SetTransform(_editor.Document.Transform);
+            Graphics.SetTransform(_document.Transform);
 
             var lineWidth = Gizmos.GetLineWidth();
             var vertexSize = Gizmos.GetVertexSize();
@@ -274,7 +274,7 @@ public class PenTool : Tool
         if (_snappingToGrid)
             return _gridSnapPosition;
 
-        Matrix3x2.Invert(_editor.Document.Transform, out var invTransform);
+        Matrix3x2.Invert(_document.Transform, out var invTransform);
         return Vector2.Transform(Workspace.MouseWorldPosition, invTransform);
     }
 
@@ -287,14 +287,13 @@ public class PenTool : Tool
         }
 
         // Don't create paths on locked layers
-        var currentLayer = _editor.Document.ActiveLayer;
-        if (currentLayer is { Locked: true })
+        if (_document.IsActiveLayerLocked)
         {
             Finish();
             return;
         }
 
-        Undo.Record(_editor.Document);
+        Undo.Record((Document)_document);
 
         var signedArea = 0f;
         for (var i = 0; i < _pointCount; i++)
@@ -325,8 +324,8 @@ public class PenTool : Tool
         _shape.UpdateSamples();
         _shape.UpdateBounds();
 
-        _editor.Document.IncrementVersion();
-        _editor.Document.UpdateBounds();
+        _document.IncrementVersion();
+        _document.UpdateBounds();
 
         Finish();
     }
