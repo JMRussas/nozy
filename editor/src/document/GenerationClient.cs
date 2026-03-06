@@ -179,7 +179,7 @@ public class GenerationRequest
 
 public class GenerationShape
 {
-    public string Mask { get; set; } = "";
+    public string? Mask { get; set; }
     public string Prompt { get; set; } = "";
     public string? NegativePrompt { get; set; }
     public float Strength { get; set; } = 0.8f;

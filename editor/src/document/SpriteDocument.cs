@@ -1177,26 +1177,23 @@ public partial class SpriteDocument : Document, ISpriteSource
         {
             using var ms = new MemoryStream(Generation.ImageData!);
             using var srcImage = SixLabors.ImageSharp.Image.Load<Rgba32>(ms);
-            var padding2 = padding * 2;
 
-            var targetW = rect.Rect.Width - padding2;
-            var targetH = rect.Rect.Height - padding2;
+            // Size to match the sprite's raster bounds (not the full atlas rect which may span multiple slots)
+            var targetW = RasterBounds.Size.X;
+            var targetH = RasterBounds.Size.Y;
             if (targetW <= 0 || targetH <= 0)
                 return false;
 
             if (srcImage.Width != targetW || srcImage.Height != targetH)
                 srcImage.Mutate(x => x.Resize(targetW, targetH));
 
-            var w = srcImage.Width;
-            var h = srcImage.Height;
-
             var rasterRect = new RectInt(
                 rect.Rect.Position + new Vector2Int(padding, padding),
-                new Vector2Int(w, h));
+                new Vector2Int(targetW, targetH));
 
-            for (int y = 0; y < h; y++)
+            for (int y = 0; y < targetH; y++)
             {
-                for (int x = 0; x < w; x++)
+                for (int x = 0; x < targetW; x++)
                 {
                     var pixel = srcImage[x, y];
                     var src = new Color32(pixel.R, pixel.G, pixel.B, pixel.A);
@@ -1205,7 +1202,8 @@ public partial class SpriteDocument : Document, ISpriteSource
                 }
             }
 
-            var outerRect = new RectInt(rect.Rect.Position, new Vector2Int(w + padding2, h + padding2));
+            var padding2 = padding * 2;
+            var outerRect = new RectInt(rect.Rect.Position, new Vector2Int(targetW + padding2, targetH + padding2));
             image.BleedColors(rasterRect);
             for (int p = padding - 1; p >= 0; p--)
             {
@@ -1345,27 +1343,16 @@ public partial class SpriteDocument : Document, ISpriteSource
         {
             var gen = layer.Generation!;
             var maskBytes = RasterizeMaskToPng(layerIndex);
-            if (maskBytes.Length == 0)
-            {
-                Log.Warning($"Layer '{layer.Name}' has no visible shapes, skipping");
-                continue;
-            }
 
             shapes.Add(new GenerationShape
             {
-                Mask = $"data:image/png;base64,{Convert.ToBase64String(maskBytes)}",
+                Mask = maskBytes.Length > 0 ? $"data:image/png;base64,{Convert.ToBase64String(maskBytes)}" : null,
                 Prompt = gen.Prompt,
                 NegativePrompt = string.IsNullOrEmpty(gen.NegativePrompt) ? null : gen.NegativePrompt,
                 Strength = gen.Strength,
                 Steps = gen.Steps,
                 GuidanceScale = gen.GuidanceScale,
             });
-        }
-
-        if (shapes.Count == 0)
-        {
-            Log.Error("Cannot generate: no layers have visible shapes");
-            return;
         }
 
         var server = EditorApplication.Config?.GenerationServer ?? "http://127.0.0.1:7860";
@@ -1941,6 +1928,11 @@ public partial class SpriteDocument : Document, ISpriteSource
 
     private RectInt GetSlotBounds(MeshSlot slot, int timeSlot)
     {
+        // When a generated image exists, it covers the full RasterBounds area.
+        // The atlas rect must be large enough to hold it.
+        if (Generation.HasImageData)
+            return RasterBounds;
+
         var bounds = RectInt.Zero;
         var first = true;
         foreach (var (layerIdx, _) in slot.LayerShapes)
