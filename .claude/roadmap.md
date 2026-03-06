@@ -1916,12 +1916,14 @@ This phase is 100% unit-testable. Can be developed test-first in parallel with P
 
 ---
 
-## Phase 5d: GPU Skinning + Rendering
+## Phase 5d: GPU Skinning + Rendering ✅
+
+**Status:** Complete
 
 **Milestone:** Sample app loads a skinned `.glb` model (e.g., "RiggedSimple" or "CesiumMan") and displays it with animated skeletal motion.
 
 **Dependencies:** Phase 5b (skinned vertex format, shader variant), Phase 5c (animation playback), Phase 2 (materials)
-**Fork changes:** None expected
+**Fork changes:** None
 **Enables:** Future animation blending, IK, morph targets (not currently planned)
 
 ### What's built
