@@ -924,9 +924,8 @@ public unsafe partial class WebGPUGraphicsDriver
 
     public void BindDepthTextureForSampling(nuint depthTexture, int slot)
     {
-        ref var dt = ref _depthTextures[(int)depthTexture];
-        // Store the sample view in a texture slot so it can be bound via the normal texture pipeline
-        // For now, this is a placeholder — Phase 6b will wire the actual sampling
+        _state.BoundDepthTexture = depthTexture;
+        _state.BindGroupDirty = true;
     }
 
     public Task<byte[]> ReadRenderTexturePixelsAsync(nuint renderTexture)
