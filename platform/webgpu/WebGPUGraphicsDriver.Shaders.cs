@@ -355,7 +355,8 @@ public unsafe partial class WebGPUGraphicsDriver
             BlendMode = blendMode,
             VertexStride = vertexStride,
             MsaaSamples = _state.CurrentPassSampleCount,
-            HasDepthAttachment = _state.HasDepthAttachment
+            HasDepthAttachment = _state.HasDepthAttachment,
+            IsDepthOnly = _state.IsDepthOnly
         };
 
         if (shaderInfo.PsoCache.TryGetValue(key, out var pipelinePtr))
@@ -373,8 +374,8 @@ public unsafe partial class WebGPUGraphicsDriver
         ref var meshInfo = ref _meshes[(int)_state.BoundMesh];
 
         // Create render pipeline
-        var pipelineName = $"{shaderInfo.Name}_{blendMode}_{meshInfo.Descriptor.Stride}b_{key.MsaaSamples}x";
-        var pipeline = CreateRenderPipeline(shaderInfo, blendMode, meshInfo.Descriptor, key.MsaaSamples, key.HasDepthAttachment, pipelineName);
+        var pipelineName = $"{shaderInfo.Name}_{blendMode}_{meshInfo.Descriptor.Stride}b_{key.MsaaSamples}x{(key.IsDepthOnly ? "_depthonly" : "")}";
+        var pipeline = CreateRenderPipeline(shaderInfo, blendMode, meshInfo.Descriptor, key.MsaaSamples, key.HasDepthAttachment, pipelineName, key.IsDepthOnly);
 
         if (pipeline == null)
         {
@@ -387,7 +388,7 @@ public unsafe partial class WebGPUGraphicsDriver
         return pipeline;
     }
 
-    private RenderPipeline* CreateRenderPipeline(ShaderInfo shaderInfo, BlendMode blendMode, VertexFormatDescriptor vertexDescriptor, int sampleCount, bool hasDepthAttachment, string? pipelineName = null)
+    private RenderPipeline* CreateRenderPipeline(ShaderInfo shaderInfo, BlendMode blendMode, VertexFormatDescriptor vertexDescriptor, int sampleCount, bool hasDepthAttachment, string? pipelineName = null, bool isDepthOnly = false)
     {
         using var vsEntryPoint = SilkMarshal.StringToMemory("vs_main");
         using var fsEntryPoint = SilkMarshal.StringToMemory("fs_main");
@@ -419,24 +420,6 @@ public unsafe partial class WebGPUGraphicsDriver
             Buffers = &vertexBufferLayout,
         };
 
-        // Blend state
-        var blendState = MapBlendMode(blendMode);
-        var colorTargetState = new ColorTargetState
-        {
-            Format = _surfaceFormat,
-            Blend = &blendState,
-            WriteMask = ColorWriteMask.All,
-        };
-
-        // Fragment state
-        var fragmentState = new FragmentState
-        {
-            Module = shaderInfo.FragmentModule,
-            EntryPoint = (byte*)fsEntryPoint,
-            TargetCount = 1,
-            Targets = &colorTargetState,
-        };
-
         // Primitive state
         var primitiveState = new PrimitiveState
         {
@@ -465,13 +448,18 @@ public unsafe partial class WebGPUGraphicsDriver
                 DepthFailOp = StencilOperation.Keep,
                 PassOp = StencilOperation.Keep,
             };
+
+            // Depth-only passes always write depth with Less comparison
+            bool depthWrite = isDepthOnly || shaderInfo.Flags.HasFlag(ShaderFlags.Depth);
+            var depthCompare = isDepthOnly
+                ? CompareFunction.Less
+                : shaderInfo.Flags.HasFlag(ShaderFlags.DepthLess) ? CompareFunction.Less : CompareFunction.Always;
+
             depthStencilState = new DepthStencilState
             {
                 Format = DepthFormat,
-                DepthWriteEnabled = shaderInfo.Flags.HasFlag(ShaderFlags.Depth),
-                DepthCompare = shaderInfo.Flags.HasFlag(ShaderFlags.DepthLess)
-                    ? CompareFunction.Less
-                    : CompareFunction.Always,
+                DepthWriteEnabled = depthWrite,
+                DepthCompare = depthCompare,
                 StencilFront = noopStencilFace,
                 StencilBack = noopStencilFace,
                 StencilReadMask = 0,
@@ -480,13 +468,37 @@ public unsafe partial class WebGPUGraphicsDriver
             depthStencilPtr = &depthStencilState;
         }
 
+        // Fragment state — skip for depth-only passes (no color output)
+        FragmentState fragmentState = default;
+        FragmentState* fragmentPtr = null;
+        BlendState blendState = default;
+        ColorTargetState colorTargetState = default;
+        if (!isDepthOnly)
+        {
+            blendState = MapBlendMode(blendMode);
+            colorTargetState = new ColorTargetState
+            {
+                Format = _surfaceFormat,
+                Blend = &blendState,
+                WriteMask = ColorWriteMask.All,
+            };
+            fragmentState = new FragmentState
+            {
+                Module = shaderInfo.FragmentModule,
+                EntryPoint = (byte*)fsEntryPoint,
+                TargetCount = 1,
+                Targets = &colorTargetState,
+            };
+            fragmentPtr = &fragmentState;
+        }
+
         // Create render pipeline
         var pipelineDesc = new RenderPipelineDescriptor
         {
             Label = pipelineName != null ? (byte*)labelMemory : null,
             Layout = shaderInfo.PipelineLayout,
             Vertex = vertexState,
-            Fragment = &fragmentState,
+            Fragment = fragmentPtr,
             Primitive = primitiveState,
             Multisample = multisampleState,
             DepthStencil = depthStencilPtr,

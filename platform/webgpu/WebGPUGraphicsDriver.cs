@@ -42,6 +42,21 @@ public unsafe partial class WebGPUGraphicsDriver : IGraphicsDriver
     private TextureView* _depthTextureView;
     private const WGPUTextureFormat DepthFormat = WGPUTextureFormat.Depth24Plus;
 
+    // Standalone depth textures (shadow maps, etc.)
+    private const int MaxDepthTextures = 8;
+    private DepthTextureInfo[] _depthTextures = new DepthTextureInfo[MaxDepthTextures];
+    private int _nextDepthTextureId = 1;
+
+    private struct DepthTextureInfo
+    {
+        public WGPUTexture* Texture;
+        public TextureView* RenderView;    // For depth attachment
+        public TextureView* SampleView;    // For shader sampling
+        public Sampler* ComparisonSampler; // Comparison sampler for shadow mapping
+        public int Width;
+        public int Height;
+    }
+
     // Resource tracking
     private const int MaxMeshes = 32;
     private const int MaxBuffers = 256;
@@ -97,6 +112,7 @@ public unsafe partial class WebGPUGraphicsDriver : IGraphicsDriver
         public RectInt Scissor;
         public int CurrentPassSampleCount;
         public bool HasDepthAttachment;
+        public bool IsDepthOnly;
     }
 
     private struct MeshInfo
@@ -159,17 +175,19 @@ public unsafe partial class WebGPUGraphicsDriver : IGraphicsDriver
         public int VertexStride;
         public int MsaaSamples;
         public bool HasDepthAttachment;
+        public bool IsDepthOnly;
 
         public bool Equals(PsoKey other) =>
             ShaderHandle == other.ShaderHandle &&
             BlendMode == other.BlendMode &&
             VertexStride == other.VertexStride &&
             MsaaSamples == other.MsaaSamples &&
-            HasDepthAttachment == other.HasDepthAttachment;
+            HasDepthAttachment == other.HasDepthAttachment &&
+            IsDepthOnly == other.IsDepthOnly;
 
         public override bool Equals(object? obj) => obj is PsoKey other && Equals(other);
 
-        public override int GetHashCode() => HashCode.Combine(ShaderHandle, BlendMode, VertexStride, MsaaSamples, HasDepthAttachment);
+        public override int GetHashCode() => HashCode.Combine(ShaderHandle, BlendMode, VertexStride, MsaaSamples, HasDepthAttachment, IsDepthOnly);
     }
 
     public void Init(GraphicsDriverConfig config)

@@ -90,4 +90,11 @@ public interface IGraphicsDriver
     void BeginRenderTexturePass(nuint renderTexture, Color clearColor);
     void EndRenderTexturePass();
     Task<byte[]> ReadRenderTexturePixelsAsync(nuint renderTexture);
+
+    // Depth-only texture support (for shadow maps)
+    nuint CreateDepthTexture(int width, int height, string? name = null) => 0;
+    void DestroyDepthTexture(nuint handle) { }
+    void BeginDepthOnlyPass(nuint depthTexture, int width, int height) { }
+    void EndDepthOnlyPass() { }
+    void BindDepthTextureForSampling(nuint depthTexture, int slot) { }
 }
