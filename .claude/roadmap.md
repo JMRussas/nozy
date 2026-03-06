@@ -14,7 +14,7 @@
 | 4a | glTF Parser | Unit tests parse a .glb file, produce correct Mesh3D data | — | Done |
 | 4b | Model Rendering | HelloCube loads and displays a textured glTF model | 4a, 2 | Done |
 | 4c | Multi-Mesh + Hierarchy | Complex multi-part glTF model renders correctly | 4b | Done |
-| 5a | Skeleton & Animation Data | Unit tests parse skinned .glb, produce correct skeleton + keyframes | 4a | Not started |
+| 5a | Skeleton & Animation Data | Unit tests parse skinned .glb, produce correct skeleton + keyframes | 4a | Done |
 | 5b | Skinned Vertex Format | Skinned vertex type + shader variant compile and register | 1b, 5a | Not started |
 | 5c | Animation Playback | AnimationPlayer3D produces correct joint transforms at any time | 5a | Not started |
 | 5d | GPU Skinning | Sample app loads and displays an animated skinned glTF model | 5b, 5c, 2 | Not started |
@@ -1623,7 +1623,9 @@ Note: Skeletal animation was previously listed here — it is now Phase 5.
 
 ---
 
-## Phase 5a: Skeleton & Animation Data (CPU-side)
+## Phase 5a: Skeleton & Animation Data (CPU-side) ✅
+
+**Status:** Complete
 
 **Milestone:** Unit tests parse a skinned `.glb` file (e.g., "RiggedSimple"), produce correct skeleton hierarchy, inverse bind matrices, and animation keyframe data.
 
