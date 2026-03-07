@@ -10,6 +10,14 @@ public unsafe partial class WebGPUGraphicsDriver
 {
     public void BeginScenePass(Color clearColor)
     {
+        // If a 3D prepass already rendered to the scene, preserve its content
+        if (_scenePrepassDone)
+        {
+            _scenePrepassDone = false;
+            ResumeScenePass();
+            return;
+        }
+
         if (_currentRenderPass != null)
             throw new InvalidOperationException("BeginScenePass called while already in a render pass");
 
@@ -152,6 +160,17 @@ public unsafe partial class WebGPUGraphicsDriver
         _wgpu.RenderPassEncoderSetScissorRect(_currentRenderPass, 0, 0, (uint)_surfaceWidth, (uint)_surfaceHeight);
     }
 
+    public void BeginScenePass3D(Color clearColor)
+    {
+        BeginScenePass(clearColor);
+    }
+
+    public void EndScenePass3D()
+    {
+        EndScenePass();
+        _scenePrepassDone = true;
+    }
+
     public void BeginDepthOnlyPass(nuint depthTexture, int width, int height)
     {
         if (_currentRenderPass != null)
@@ -194,6 +213,64 @@ public unsafe partial class WebGPUGraphicsDriver
         _currentRenderPass = _wgpu.CommandEncoderBeginRenderPass(_commandEncoder, in desc);
 
         fixed (byte* label = "DepthOnlyPass\0"u8)
+        {
+            _wgpu.RenderPassEncoderPushDebugGroup(_currentRenderPass, label);
+        }
+
+        _wgpu.RenderPassEncoderSetViewport(_currentRenderPass, 0, 0, width, height, 0, 1);
+        _wgpu.RenderPassEncoderSetScissorRect(_currentRenderPass, 0, 0, (uint)width, (uint)height);
+    }
+
+    public void BeginDepthOnlyPassLayer(nuint handle, int layer, int width, int height)
+    {
+        if (_currentRenderPass != null)
+            throw new InvalidOperationException("BeginDepthOnlyPassLayer called while already in a render pass");
+
+        if (_commandEncoder == null)
+            throw new InvalidOperationException("Command encoder is null - BeginFrame not called?");
+
+        ref var dta = ref _depthTextureArrays[(int)handle];
+        var layerView = layer switch
+        {
+            0 => dta.LayerView0,
+            1 => dta.LayerView1,
+            2 => dta.LayerView2,
+            3 => dta.LayerView3,
+            _ => throw new ArgumentOutOfRangeException(nameof(layer), $"Layer {layer} out of range (max 3)")
+        };
+
+        // Reset all cached state
+        _state = default;
+        _state.CurrentPassSampleCount = 1;
+        _state.HasDepthAttachment = true;
+        _state.IsDepthOnly = true;
+        _state.PipelineDirty = true;
+        _state.BindGroupDirty = true;
+        _currentGlobalsIndex = -1;
+
+        var depthAttachment = new RenderPassDepthStencilAttachment
+        {
+            View = layerView,
+            DepthLoadOp = LoadOp.Clear,
+            DepthStoreOp = StoreOp.Store,
+            DepthClearValue = 1.0f,
+            DepthReadOnly = false,
+            StencilLoadOp = LoadOp.Undefined,
+            StencilStoreOp = StoreOp.Undefined,
+            StencilClearValue = 0,
+            StencilReadOnly = true,
+        };
+
+        var desc = new RenderPassDescriptor
+        {
+            ColorAttachments = null,
+            ColorAttachmentCount = 0,
+            DepthStencilAttachment = &depthAttachment
+        };
+
+        _currentRenderPass = _wgpu.CommandEncoderBeginRenderPass(_commandEncoder, in desc);
+
+        fixed (byte* label = "DepthOnlyPassLayer\0"u8)
         {
             _wgpu.RenderPassEncoderPushDebugGroup(_currentRenderPass, label);
         }

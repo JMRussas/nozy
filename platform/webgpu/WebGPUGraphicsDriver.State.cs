@@ -163,7 +163,6 @@ public unsafe partial class WebGPUGraphicsDriver
 
         var entries = stackalloc BindGroupEntry[bindings.Count];
         int validEntryCount = 0;
-        int depthTextureSlot = 0;
 
         for (int i = 0; i < bindings.Count; i++)
         {
@@ -260,29 +259,25 @@ public unsafe partial class WebGPUGraphicsDriver
 
                 case ShaderBindingType.DepthTexture2D:
                 {
-                    // Map successive DepthTexture2D bindings to slots 0-3
-                    var boundDt = depthTextureSlot switch
-                    {
-                        0 => _state.BoundDepthTexture0,
-                        1 => _state.BoundDepthTexture1,
-                        2 => _state.BoundDepthTexture2,
-                        3 => _state.BoundDepthTexture3,
-                        _ => (nuint)0,
-                    };
-                    depthTextureSlot++;
+                    Log.Error($"DepthTexture2D binding type is deprecated — use DepthTexture2DArray via IGraphicsDriver3D");
+                    _state.BindGroupDirty = false;
+                    return;
+                }
 
-                    if (boundDt == 0)
+                case ShaderBindingType.DepthTexture2DArray:
+                {
+                    if (_state.BoundDepthTextureArray == 0)
                     {
-                        Log.Error($"Depth texture (binding {binding.Binding}, slot {depthTextureSlot - 1}) not bound!");
+                        Log.Error($"Depth texture array (binding {binding.Binding}) not bound!");
                         _state.BindGroupDirty = false;
                         return;
                     }
 
-                    ref var dt = ref _depthTextures[(int)boundDt];
+                    ref var dta = ref _depthTextureArrays[(int)_state.BoundDepthTextureArray];
                     entries[validEntryCount++] = new BindGroupEntry
                     {
                         Binding = binding.Binding,
-                        TextureView = dt.SampleView,
+                        TextureView = dta.ArraySampleView,
                     };
                     break;
                 }

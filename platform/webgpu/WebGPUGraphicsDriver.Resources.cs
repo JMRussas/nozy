@@ -922,15 +922,88 @@ public unsafe partial class WebGPUGraphicsDriver
         dt = default;
     }
 
-    public void BindDepthTextureForSampling(nuint depthTexture, int slot)
+    public nuint CreateDepthTextureArray(int width, int height, int layers, string? name = null)
     {
-        switch (slot)
+        var handle = (nuint)_nextDepthTextureArrayId++;
+
+        fixed (byte* label = name != null
+            ? System.Text.Encoding.ASCII.GetBytes(name + "\0")
+            : "DepthTextureArray\0"u8)
         {
-            case 0: _state.BoundDepthTexture0 = depthTexture; break;
-            case 1: _state.BoundDepthTexture1 = depthTexture; break;
-            case 2: _state.BoundDepthTexture2 = depthTexture; break;
-            case 3: _state.BoundDepthTexture3 = depthTexture; break;
+            var desc = new TextureDescriptor
+            {
+                Label = label,
+                Size = new Extent3D { Width = (uint)width, Height = (uint)height, DepthOrArrayLayers = (uint)layers },
+                MipLevelCount = 1,
+                SampleCount = 1,
+                Dimension = TextureDimension.Dimension2D,
+                Format = DepthFormat,
+                Usage = TextureUsage.RenderAttachment | TextureUsage.TextureBinding,
+            };
+            var texture = _wgpu.DeviceCreateTexture(_device, &desc);
+
+            // Array sample view — Dimension2DArray for fragment shader sampling across all layers
+            var arrayViewDesc = new TextureViewDescriptor
+            {
+                Format = DepthFormat,
+                Dimension = TextureViewDimension.Dimension2DArray,
+                BaseMipLevel = 0,
+                MipLevelCount = 1,
+                BaseArrayLayer = 0,
+                ArrayLayerCount = (uint)layers,
+                Aspect = TextureAspect.DepthOnly,
+            };
+            var arraySampleView = _wgpu.TextureCreateView(texture, &arrayViewDesc);
+
+            // Per-layer 2D views for render attachment
+            var layerViews = new TextureView*[4];
+            for (int i = 0; i < layers && i < 4; i++)
+            {
+                var layerViewDesc = new TextureViewDescriptor
+                {
+                    Format = DepthFormat,
+                    Dimension = TextureViewDimension.Dimension2D,
+                    BaseMipLevel = 0,
+                    MipLevelCount = 1,
+                    BaseArrayLayer = (uint)i,
+                    ArrayLayerCount = 1,
+                    Aspect = TextureAspect.DepthOnly,
+                };
+                layerViews[i] = _wgpu.TextureCreateView(texture, &layerViewDesc);
+            }
+
+            _depthTextureArrays[(int)handle] = new DepthTextureArrayInfo
+            {
+                Texture = texture,
+                ArraySampleView = arraySampleView,
+                Width = width,
+                Height = height,
+                Layers = layers,
+                LayerView0 = layers > 0 ? layerViews[0] : null,
+                LayerView1 = layers > 1 ? layerViews[1] : null,
+                LayerView2 = layers > 2 ? layerViews[2] : null,
+                LayerView3 = layers > 3 ? layerViews[3] : null,
+            };
         }
+
+        return handle;
+    }
+
+    public void DestroyDepthTextureArray(nuint handle)
+    {
+        ref var dta = ref _depthTextureArrays[(int)handle];
+        if (dta.LayerView3 != null) { _wgpu.TextureViewRelease(dta.LayerView3); dta.LayerView3 = null; }
+        if (dta.LayerView2 != null) { _wgpu.TextureViewRelease(dta.LayerView2); dta.LayerView2 = null; }
+        if (dta.LayerView1 != null) { _wgpu.TextureViewRelease(dta.LayerView1); dta.LayerView1 = null; }
+        if (dta.LayerView0 != null) { _wgpu.TextureViewRelease(dta.LayerView0); dta.LayerView0 = null; }
+        if (dta.ArraySampleView != null) { _wgpu.TextureViewRelease(dta.ArraySampleView); dta.ArraySampleView = null; }
+        if (dta.Texture != null) { _wgpu.TextureRelease(dta.Texture); dta.Texture = null; }
+        dta = default;
+    }
+
+    public void BindDepthTextureArrayForSampling(nuint handle)
+    {
+        _state.BoundDepthTextureArray = handle;
         _state.BindGroupDirty = true;
     }
 
