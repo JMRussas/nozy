@@ -6,7 +6,6 @@
 // #define NOZ_UI_DEBUG_LINE_DIFF
 
 using NoZ.Platform;
-using NoZ.Widgets;
 using System.Diagnostics;
 using System.Numerics;
 
@@ -140,6 +139,8 @@ public static partial class UI
 
         _defaultFont = Asset.Get<Font>(AssetType.Font, Config.DefaultFont);
         _shader = Asset.Get<Shader>(AssetType.Shader, Config.Shader)!;
+
+        ElementTree.Init();
     }
 
     public static void Shutdown()
@@ -151,6 +152,8 @@ public static partial class UI
 
         _textBuffers[0].Dispose();
         _textBuffers[1].Dispose();
+
+        ElementTree.Shutdown();
     }
 
     internal static ref Element CreateElement(ElementType type)
@@ -393,22 +396,19 @@ public static partial class UI
 
     public static ReadOnlySpan<char> GetElementText(int elementId)
     {
-        ref var es = ref GetElementState(elementId);
-        ref var e = ref GetElement(es.Index);
-        if (e.Type == ElementType.Widget)
-        {
-            var getText = Widgets.Widget._registry[e.Data.Widget.WidgetType].GetText;
-            return getText != null ? getText(elementId) : default;
-        }
+        if (_lastChangedTextId == elementId)
+            return _lastChangedText.AsSpan();
+
+        var editText = ElementTree.GetEditableText(elementId);
+        if (editText.Length > 0)
+            return editText;
+
         return default;
     }
 
     public static void SetElementText(int elementId, ReadOnlySpan<char> value, bool selectAll = false)
     {
-        ref var es = ref GetElementState(elementId);
-        ref var e = ref GetElement(es.Index);
-        if (e.Type == ElementType.Widget)
-            Widgets.Widget._registry[e.Data.Widget.WidgetType].SetText?.Invoke(elementId, value, selectAll);
+        ElementTree.SetEditableText(elementId, value, selectAll);
     }
 
     public static ref Tween GetElementTween(int elementId) => ref GetElementState(elementId).Tween;
@@ -491,7 +491,6 @@ public static partial class UI
         _activePopupCount = 0;
         _currentTextBuffer = 1 - _currentTextBuffer;
         _textBuffers[_currentTextBuffer].Clear();
-        Widgets.Widget.BeginFrame();
 
         var screenSize = Application.WindowSize.ToVector2();
         var rw = (float)_refSize.X;
@@ -539,6 +538,10 @@ public static partial class UI
         root.Id = 0;
         root.Data.Container = ContainerData.Default;
         PushElement(root.Index);
+
+        // Element tree
+        ElementTree.ScreenSize = _size;
+        ElementTree.Begin();
     }
 
     public static AutoContainer BeginContainer(int id=default)
@@ -943,37 +946,6 @@ public static partial class UI
         PopElement();
     }
 
-    // :widget
-    internal static void Widget(int id, WidgetType type)
-    {
-        ref var e = ref CreateElement(ElementType.Widget);
-        e.Data.Widget.WidgetType = type.Value;
-        SetId(ref e, id);
-        PushElement(e.Index);
-        PopElement();
-    }
-
-    internal static void Widget(int id, WidgetType type, object? asset)
-    {
-        ref var e = ref CreateElement(ElementType.Widget);
-        e.Data.Widget.WidgetType = type.Value;
-        e.Asset = asset;
-        SetId(ref e, id);
-        PushElement(e.Index);
-        PopElement();
-    }
-
-    internal static AutoContainer BeginWidget(int id, WidgetType type)
-    {
-        ref var e = ref CreateElement(ElementType.Widget);
-        e.Data.Widget.WidgetType = type.Value;
-        SetId(ref e, id);
-        PushElement(e.Index);
-        return new AutoContainer();
-    }
-
-    internal static void EndWidget() => EndElement(ElementType.Widget);
-
     internal static void End()
     {
         // Pop the automatic root container
@@ -990,6 +962,11 @@ public static partial class UI
         Graphics.SetCamera(Camera);
 
         DrawElements();
+
+        // Element tree
+        ElementTree.MouseWorldPosition = MouseWorldPosition;
+        ElementTree.End();
+        ElementTree.Draw();
 
         for (int i = _elementCount; i < _previousElementCount; i++)
         {

@@ -2,7 +2,6 @@
 //  NoZ - Copyright(c) 2026 NoZ Games, LLC
 //
 
-using NoZ.Widgets;
 using System.Numerics;
 
 namespace NoZ.Editor;
@@ -30,7 +29,7 @@ internal static partial class EditorUI
 
         using (UI.BeginContainer(EditorStyle.Inspector.FieldContainer))
         {
-            if (Widget.TextBox(id, buf[..written], EditorStyle.Inspector.TextBox, placeholder ?? "0"))
+            if (UI.TextBox(id, buf[..written], EditorStyle.Inspector.TextBox, placeholder ?? "0"))
             {
                 if (float.TryParse(UI.GetElementText(id), out var parsed))
                 {
@@ -50,7 +49,7 @@ internal static partial class EditorUI
 
         using (UI.BeginContainer(EditorStyle.Inspector.FieldContainer))
         {
-            if (Widget.TextBox(id, buf[..written], EditorStyle.Inspector.TextBox, placeholder ?? "0"))
+            if (UI.TextBox(id, buf[..written], EditorStyle.Inspector.TextBox, placeholder ?? "0"))
             {
                 if (int.TryParse(UI.GetElementText(id), out var parsed))
                 {
@@ -233,7 +232,7 @@ internal static partial class EditorUI
                 // Text input (in a container so TextBox fills width via Percent mode)
                 using (UI.BeginContainer(ContainerStyle.Default))
                 {
-                    if (Widget.TextBox(id, (ReadOnlySpan<char>)hex, EditorStyle.Inspector.TextBox, "#fff"))
+                    if (UI.TextBox(id, (ReadOnlySpan<char>)hex, EditorStyle.Inspector.TextBox, "#fff"))
                     {
                         var text = UI.GetElementText(id).ToString();
                         if (TryParseHexColor(text, out var parsed))

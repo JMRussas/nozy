@@ -361,9 +361,6 @@ public static partial class UI
                 continue;
             }
 
-            if (e.Type == ElementType.Widget)
-                Widgets.Widget._registry[e.Data.Widget.WidgetType].Input?.Invoke(e.Id);
-
             var localMouse = Vector2.Transform(mouse, e.WorldToLocal);
             var mouseOver = e.Rect.Contains(localMouse);
 
@@ -418,19 +415,6 @@ public static partial class UI
             {
                 es.SetFlags(ElementFlags.Pressed, ElementFlags.Pressed);
                 _mouseLeftElementId = e.Id;
-
-                // Widget text controls (those with SetText) get focus on click
-                if (e.Type == ElementType.Widget && Widgets.Widget._registry[e.Data.Widget.WidgetType].SetText != null)
-                {
-                    if (_hotId != 0 && _hotId != e.Id)
-                    {
-                        ref var prevEs = ref GetElementState(_hotId);
-                        prevEs.SetFlags(ElementFlags.Focus, ElementFlags.None);
-                    }
-
-                    es.SetFlags(ElementFlags.Focus, ElementFlags.Focus);
-                    _hotClickedThisFrame = true;
-                }
             }
             else if (es.IsPressed)
             {

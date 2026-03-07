@@ -3,7 +3,6 @@
 //
 
 using System.Numerics;
-using NoZ.Widgets;
 
 namespace NoZ.Editor;
 

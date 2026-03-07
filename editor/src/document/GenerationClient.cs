@@ -182,8 +182,11 @@ public class GenerationShape
     public string? Mask { get; set; }
     public string Prompt { get; set; } = "";
     public string? NegativePrompt { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     public float Strength { get; set; } = 0.8f;
-    public int Steps { get; set; } = 40;
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public int Steps { get; set; } = 10;
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     public float GuidanceScale { get; set; } = 6.0f;
 }
 
@@ -191,8 +194,11 @@ public class GenerationRefine
 {
     public string Prompt { get; set; } = "";
     public string? NegativePrompt { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     public float Strength { get; set; } = 0.64f;
-    public int Steps { get; set; } = 40;
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public int Steps { get; set; } = 10;
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     public float GuidanceScale { get; set; } = 6.0f;
 }
 

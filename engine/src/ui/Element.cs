@@ -22,8 +22,7 @@ internal enum ElementType : ushort
     Transform,
     Popup,
     Opacity,
-    Cursor,
-    Widget
+    Cursor
 }
 
 internal struct Element

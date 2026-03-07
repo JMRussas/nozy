@@ -216,14 +216,6 @@ public static unsafe partial class UI
                     return e.Data.Label.Text.AsReadOnlySpan().ToString();
                 break;
 
-            case ElementType.Widget:
-                if (e.Id > 0)
-                {
-                    var text = GetElementText(e.Id);
-                    if (text.Length > 0)
-                        return text.ToString();
-                }
-                break;
         }
         return null;
     }
@@ -271,18 +263,6 @@ public static unsafe partial class UI
                     sb.Append(" align=center");
                 if (l.Color != Color.White)
                     sb.Append($" color={DebugColorToHex(l.Color)}");
-                break;
-
-            case ElementType.Widget:
-                if (e.Id > 0)
-                {
-                    var text = GetElementText(e.Id);
-                    if (text.Length > 0)
-                    {
-                        var str = text.Length > 50 ? text[..47].ToString() + "..." : text.ToString();
-                        sb.Append($" text=\"{str}\"");
-                    }
-                }
                 break;
 
             case ElementType.Scrollable:

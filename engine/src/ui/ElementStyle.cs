@@ -189,24 +189,6 @@ public struct TextBoxStyle()
         set { FocusBorderRadius = value.Radius; FocusBorderWidth = value.Width; FocusBorderColor = value.Color; }
     }
 
-    internal TextBoxData ToData() => new()
-    {
-        Height = Height,
-        FontSize = FontSize,
-        BackgroundColor = BackgroundColor,
-        TextColor = TextColor,
-        PlaceholderColor = PlaceholderColor,
-        SelectionColor = SelectionColor,
-        BorderRadius = BorderRadius,
-        BorderWidth = BorderWidth,
-        BorderColor = BorderColor,
-        FocusBorderRadius = FocusBorderRadius,
-        FocusBorderWidth = FocusBorderWidth,
-        FocusBorderColor = FocusBorderColor,
-        Padding = Padding,
-        Password = IsPassword,
-        Scope = Scope
-    };
 }
 
 public struct TextAreaStyle()
@@ -240,24 +222,6 @@ public struct TextAreaStyle()
         set { FocusBorderRadius = value.Radius; FocusBorderWidth = value.Width; FocusBorderColor = value.Color; }
     }
 
-    internal TextAreaData ToData() => new()
-    {
-        Height = Height,
-        FontSize = FontSize,
-        BackgroundColor = BackgroundColor,
-        TextColor = TextColor,
-        PlaceholderColor = PlaceholderColor,
-        SelectionColor = SelectionColor,
-        BorderRadius = BorderRadius,
-        BorderWidth = BorderWidth,
-        BorderColor = BorderColor,
-        FocusBorderRadius = FocusBorderRadius,
-        FocusBorderWidth = FocusBorderWidth,
-        FocusBorderColor = FocusBorderColor,
-        Padding = Padding,
-        Scope = Scope,
-        CommitOnEnter = CommitOnEnter
-    };
 }
 
 public enum ScrollbarVisibility : byte

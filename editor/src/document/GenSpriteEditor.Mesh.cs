@@ -109,9 +109,9 @@ public partial class GenSpriteEditor
 
         for (int e = 0; e < tess.ElementCount; e++)
         {
-            _meshIndices[indexOffset + e * 3 + 0] = (ushort)tess.Elements[e * 3 + 0];
-            _meshIndices[indexOffset + e * 3 + 1] = (ushort)tess.Elements[e * 3 + 1];
-            _meshIndices[indexOffset + e * 3 + 2] = (ushort)tess.Elements[e * 3 + 2];
+            _meshIndices[indexOffset + e * 3 + 0] = (ushort)(tess.Elements[e * 3 + 0] + vertexOffset);
+            _meshIndices[indexOffset + e * 3 + 1] = (ushort)(tess.Elements[e * 3 + 1] + vertexOffset);
+            _meshIndices[indexOffset + e * 3 + 2] = (ushort)(tess.Elements[e * 3 + 2] + vertexOffset);
         }
 
         vertexOffset += vertCount;

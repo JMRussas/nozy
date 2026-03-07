@@ -2,8 +2,6 @@
 //  NoZ - Copyright(c) 2026 NoZ Games, LLC
 //
 
-using NoZ.Widgets;
-
 namespace NoZ.Editor;
 
 internal static partial class Inspector
@@ -134,8 +132,8 @@ internal static partial class Inspector
             var hovered = UI.IsHovered(propertyId);
 
             value = multiLine
-                ? Widget.TextArea(propertyId, value, hovered ? EditorStyle.Inspector.TextAreaHovered : EditorStyle.Inspector.TextArea, placeholder, handler)
-                : Widget.TextBox(propertyId, value, hovered ? EditorStyle.Inspector.TextBoxHovered : EditorStyle.Inspector.TextBox, placeholder, handler);
+                ? UI.TextArea(propertyId, value, hovered ? EditorStyle.Inspector.TextAreaHovered : EditorStyle.Inspector.TextArea, placeholder, handler)
+                : UI.TextBox(propertyId, value, hovered ? EditorStyle.Inspector.TextBoxHovered : EditorStyle.Inspector.TextBox, placeholder, handler);
         }
 
         return value;
@@ -148,7 +146,7 @@ internal static partial class Inspector
     {
         var propertyId = GetNextPropertyId();
         EditorUI.Slider(propertyId, ref value, minValue, maxValue);
-        Widget.HandleChange(handler);
+        UI.HandleChange(handler);
         return value;
     }
 
@@ -186,7 +184,7 @@ internal static partial class Inspector
 
         ColorPicker.Popup(propertyId, ref color);
         UI.SetLastElement(propertyId);
-        Widget.HandleChange(handler);
+        UI.HandleChange(handler);
         return color;
     }
 }

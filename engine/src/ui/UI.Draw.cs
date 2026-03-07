@@ -79,10 +79,6 @@ public static partial class UI
                 _drawOpacity *= e.Data.Opacity.Value;
                 break;
 
-            case ElementType.Widget:
-                Widgets.Widget._registry[e.Data.Widget.WidgetType].Draw?.Invoke(e.Id);
-                break;
-
             case ElementType.Scrollable:
             {
                 var topLeft = Vector2.Transform(e.Rect.Position, e.LocalToWorld);

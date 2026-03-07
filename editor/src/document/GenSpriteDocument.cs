@@ -67,8 +67,12 @@ public partial class GenSpriteDocument : Document, IShapeDocument
         var tk = new Tokenizer(contents);
         Parse(ref tk);
         UpdateBounds();
-        LoadGeneratedTexture();
         Loaded = true;
+    }
+
+    public override void PostLoad()
+    {
+        LoadGeneratedTexture();
     }
 
     private void Parse(ref Tokenizer tk)
@@ -477,17 +481,25 @@ public partial class GenSpriteDocument : Document, IShapeDocument
         if (Generation.IsGenerating)
             return;
 
+        var globalPrompt = EditorApplication.Config?.GenerationPrompt ?? "";
+        var globalNegPrompt = EditorApplication.Config?.GenerationNegativePrompt ?? "";
+
         var shapes = new List<GenerationShape>();
         foreach (var (layerIndex, layer) in genLayers)
         {
             var gen = layer.Generation;
             var maskBytes = RasterizeMaskToPng(layerIndex);
 
+            var prompt = string.IsNullOrEmpty(globalPrompt) ? gen.Prompt : $"{gen.Prompt}, {globalPrompt}";
+            var negPrompt = gen.NegativePrompt;
+            if (!string.IsNullOrEmpty(globalNegPrompt))
+                negPrompt = string.IsNullOrEmpty(negPrompt) ? globalNegPrompt : $"{negPrompt}, {globalNegPrompt}";
+
             shapes.Add(new GenerationShape
             {
                 Mask = maskBytes.Length > 0 ? $"data:image/png;base64,{Convert.ToBase64String(maskBytes)}" : null,
-                Prompt = gen.Prompt,
-                NegativePrompt = string.IsNullOrEmpty(gen.NegativePrompt) ? null : gen.NegativePrompt,
+                Prompt = prompt,
+                NegativePrompt = string.IsNullOrEmpty(negPrompt) ? null : negPrompt,
                 Strength = gen.Strength,
                 Steps = gen.Steps,
                 GuidanceScale = gen.GuidanceScale,
@@ -497,14 +509,20 @@ public partial class GenSpriteDocument : Document, IShapeDocument
         var server = EditorApplication.Config?.GenerationServer ?? "http://127.0.0.1:7860";
         var primaryGen = genLayers[0].Layer.Generation;
         var refine = Refine ?? primaryGen;
+
+        var refinePrompt = string.IsNullOrEmpty(globalPrompt) ? refine.Prompt : $"{refine.Prompt}, {globalPrompt}";
+        var refineNegPrompt = refine.NegativePrompt;
+        if (!string.IsNullOrEmpty(globalNegPrompt))
+            refineNegPrompt = string.IsNullOrEmpty(refineNegPrompt) ? globalNegPrompt : $"{refineNegPrompt}, {globalNegPrompt}";
+
         var request = new GenerationRequest
         {
             Server = server,
             Shapes = shapes,
             Refine = new GenerationRefine
             {
-                Prompt = refine.Prompt,
-                NegativePrompt = string.IsNullOrEmpty(refine.NegativePrompt) ? null : refine.NegativePrompt,
+                Prompt = refinePrompt,
+                NegativePrompt = string.IsNullOrEmpty(refineNegPrompt) ? null : refineNegPrompt,
                 Strength = refine.Strength,
                 Steps = refine.Steps,
                 GuidanceScale = refine.GuidanceScale,

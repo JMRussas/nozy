@@ -42,10 +42,6 @@ internal struct ElementState
     public ushort LastFrame;
     public Tween Tween;
 
-    // Widget state pool tracking
-    public int WidgetStateOffset;
-    public ushort WidgetStateFrame;
-
     public readonly bool HasFocus => (Flags & ElementFlags.Focus) != 0;
     public readonly bool IsHovered => (Flags & ElementFlags.Hovered) != 0;
     public readonly bool IsHoverChanged => (Flags & ElementFlags.HoverChanged) != 0;

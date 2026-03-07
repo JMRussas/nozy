@@ -134,7 +134,6 @@ public static partial class UI
         ElementType.Image => MeasureImage(in e, in p),
         ElementType.Flex when p.Type is ElementType.Row => MeasureRowFlex(in e, in p),
         ElementType.Flex when p.Type is ElementType.Column => MeasureColumnFlex(in e, in p),
-        ElementType.Widget => Widgets.Widget._registry[e.Data.Widget.WidgetType].Measure?.Invoke(e.Id) ?? Vector2.Zero,
         _ => ResolveSize(in e, in p, Size2.Default)
     };
 

@@ -9,7 +9,6 @@ namespace NoZ.Editor;
 public partial class GenSpriteEditor : DocumentEditor
 {
     [ElementId("Root")]
-    [ElementId("LayerPanel")]
     [ElementId("LayerItem", GenSpriteDocument.MaxDocumentLayers)]
     [ElementId("GenerateButton")]
     [ElementId("AddLayerButton")]
@@ -88,20 +87,18 @@ public partial class GenSpriteEditor : DocumentEditor
             HandleLeftClick();
     }
 
-    public override void UpdateUI()
-    {
-        using (UI.BeginColumn(ElementId.Root, EditorStyle.DocumentEditor.Root))
-        {
-            LayerListUI();
-            UI.Spacer(EditorStyle.Control.Spacing);
-        }
-    }
+    public override void UpdateUI() { }
 
     public override void InspectorUI()
     {
-        GenSpriteInspectorUI();
-        LayerInspectorUI();
-        PathInspectorUI();
+        if (_hasPathSelection)
+            PathInspectorUI();
+        else
+            GenSpriteInspectorUI();
+
+        GenerationStatusUI();
+        LayersInspectorUI();
+        RefineInspectorUI();
     }
 
     public override void Dispose()
@@ -154,15 +151,14 @@ public partial class GenSpriteEditor : DocumentEditor
         Document.IncrementVersion();
     }
 
-    private void LayerInspectorUI()
+    private void GenerationStatusUI()
     {
-        var layer = Document.ActiveLayer;
-        var gen = layer.Generation;
+        var genImage = Document.Generation;
+        if (!genImage.IsGenerating && genImage.GenerationError == null)
+            return;
 
-        using (Inspector.BeginSection("GENERATE"))
+        using (Inspector.BeginSection("PROGRESS"))
         {
-            var genImage = Document.Generation;
-
             if (genImage.IsGenerating)
             {
                 var progressText = genImage.GenerationState switch
@@ -201,35 +197,97 @@ public partial class GenSpriteEditor : DocumentEditor
                 if (Inspector.Button(EditorAssets.Sprites.IconDelete))
                     genImage.CancelGeneration();
             }
-            else
+            else if (genImage.GenerationError != null)
             {
-                if (genImage.GenerationError != null)
-                    UI.Label(genImage.GenerationError, EditorStyle.Text.Secondary with { Color = EditorStyle.ErrorColor });
+                UI.Label(genImage.GenerationError, EditorStyle.Text.Secondary with { Color = EditorStyle.ErrorColor });
+            }
+        }
+    }
 
-                gen.Strength = Inspector.SliderProperty(gen.Strength, handler: Document);
-                gen.Prompt = Inspector.StringProperty(gen.Prompt, handler: Document, placeholder: "Prompt", multiLine: true);
-                gen.NegativePrompt = Inspector.StringProperty(gen.NegativePrompt, handler: Document, placeholder: "Negative Prompt", multiLine: true);
+    private void LayersInspectorUI()
+    {
+        void HeaderContent()
+        {
+            UI.Flex();
+
+            if (EditorUI.SmallButton(ElementId.AddLayerButton, EditorAssets.Sprites.IconLayer))
+            {
+                Undo.Record(Document);
+                Document.AddLayer();
+                ClearSelection();
+                Document.IncrementVersion();
+            }
+
+            if (Document.Layers.Count > 1)
+            {
+                if (EditorUI.SmallButton(ElementId.RemoveLayerButton, EditorAssets.Sprites.IconDelete))
+                {
+                    Undo.Record(Document);
+                    Document.RemoveLayer(Document.ActiveLayerIndex);
+                    ClearSelection();
+                    Document.IncrementVersion();
+                }
             }
         }
 
-        // Refine section
-        if (Document.Refine != null)
+        using (Inspector.BeginSection("LAYERS", content: HeaderContent))
         {
-            using (Inspector.BeginSection("REFINE"))
+            for (int i = Document.Layers.Count - 1; i >= 0; i--)
             {
-                var refine = Document.Refine;
-                refine.Strength = Inspector.SliderProperty(refine.Strength, handler: Document);
-                refine.Prompt = Inspector.StringProperty(refine.Prompt, handler: Document, placeholder: "Refine Prompt", multiLine: true);
-                refine.NegativePrompt = Inspector.StringProperty(refine.NegativePrompt, handler: Document, placeholder: "Negative Prompt", multiLine: true);
+                var layer = Document.Layers[i];
+                var isActive = Document.ActiveLayerIndex == i;
+
+                using (UI.BeginRow(ElementId.LayerItem + i,
+                    isActive
+                        ? EditorStyle.SpriteEditor.LayerNameContainerActive with { Width = Size.Default }
+                        : EditorStyle.SpriteEditor.LayerNameContainer with { Width = Size.Default }))
+                {
+                    UI.Label(layer.Name, EditorStyle.Text.Primary);
+
+                    UI.Flex();
+
+                    if (!isActive && !string.IsNullOrEmpty(layer.Generation.Prompt))
+                    {
+                        var prompt = layer.Generation.Prompt;
+                        if (prompt.Length > 16)
+                            prompt = prompt[..16] + "...";
+                        UI.Label(prompt, EditorStyle.Text.Secondary);
+                    }
+                }
+
+                if (UI.WasPressed(ElementId.LayerItem + i))
+                {
+                    Document.ActiveLayerIndex = i;
+                    ClearSelection();
+                }
+
+                if (isActive)
+                {
+                    var gen = layer.Generation;
+                    gen.Strength = Inspector.SliderProperty(gen.Strength, handler: Document);
+                    gen.Prompt = Inspector.StringProperty(gen.Prompt, handler: Document, placeholder: "Prompt", multiLine: true);
+                    gen.NegativePrompt = Inspector.StringProperty(gen.NegativePrompt, handler: Document, placeholder: "Negative Prompt", multiLine: true);
+                }
             }
+        }
+    }
+
+    private void RefineInspectorUI()
+    {
+        if (Document.Refine == null)
+            return;
+
+        using (Inspector.BeginSection("REFINE"))
+        {
+            var refine = Document.Refine;
+            refine.Strength = Inspector.SliderProperty(refine.Strength, handler: Document);
+            refine.Prompt = Inspector.StringProperty(refine.Prompt, handler: Document, placeholder: "Refine Prompt", multiLine: true);
+            refine.NegativePrompt = Inspector.StringProperty(refine.NegativePrompt, handler: Document, placeholder: "Negative Prompt", multiLine: true);
         }
     }
 
     private void PathInspectorUI()
     {
-        if (!_hasPathSelection)
-            return;
-
         using (Inspector.BeginSection("PATH"))
         {
             using (Inspector.BeginRow())
@@ -291,60 +349,6 @@ public partial class GenSpriteEditor : DocumentEditor
 
     #endregion
 
-    #region Layer List UI
-
-    private void LayerListUI()
-    {
-        using var _ = UI.BeginColumn(ElementId.LayerPanel, EditorStyle.SpriteEditor.LayerToolbar);
-
-        for (int i = Document.Layers.Count - 1; i >= 0; i--)
-        {
-            var layer = Document.Layers[i];
-            var isActive = Document.ActiveLayerIndex == i;
-
-            using (UI.BeginRow(ElementId.LayerItem + i, isActive ? EditorStyle.SpriteEditor.LayerNameContainerActive : EditorStyle.SpriteEditor.LayerNameContainer))
-            {
-                UI.Label(layer.Name, EditorStyle.Text.Primary);
-                UI.Flex();
-
-                if (!string.IsNullOrEmpty(layer.Generation.Prompt))
-                {
-                    var prompt = layer.Generation.Prompt;
-                    if (prompt.Length > 20)
-                        prompt = prompt[..20] + "...";
-                    UI.Label(prompt, EditorStyle.Text.Secondary);
-                }
-            }
-
-            if (UI.WasPressed())
-            {
-                Document.ActiveLayerIndex = i;
-                ClearSelection();
-            }
-        }
-
-        using (UI.BeginRow(EditorStyle.SpriteEditor.LayerNameContainer))
-        {
-            if (EditorUI.SmallButton(ElementId.AddLayerButton, EditorAssets.Sprites.IconLayer))
-            {
-                Undo.Record(Document);
-                Document.AddLayer();
-                Document.IncrementVersion();
-            }
-
-            if (Document.Layers.Count > 1)
-            {
-                if (EditorUI.SmallButton(ElementId.RemoveLayerButton, EditorAssets.Sprites.IconDelete))
-                {
-                    Undo.Record(Document);
-                    Document.RemoveLayer(Document.ActiveLayerIndex);
-                    Document.IncrementVersion();
-                }
-            }
-        }
-    }
-
-    #endregion
 
     #region Input & Selection
 

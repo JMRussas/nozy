@@ -218,10 +218,6 @@ internal struct CursorData
     public SystemCursor SystemCursor;
 }
 
-internal struct WidgetData
-{
-    public ushort WidgetType;
-}
 
 internal struct SpacerData
 {
@@ -243,83 +239,6 @@ internal struct SceneData
 }
 
 
-public struct TextBoxData
-{
-    public Size Height;
-    public float FontSize;
-    public Color BackgroundColor;
-    public Color TextColor;
-    public Color PlaceholderColor;
-    public Color SelectionColor;
-    public BorderRadius BorderRadius;
-    public float BorderWidth;
-    public Color BorderColor;
-    public BorderRadius FocusBorderRadius;
-    public float FocusBorderWidth;
-    public Color FocusBorderColor;
-    public EdgeInsets Padding;
-    public UnsafeSpan<char> Placeholder;
-    public bool Password;
-    public InputScope Scope;
-
-    public static TextBoxData Default => new()
-    {
-        Height = 28f,
-        FontSize = 16,
-        BackgroundColor = new Color(0.22f, 0.22f, 0.22f, 1f),
-        TextColor = Color.White,
-        PlaceholderColor = new Color(0.4f, 0.4f, 0.4f, 1f),
-        SelectionColor = new Color(0.2f, 0.4f, 0.8f, 0.5f),
-        BorderRadius = BorderRadius.Zero,
-        BorderWidth = 0,
-        BorderColor = Color.Transparent,
-        FocusBorderRadius = BorderRadius.Zero,
-        FocusBorderWidth = 0,
-        FocusBorderColor = Color.Transparent,
-        Padding = EdgeInsets.Zero,
-        Password = false,
-        Placeholder = UnsafeSpan<char>.Empty
-    };
-}
-
-public struct TextAreaData
-{
-    public Size Height;
-    public float FontSize;
-    public Color BackgroundColor;
-    public Color TextColor;
-    public Color PlaceholderColor;
-    public Color SelectionColor;
-    public BorderRadius BorderRadius;
-    public float BorderWidth;
-    public Color BorderColor;
-    public BorderRadius FocusBorderRadius;
-    public float FocusBorderWidth;
-    public Color FocusBorderColor;
-    public EdgeInsets Padding;
-    public UnsafeSpan<char> Placeholder;
-    public InputScope Scope;
-    public bool CommitOnEnter;
-
-    public static TextAreaData Default => new()
-    {
-        Height = Size.Default,
-        FontSize = 16,
-        BackgroundColor = new Color(0.22f, 0.22f, 0.22f, 1f),
-        TextColor = Color.White,
-        PlaceholderColor = new Color(0.4f, 0.4f, 0.4f, 1f),
-        SelectionColor = new Color(0.2f, 0.4f, 0.8f, 0.5f),
-        BorderRadius = BorderRadius.Zero,
-        BorderWidth = 0,
-        BorderColor = Color.Transparent,
-        FocusBorderRadius = BorderRadius.Zero,
-        FocusBorderWidth = 0,
-        FocusBorderColor = Color.Transparent,
-        Padding = EdgeInsets.Zero,
-        Placeholder = UnsafeSpan<char>.Empty
-    };
-}
-
 [StructLayout(LayoutKind.Explicit)]
 internal struct ElementData
 {
@@ -335,5 +254,4 @@ internal struct ElementData
     [FieldOffset(0)] public SceneData Scene;
     [FieldOffset(0)] public OpacityData Opacity;
     [FieldOffset(0)] public CursorData Cursor;
-    [FieldOffset(0)] public WidgetData Widget;
 }
