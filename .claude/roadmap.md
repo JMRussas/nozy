@@ -20,7 +20,7 @@
 | 5d | GPU Skinning | Sample app loads and displays an animated skinned glTF model | 5b, 5c, 2 | **Done** |
 | 6a | Shadow Map Infrastructure | Depth-only render pass produces valid shadow texture | 3c, 1a | **Done** |
 | 6b | Directional Shadows | Scene renders with directional light shadows + PCF | 6a | **Done** |
-| 6c | Cascaded Shadow Maps | Large scenes show quality shadows at multiple distances | 6b | Not started |
+| 6c | Cascaded Shadow Maps | Large scenes show quality shadows at multiple distances | 6b | **Done** |
 | 7a | Render-to-Texture | Scene renders to offscreen texture, blits to screen | 2 | Not started |
 | 7b | Tone Mapping + Gamma | HDR scene correctly tone-mapped to LDR display | 7a | Not started |
 | 7c | Bloom + Effects | Bright areas glow, additional post-process effects work | 7b | Not started |
@@ -70,6 +70,7 @@ Physics:         10a → 10b   (10b also needs 8a)
 | 3b | `ShaderFlags.Lit` | `Shader.cs` |
 | 5b | `ShaderFlags.Skinned` | `Shader.cs` |
 | 6a | Depth-only render pass | `WebGPUGraphicsDriver.RenderPass.cs` |
+| 6c refactor | IGraphicsDriver3D, depth texture arrays, batch decoupling | 11 NoZ files (see maintenance.md) |
 | 7a | Render-to-texture blit | Possibly `WebGPUGraphicsDriver.RenderPass.cs` |
 
 ---
@@ -2434,14 +2435,9 @@ fn compute_cascaded_shadow(world_pos: vec3f, world_normal: vec3f, view_depth: f3
 
 **Recommendation:** Default 3, configurable. 3 cascades cover near (~5m), mid (~20m), and far (~100m) with good resolution distribution.
 
-**2. Shadow map storage — individual textures vs texture array**
+**2. Shadow map storage — ~~individual textures vs~~ texture array** ✅ Resolved
 
-| Option | Pros | Cons |
-|--------|------|------|
-| **Individual textures** | Simple, no texture array support needed | N texture bindings, N sampler bindings |
-| **Texture array** | Single binding, cascade selected by index in shader | Requires `texture_depth_2d_array` support, possible fork change |
-
-**Recommendation:** Individual textures initially. Texture arrays are more elegant but require `texture_depth_2d_array` in WGSL and corresponding bind group layout changes. Keep it simple until performance profiling suggests otherwise.
+**Decision:** Texture array (`texture_depth_2d_array`). Upgraded from individual textures in the IGraphicsDriver3D refactor. Single binding at `@group(0) @binding(6)`, cascade selected by layer index in `pcf_kernel`. Eliminates 4 separate PCF wrapper functions and the `switch cascade` dispatch. Fork adds `DepthTexture2DArray` to `ShaderBindingType` and `IGraphicsDriver3D.CreateDepthTextureArray()`.
 
 **3. Cascade transition blending**
 
