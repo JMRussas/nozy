@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 namespace NoZ;
 
 [Flags]
-internal enum ElementFlags : ushort
+public enum ElementFlags : ushort
 {
     None = 0,
     Hovered = 1 << 0,

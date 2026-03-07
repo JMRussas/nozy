@@ -614,9 +614,10 @@ public static partial class UI
         if (hasWidget) ElementTree.BeginWidget(id);
 
         var flags = ElementTree.HasCurrentWidget() ? ElementTree.GetCurrentWidgetFlags() : ElementFlags.None;
-        var bgColor = style.Color.Resolve(flags);
-        var borderColor = style.BorderColor.Resolve(flags);
-        var borderWidth = style.BorderWidth.Resolve(flags);
+        var resolved = style.Resolve != null ? style.Resolve(style, flags) : style;
+        var bgColor = resolved.Color;
+        var borderColor = resolved.BorderColor;
+        var borderWidth = resolved.BorderWidth;
 
         if (style.Margin.L != 0 || style.Margin.R != 0 || style.Margin.T != 0 || style.Margin.B != 0)
             { ElementTree.BeginMargin(style.Margin); count++; }
@@ -924,10 +925,11 @@ public static partial class UI
 
     public static void Label(ReadOnlySpan<char> text, LabelStyle style)
     {
-        var font = style.Font ?? _defaultFont!;
-        var fontSize = style.FontSize > 0 ? style.FontSize : 16f;
         var flags = ElementTree.HasCurrentWidget() ? ElementTree.GetCurrentWidgetFlags() : ElementFlags.None;
-        ElementTree.Label(ElementTree.Text(text), font, fontSize, style.Color.Resolve(flags), style.Align, style.Overflow);
+        var resolved = style.Resolve != null ? style.Resolve(style, flags) : style;
+        var font = resolved.Font ?? _defaultFont!;
+        var fontSize = resolved.FontSize > 0 ? resolved.FontSize : 16f;
+        ElementTree.Label(ElementTree.Text(text), font, fontSize, resolved.Color, resolved.Align, resolved.Overflow);
     }
 
     public static void Label(string text) => Label(text.AsSpan(), new LabelStyle());
@@ -936,10 +938,11 @@ public static partial class UI
 
     public static void WrappedLabel(int id, string text, LabelStyle style)
     {
-        var font = style.Font ?? _defaultFont!;
-        var fontSize = style.FontSize > 0 ? style.FontSize : 16f;
         var flags = ElementTree.HasCurrentWidget() ? ElementTree.GetCurrentWidgetFlags() : ElementFlags.None;
-        ElementTree.Label(ElementTree.Text(text), font, fontSize, style.Color.Resolve(flags), style.Align, TextOverflow.Wrap);
+        var resolved = style.Resolve != null ? style.Resolve(style, flags) : style;
+        var font = resolved.Font ?? _defaultFont!;
+        var fontSize = resolved.FontSize > 0 ? resolved.FontSize : 16f;
+        ElementTree.Label(ElementTree.Text(text), font, fontSize, resolved.Color, resolved.Align, TextOverflow.Wrap);
     }
 
     // :image
@@ -949,7 +952,8 @@ public static partial class UI
     {
         if (sprite == null) return;
         var flags = ElementTree.HasCurrentWidget() ? ElementTree.GetCurrentWidgetFlags() : ElementFlags.None;
-        ElementTree.Image(sprite, style.Size, style.Stretch, style.Color.Resolve(flags), style.Scale);
+        var resolved = style.Resolve != null ? style.Resolve(style, flags) : style;
+        ElementTree.Image(sprite, resolved.Size, resolved.Stretch, resolved.Color, resolved.Scale);
     }
 
     public static void Image(Texture texture) => Image(texture, new ImageStyle());
@@ -959,14 +963,15 @@ public static partial class UI
         ref var e = ref CreateElement(ElementType.Image);
         e.Asset = texture;
         var flags = ElementTree.HasCurrentWidget() ? ElementTree.GetCurrentWidgetFlags() : ElementFlags.None;
+        var resolved = style.Resolve != null ? style.Resolve(style, flags) : style;
         e.Data.Image = new ImageData
         {
-            Size = style.Size,
-            Stretch = style.Stretch,
-            Align = style.Align,
-            Scale = style.Scale,
-            Color = style.Color.Resolve(flags),
-            Order = style.Order,
+            Size = resolved.Size,
+            Stretch = resolved.Stretch,
+            Align = resolved.Align,
+            Scale = resolved.Scale,
+            Color = resolved.Color,
+            Order = resolved.Order,
             Texture = texture.Handle,
             UV0 = Vector2.Zero,
             UV1 = Vector2.One,

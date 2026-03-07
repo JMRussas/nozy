@@ -481,9 +481,9 @@ public static class EditorStyle
         public static readonly TextBoxStyle SearchTextBox = new()
         {
             FontSize = Control.TextSize,
-            TextColor = Control.Text.Color.Normal,
+            TextColor = Control.Text.Color,
             SelectionColor = SelectionColor,
-            PlaceholderColor = Control.PlaceholderText.Color.Normal
+            PlaceholderColor = Control.PlaceholderText.Color
         };
 
         public static readonly ContainerStyle CommandList = new()
@@ -733,16 +733,16 @@ public static class EditorStyle
             PlaceholderColor = Palette.TextDisabled,
             SelectionColor = Palette.Selection,
             FocusBorderRadius = Control.RootHovered.BorderRadius,
-            FocusBorderWidth = Control.RootHovered.BorderWidth.Normal,
-            FocusBorderColor = Control.RootHovered.BorderColor.Normal,
+            FocusBorderWidth = Control.RootHovered.BorderWidth,
+            FocusBorderColor = Control.RootHovered.BorderColor,
             Padding = EdgeInsets.Symmetric(2, 6)
         };
 
         public static readonly TextBoxStyle TextBoxHovered = TextBox with
         {
             BorderRadius = Control.RootHovered.BorderRadius,
-            BorderWidth = Control.RootHovered.BorderWidth.Normal,
-            BorderColor = Control.RootHovered.BorderColor.Normal,
+            BorderWidth = Control.RootHovered.BorderWidth,
+            BorderColor = Control.RootHovered.BorderColor,
         };
 
         public static readonly TextAreaStyle TextArea = new()
@@ -753,8 +753,8 @@ public static class EditorStyle
             PlaceholderColor = Palette.TextDisabled,
             SelectionColor = Palette.Selection,
             FocusBorderRadius = Control.RootHovered.BorderRadius,
-            FocusBorderWidth = Control.RootHovered.BorderWidth.Normal,
-            FocusBorderColor = Control.RootHovered.BorderColor.Normal,
+            FocusBorderWidth = Control.RootHovered.BorderWidth,
+            FocusBorderColor = Control.RootHovered.BorderColor,
             Padding = EdgeInsets.Symmetric(8, 10),
             CommitOnEnter = true
         };
@@ -762,8 +762,8 @@ public static class EditorStyle
         public static readonly TextAreaStyle TextAreaHovered = TextArea with
         {
             BorderRadius = Control.RootHovered.BorderRadius,
-            BorderWidth = Control.RootHovered.BorderWidth.Normal,
-            BorderColor = Control.RootHovered.BorderColor.Normal,
+            BorderWidth = Control.RootHovered.BorderWidth,
+            BorderColor = Control.RootHovered.BorderColor,
         };
 
 
@@ -1152,7 +1152,7 @@ public static class EditorStyle
         public static readonly TextBoxStyle Text = new()
         {
             FontSize = 17.0f,
-            TextColor = Control.Text.Color.Normal,
+            TextColor = Control.Text.Color,
             SelectionColor = SelectionColor
         };
     }

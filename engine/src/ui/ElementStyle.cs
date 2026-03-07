@@ -6,37 +6,6 @@ using System.Numerics;
 
 namespace NoZ;
 
-public struct StyleValue<T> where T : unmanaged
-{
-    public T Normal;
-    public T? Hovered;
-    public T? Pressed;
-    public T? Disabled;
-    public T? Checked;
-
-    public StyleValue()
-    {
-    }
-
-    public static implicit operator StyleValue<T>(T value)
-    {
-        return new StyleValue<T> { Normal = value };
-    }
-
-    internal T Resolve(ElementFlags flags)
-    {
-        if (Disabled.HasValue && (flags & ElementFlags.Disabled) != 0)
-            return Disabled.Value;
-        if (Checked.HasValue && (flags & ElementFlags.Checked) != 0)
-            return Checked.Value;
-        if (Pressed.HasValue && (flags & ElementFlags.Down) != 0)
-            return Pressed.Value;
-        if (Hovered.HasValue && (flags & ElementFlags.Hovered) != 0)
-            return Hovered.Value;
-        return Normal;
-    }
-}
-
 public struct BorderStyle
 {
     public BorderRadius Radius;
@@ -56,17 +25,18 @@ public struct ContainerStyle()
     public Align2 Align = NoZ.Align.Min;
     public EdgeInsets Margin = EdgeInsets.Zero;
     public EdgeInsets Padding = EdgeInsets.Zero;
-    public StyleValue<Color> Color = NoZ.Color.Transparent;
+    public Color Color = NoZ.Color.Transparent;
     public BorderRadius BorderRadius = BorderRadius.Zero;
-    public StyleValue<float> BorderWidth;
-    public StyleValue<Color> BorderColor = NoZ.Color.Transparent;
+    public float BorderWidth;
+    public Color BorderColor = NoZ.Color.Transparent;
     public float Spacing = 0;
     public bool Clip = false;
     public ushort Order = 0;
+    public Func<ContainerStyle, ElementFlags, ContainerStyle>? Resolve;
 
     public BorderStyle Border
     {
-        readonly get => new() { Radius = BorderRadius, Width = BorderWidth.Normal, Color = BorderColor.Normal };
+        readonly get => new() { Radius = BorderRadius, Width = BorderWidth, Color = BorderColor };
         set { BorderRadius = value.Radius; BorderWidth = value.Width; BorderColor = value.Color; }
     }
 
@@ -91,11 +61,12 @@ public enum TextOverflow : byte
 public struct LabelStyle()
 {
     public float FontSize = 16;
-    public StyleValue<Color> Color = NoZ.Color.White;
+    public Color Color = NoZ.Color.White;
     public Align2 Align = new(NoZ.Align.Min, NoZ.Align.Center);
     public Font? Font = null;
     public ushort Order = 2;
     public TextOverflow Overflow = TextOverflow.Overflow;
+    public Func<LabelStyle, ElementFlags, LabelStyle>? Resolve;
 
     public Align AlignX { readonly get => Align.X; set => Align.X = value; }
     public Align AlignY { readonly get => Align.Y; set => Align.Y = value; }
@@ -110,9 +81,10 @@ public struct ImageStyle()
     public ImageStretch Stretch = ImageStretch.Uniform;
     public Align2 Align = NoZ.Align.Min;
     public float Scale = 1.0f;
-    public StyleValue<Color> Color = NoZ.Color.White;
+    public Color Color = NoZ.Color.White;
     public BorderRadius BorderRadius = BorderRadius.Zero;
     public ushort Order = 1;
+    public Func<ImageStyle, ElementFlags, ImageStyle>? Resolve;
 
     public Size Width { readonly get => Size.Width; set => Size.Width = value; }
     public Size Height { readonly get => Size.Height; set => Size.Height = value; }
@@ -265,7 +237,7 @@ public struct SceneStyle()
 
 public static class ElementStyle
 {
-    public static ContainerStyle WithColor(this ContainerStyle style, StyleValue<Color> color)
+    public static ContainerStyle WithColor(this ContainerStyle style, Color color)
     {
         style.Color = color;
         return style;
@@ -316,7 +288,7 @@ public static class ElementStyle
         return style;
     }
 
-    public static LabelStyle WithColor(this LabelStyle style, StyleValue<Color> color)
+    public static LabelStyle WithColor(this LabelStyle style, Color color)
     {
         style.Color = color;
         return style;

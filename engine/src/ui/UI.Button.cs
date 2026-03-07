@@ -30,16 +30,17 @@ public struct ButtonStyle
 
 public struct NewButtonStyle
 {
-    public StyleValue<Color> BackgroundColor;
-    public StyleValue<Color> BorderColor;
-    public StyleValue<float> BorderWidth;
-    public StyleValue<float> BorderRadius;
-    public StyleValue<Color> ContentColor;
+    public Color BackgroundColor;
+    public Color BorderColor;
+    public float BorderWidth;
+    public float BorderRadius;
+    public Color ContentColor;
     public Font? Font = null;
     public float FontSize = 12.0f;
     public Size Width = Size.Fit;
-    public Size Height = 30.0f;    
+    public Size Height = 30.0f;
     public EdgeInsets Padding;
+    public Func<NewButtonStyle, ElementFlags, NewButtonStyle>? Resolve;
     public NewButtonStyle()
     {
     }
