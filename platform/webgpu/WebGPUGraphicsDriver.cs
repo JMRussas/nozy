@@ -14,7 +14,7 @@ using WGPUTextureFormat = Silk.NET.WebGPU.TextureFormat;
 
 namespace NoZ.Platform.WebGPU;
 
-public unsafe partial class WebGPUGraphicsDriver : IGraphicsDriver
+public unsafe partial class WebGPUGraphicsDriver : IGraphicsDriver, IGraphicsDriver3D
 {
     private GraphicsDriverConfig _config = null!;
     private Silk.NET.WebGPU.WebGPU _wgpu = null!;
@@ -42,7 +42,7 @@ public unsafe partial class WebGPUGraphicsDriver : IGraphicsDriver
     private TextureView* _depthTextureView;
     private const WGPUTextureFormat DepthFormat = WGPUTextureFormat.Depth24Plus;
 
-    // Standalone depth textures (shadow maps, etc.)
+    // Standalone depth textures (shadow maps, etc.) — kept for internal use
     private const int MaxDepthTextures = 8;
     private DepthTextureInfo[] _depthTextures = new DepthTextureInfo[MaxDepthTextures];
     private int _nextDepthTextureId = 1;
@@ -56,6 +56,25 @@ public unsafe partial class WebGPUGraphicsDriver : IGraphicsDriver
         public int Width;
         public int Height;
     }
+
+    // Depth texture arrays (cascaded shadow maps via IGraphicsDriver3D)
+    private const int MaxDepthTextureArrays = 4;
+    private DepthTextureArrayInfo[] _depthTextureArrays = new DepthTextureArrayInfo[MaxDepthTextureArrays];
+    private int _nextDepthTextureArrayId = 1;
+
+    private struct DepthTextureArrayInfo
+    {
+        public WGPUTexture* Texture;
+        public TextureView* ArraySampleView;   // Dimension2DArray — for fragment sampling
+        public int Width, Height, Layers;
+        public TextureView* LayerView0;        // Dimension2D, BaseArrayLayer=0 — for render attachment
+        public TextureView* LayerView1;
+        public TextureView* LayerView2;
+        public TextureView* LayerView3;
+    }
+
+    // 3D scene prepass flag — when set, next BeginScenePass uses LoadOp.Load
+    private bool _scenePrepassDone;
 
     // Resource tracking
     private const int MaxMeshes = 32;
@@ -113,10 +132,7 @@ public unsafe partial class WebGPUGraphicsDriver : IGraphicsDriver
         public int CurrentPassSampleCount;
         public bool HasDepthAttachment;
         public bool IsDepthOnly;
-        public nuint BoundDepthTexture0;
-        public nuint BoundDepthTexture1;
-        public nuint BoundDepthTexture2;
-        public nuint BoundDepthTexture3;
+        public nuint BoundDepthTextureArray;
     }
 
     private struct MeshInfo

@@ -134,6 +134,7 @@ public unsafe partial class WebGPUGraphicsDriver
         Texture2DArray,
         Texture2DUnfilterable,  // For textures like RGBA32F that use textureLoad
         DepthTexture2D,         // For depth textures (texture_depth_2d) that use textureLoad
+        DepthTexture2DArray,    // For depth texture arrays (texture_depth_2d_array) that use textureLoad
         Sampler
     }
 
@@ -155,6 +156,7 @@ public unsafe partial class WebGPUGraphicsDriver
                 ShaderBindingType.Texture2DArray => BindingType.Texture2DArray,
                 ShaderBindingType.Texture2DUnfilterable => BindingType.Texture2DUnfilterable,
                 ShaderBindingType.DepthTexture2D => BindingType.DepthTexture2D,
+                ShaderBindingType.DepthTexture2DArray => BindingType.DepthTexture2DArray,
                 ShaderBindingType.Sampler => BindingType.Sampler,
                 _ => throw new NotSupportedException($"Binding type {binding.Type} not supported")
             };
@@ -300,6 +302,16 @@ public unsafe partial class WebGPUGraphicsDriver
                 {
                     SampleType = TextureSampleType.Depth,
                     ViewDimension = TextureViewDimension.Dimension2D,
+                },
+            },
+            BindingType.DepthTexture2DArray => new BindGroupLayoutEntry
+            {
+                Binding = binding,
+                Visibility = ShaderStage.Fragment,
+                Texture = new TextureBindingLayout
+                {
+                    SampleType = TextureSampleType.Depth,
+                    ViewDimension = TextureViewDimension.Dimension2DArray,
                 },
             },
             BindingType.Sampler => new BindGroupLayoutEntry
