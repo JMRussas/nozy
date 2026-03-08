@@ -190,12 +190,7 @@ internal static partial class Inspector
         using (BeginRow())
         using (UI.BeginFlex())
         {
-            var hovered = UI.IsHovered(propertyId);
-
-            //UI.TextInput(propertyId, value, hovered ? EditorStyle.Inspector.TextAreaHovered : EditorStyle.Inspector.TextArea, placeholder, handler);
-            //value = multiLine
-            //    ? 
-            //    : UI.TextBox(propertyId, value, hovered ? EditorStyle.Inspector.TextBoxHovered : EditorStyle.Inspector.TextBox, placeholder, handler);
+            value = UI.TextInput(propertyId, value, EditorStyle.Inspector.TextArea, placeholder, handler);
         }
 
         return value;

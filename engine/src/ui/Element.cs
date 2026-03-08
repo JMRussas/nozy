@@ -197,15 +197,19 @@ internal struct PopupElement
     public bool Interactive;
 }
 
-internal struct EditableTextElement
+internal unsafe struct EditableTextElement
 {
+    public EditableTextState* State;
     public UnsafeSpan<char> Text;
     public float FontSize;
     public Color TextColor;
     public Color CursorColor;
     public Color SelectionColor;
     public bool MultiLine;
+    public bool Focused;
+    public bool CommitOnEnter;
     public ushort Font;
     public int CursorIndex;
     public int SelectionStart;
+    public InputScope Scope;
 }

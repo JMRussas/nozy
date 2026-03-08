@@ -8,15 +8,14 @@ using System.Runtime.CompilerServices;
 namespace NoZ;
 
 
-public struct EditableTextState 
+public struct EditableTextState
 {
+    public UnsafeSpan<char> EditText;
     public int CursorIndex;
     public int SelectionStart;
-    public float ScrollOffset;
     public int TextHash;
     public int PrevTextHash;
     public byte Focused;
-    public byte FocusEntered;
     public byte FocusExited;
     public byte WasCancelled;
 }
@@ -39,88 +38,134 @@ public static unsafe partial class ElementTree
     {
         ref var e = ref BeginElement(ElementType.EditableText);
         ref var d = ref e.Data.EditableText;
-        var focused = HasFocus();
 
-        // Focus on press
-        if (WasPressed() && !focused)
-        {
-            SetFocus();
-            focused = true;
-            state.Focused = 1;
-            state.FocusEntered = 1;
-            state.TextHash = string.GetHashCode(value.AsSpan());
-            state.PrevTextHash = state.TextHash;
-            state.CursorIndex = value.Length;
-            state.SelectionStart = 0;
+        // Store state pointer for input phase
+        d.State = (EditableTextState*)Unsafe.AsPointer(ref state);
 
-            d.Text = AllocString(value);
-        }
-
-        // Mouse click-to-position and drag-to-select
-        if (focused && IsDown())
-        {
-            var localMouse = GetLocalMousePosition();
-            var editText = d.Text.AsReadOnlySpan();
-            var widgetRect = e.Rect;
-            var charIndex = HitTestCharIndex(editText, font, fontSize,
-                multiLine, widgetRect.Width, localMouse.X, localMouse.Y);
-            state.CursorIndex = charIndex;
-            if (WasPressed())
-                state.SelectionStart = charIndex;
-        }
-
-        // Resolve display text (before allocating element so we know what to display)
-        var editSpan = focused ? d.Text.AsReadOnlySpan() : value.AsSpan();
-        var showPlaceholder = editSpan.Length == 0 && placeholder.Length > 0;
-        var displayText = showPlaceholder ? placeholder.AsSpan() : editSpan;
-        var displayColor = showPlaceholder ? placeholderColor : textColor;
-        var overflow = multiLine ? TextOverflow.Wrap : TextOverflow.Overflow;
-
-        d.Text = AllocString(displayText);
-        d.FontSize = fontSize;
-        d.TextColor = displayColor;
-        d.CursorColor = cursorColor;
-        d.SelectionColor = selectionColor;
-        d.MultiLine = multiLine;
-        d.Font = AddObject(font);
-
-        // Keyboard input when focused — text edits allocate after the element struct
-        if (focused)
-            HandleTextInput(ref d, ref state, font, fontSize, multiLine, scope, commitOnEnter);
-
-        // Detect focus loss → commit
-        var changed = false;
+        // Handle commit from previous frame's focus exit
         if (state.FocusExited != 0)
         {
             if (state.WasCancelled == 0)
             {
-                var finalText = d.Text.AsReadOnlySpan();
-                var finalHash = string.GetHashCode(finalText);
+                var finalHash = string.GetHashCode(state.EditText.AsReadOnlySpan());
                 if (finalHash != state.PrevTextHash)
-                {
-                    value = new string(finalText);
-                    changed = true;
-                }
+                    value = new string(state.EditText.AsReadOnlySpan());
             }
             state.Focused = 0;
             state.FocusExited = 0;
             state.WasCancelled = 0;
         }
 
-        if (focused && !HasFocus())
+        // Populate element for layout and draw
+        var focused = state.Focused != 0;
+        if (focused)
         {
-            state.FocusExited = 1;
-            state.Focused = 0;
+            // Re-alloc editing buffer from previous frame's (still valid) pool into current pool
+            state.EditText = AllocString(state.EditText.AsReadOnlySpan());
+            d.Text = state.EditText;
+        }
+        else
+        {
+            var showPlaceholder = value.Length == 0 && placeholder != null && placeholder.Length > 0;
+            var displayText = showPlaceholder ? placeholder.AsSpan() : value.AsSpan();
+            d.Text = AllocString(displayText);
+            textColor = showPlaceholder ? placeholderColor : textColor;
         }
 
-        d.SelectionStart = state.SelectionStart;
+        d.FontSize = fontSize;
+        d.TextColor = textColor;
+        d.CursorColor = cursorColor;
+        d.SelectionColor = selectionColor;
+        d.MultiLine = multiLine;
+        d.CommitOnEnter = commitOnEnter;
+        d.Focused = focused;
+        d.Font = AddObject(font);
         d.CursorIndex = state.CursorIndex;
+        d.SelectionStart = state.SelectionStart;
+        d.Scope = scope;
 
         return value;
     }
 
+    internal static void HandleEditableTextInput(ref Element e)
+    {
+        ref var d = ref e.Data.EditableText;
+        ref var state = ref *d.State;
+        var font = (Font)_assets[d.Font]!;
+        var focused = state.Focused != 0;
+
+        // Hit test mouse against element rect
+        Matrix3x2.Invert(e.Transform, out var inv);
+        var localMouse = Vector2.Transform(MouseWorldPosition, inv);
+        var mouseInside = e.Rect.Contains(localMouse);
+
+        // Focus enter
+        if (_inputMousePressed && mouseInside && !focused)
+        {
+            _focusId = FindParentWidgetId(e.Index);
+            state.Focused = 1;
+            state.EditText = AllocString(d.Text.AsReadOnlySpan());
+            state.PrevTextHash = string.GetHashCode(state.EditText.AsReadOnlySpan());
+            state.TextHash = state.PrevTextHash;
+
+            var charIndex = HitTestCharIndex(state.EditText.AsReadOnlySpan(), font, d.FontSize,
+                d.MultiLine, e.Rect.Width, localMouse.X - e.Rect.X, localMouse.Y - e.Rect.Y);
+            state.CursorIndex = charIndex;
+            state.SelectionStart = charIndex;
+
+            d.Focused = true;
+            d.Text = state.EditText;
+            d.CursorIndex = state.CursorIndex;
+            d.SelectionStart = state.SelectionStart;
+            return;
+        }
+
+        // Focus exit on click outside
+        if (focused && _inputMousePressed && !mouseInside)
+        {
+            state.FocusExited = 1;
+            state.Focused = 0;
+            ClearFocus();
+            d.Focused = false;
+            return;
+        }
+
+        if (!focused) return;
+
+        // Mouse drag-to-select
+        if (_inputMouseDown && mouseInside)
+        {
+            var charIndex = HitTestCharIndex(state.EditText.AsReadOnlySpan(), font, d.FontSize,
+                d.MultiLine, e.Rect.Width, localMouse.X - e.Rect.X, localMouse.Y - e.Rect.Y);
+            state.CursorIndex = charIndex;
+            if (_inputMousePressed)
+                state.SelectionStart = charIndex;
+        }
+
+        // Keyboard and text input
+        HandleTextInput(ref state, font, d.FontSize, d.MultiLine, d.Scope, d.CommitOnEnter);
+
+        // Update element for draw
+        d.Text = state.EditText;
+        d.CursorIndex = state.CursorIndex;
+        d.SelectionStart = state.SelectionStart;
+        d.Focused = state.Focused != 0;
+    }
+
+    private static WidgetId FindParentWidgetId(int elementIndex)
+    {
+        var current = elementIndex;
+        while (current != 0)
+        {
+            ref var el = ref GetElement(current);
+            if (el.Type == ElementType.Widget)
+                return el.Data.Widget.Id;
+            current = el.Parent;
+        }
+        return WidgetId.None;
+    }
+
     private static void HandleTextInput(
-        ref EditableTextElement d,
         ref EditableTextState state,
         Font font,
         float fontSize,
@@ -128,15 +173,16 @@ public static unsafe partial class ElementTree
         InputScope scope,
         bool commitOnEnter)
     {
-        var editText = d.Text.AsReadOnlySpan();
         var ctrl = Input.IsCtrlDown();
         var shift = Input.IsShiftDown();
-        ref var text = ref d.Text;
+        ref var text = ref state.EditText;
 
         // Escape — cancel
         if (Input.WasButtonPressed(InputCode.KeyEscape, true, scope))
         {
             state.WasCancelled = 1;
+            state.FocusExited = 1;
+            state.Focused = 0;
             ClearFocus();
             return;
         }
@@ -144,6 +190,8 @@ public static unsafe partial class ElementTree
         // Tab — commit and defocus
         if (Input.WasButtonPressed(InputCode.KeyTab, true, scope))
         {
+            state.FocusExited = 1;
+            state.Focused = 0;
             ClearFocus();
             return;
         }
@@ -153,15 +201,16 @@ public static unsafe partial class ElementTree
         {
             if (multiLine && !commitOnEnter)
             {
-                RemoveSelected(ref d, ref state);
-                editText = text.AsReadOnlySpan();
-                text = InsertText(editText, state.CursorIndex, "\n");
+                RemoveSelected(ref state);
+                text = InsertText(text.AsReadOnlySpan(), state.CursorIndex, "\n");
                 state.CursorIndex++;
                 state.SelectionStart = state.CursorIndex;
                 state.TextHash = string.GetHashCode(text.AsReadOnlySpan());
             }
             else
             {
+                state.FocusExited = 1;
+                state.Focused = 0;
                 ClearFocus();
             }
             return;
@@ -171,7 +220,7 @@ public static unsafe partial class ElementTree
         if (ctrl && Input.WasButtonPressed(InputCode.KeyA, true, scope))
         {
             state.SelectionStart = 0;
-            state.CursorIndex = editText.Length;
+            state.CursorIndex = text.AsReadOnlySpan().Length;
             return;
         }
 
@@ -180,6 +229,7 @@ public static unsafe partial class ElementTree
         {
             if (state.CursorIndex != state.SelectionStart)
             {
+                var editText = text.AsReadOnlySpan();
                 var selStart = Math.Min(state.CursorIndex, state.SelectionStart);
                 var selEnd = Math.Max(state.CursorIndex, state.SelectionStart);
                 Application.Platform.SetClipboardText(new string(editText[selStart..selEnd]));
@@ -192,10 +242,11 @@ public static unsafe partial class ElementTree
         {
             if (state.CursorIndex != state.SelectionStart)
             {
+                var editText = text.AsReadOnlySpan();
                 var selStart = Math.Min(state.CursorIndex, state.SelectionStart);
                 var selEnd = Math.Max(state.CursorIndex, state.SelectionStart);
                 Application.Platform.SetClipboardText(new string(editText[selStart..selEnd]));
-                RemoveSelected(ref d, ref state);
+                RemoveSelected(ref state);
                 state.TextHash = string.GetHashCode(text.AsReadOnlySpan());
             }
             return;
@@ -207,9 +258,8 @@ public static unsafe partial class ElementTree
             var clipboard = Application.Platform.GetClipboardText();
             if (clipboard != null && clipboard.Length > 0)
             {
-                RemoveSelected(ref d, ref state);
-                editText = text.AsReadOnlySpan();
-                text = InsertText(editText, state.CursorIndex, clipboard);
+                RemoveSelected(ref state);
+                text = InsertText(text.AsReadOnlySpan(), state.CursorIndex, clipboard);
                 state.CursorIndex += clipboard.Length;
                 state.SelectionStart = state.CursorIndex;
                 state.TextHash = string.GetHashCode(text.AsReadOnlySpan());
@@ -222,7 +272,7 @@ public static unsafe partial class ElementTree
         {
             if (state.CursorIndex != state.SelectionStart)
             {
-                RemoveSelected(ref d, ref state);
+                RemoveSelected(ref state);
             }
             else if (state.CursorIndex > 0)
             {
@@ -237,14 +287,13 @@ public static unsafe partial class ElementTree
         // Delete
         if (Input.WasButtonPressed(InputCode.KeyDelete, true, scope))
         {
-            editText = text.AsReadOnlySpan();
             if (state.CursorIndex != state.SelectionStart)
             {
-                RemoveSelected(ref d, ref state);
+                RemoveSelected(ref state);
             }
-            else if (state.CursorIndex < editText.Length)
+            else if (state.CursorIndex < text.AsReadOnlySpan().Length)
             {
-                text = RemoveText(editText, state.CursorIndex, 1);
+                text = RemoveText(text.AsReadOnlySpan(), state.CursorIndex, 1);
             }
             state.TextHash = string.GetHashCode(text.AsReadOnlySpan());
             return;
@@ -263,8 +312,7 @@ public static unsafe partial class ElementTree
         // Right arrow
         if (Input.WasButtonPressed(InputCode.KeyRight, true, scope))
         {
-            editText = text.AsReadOnlySpan();
-            if (state.CursorIndex < editText.Length)
+            if (state.CursorIndex < text.AsReadOnlySpan().Length)
                 state.CursorIndex++;
             if (!shift)
                 state.SelectionStart = state.CursorIndex;
@@ -293,46 +341,23 @@ public static unsafe partial class ElementTree
         var textInput = Input.GetTextInput(scope);
         if (textInput.Length > 0)
         {
-            RemoveSelected(ref d, ref state);
-            editText = text.AsReadOnlySpan();
-            text = InsertText(editText, state.CursorIndex, textInput);
+            RemoveSelected(ref state);
+            text = InsertText(text.AsReadOnlySpan(), state.CursorIndex, textInput);
             state.CursorIndex += textInput.Length;
             state.SelectionStart = state.CursorIndex;
             state.TextHash = string.GetHashCode(text.AsReadOnlySpan());
         }
     }
 
-    internal static void RemoveSelected(ref EditableTextElement d, ref EditableTextState state)
+    private static void RemoveSelected(ref EditableTextState state)
     {
         if (state.CursorIndex == state.SelectionStart) return;
         var start = Math.Min(state.CursorIndex, state.SelectionStart);
         var length = Math.Abs(state.CursorIndex - state.SelectionStart);
-        ref var text = ref d.Text;
-        text = RemoveText(text.AsReadOnlySpan(), start, length);
+        state.EditText = RemoveText(state.EditText.AsReadOnlySpan(), start, length);
         state.CursorIndex = start;
         state.SelectionStart = start;
     }
-
-    #if false
-    public static ReadOnlySpan<char> GetEditableText(int widgetId)
-    {
-        if (!HasFocusOn(widgetId)) return default;
-        ref var state = ref GetWidgetData<EditableTextState>(widgetId);
-        if (d.Focused == 0) return default;
-        return d.EditText.AsReadOnlySpan();
-    }
-
-    public static void SetEditableText(int widgetId, ReadOnlySpan<char> value, bool selectAll = false)
-    {
-        ref var state = ref GetWidgetData<EditableTextState>(widgetId);
-        d.EditText = Text(value);
-        d.TextHash = string.GetHashCode(value);
-        d.CursorIndex = value.Length;
-        d.SelectionStart = selectAll ? 0 : value.Length;
-        _focusId = widgetId;
-        d.Focused = 1;
-    }
-    #endif
 
     private static float FitEditableTextAxis(ref Element e, int axis)
     {
@@ -368,7 +393,7 @@ public static unsafe partial class ElementTree
         var text = d.Text.AsReadOnlySpan();
         var fontSize = d.FontSize;
 
-        var focused = false; //  d.Focused != 0;
+        var focused = d.Focused;
 
         // text
         if (text.Length > 0)

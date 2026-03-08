@@ -103,12 +103,13 @@ public static class Notifications
         if (_count <= 0)
             return;
 
+        using (UI.BeginContainer(EditorStyle.Notifications.Wrapper))
         using (UI.BeginColumn(EditorStyle.Notifications.Root))
         {
             for (var i = 0; i < _count; i++)
             {
                 var index = (_head + i) % MaxNotifications;
-                ref var n = ref _notifications[index];                
+                ref var n = ref _notifications[index];
                 using (UI.BeginContainer(EditorStyle.Notifications.Notification))
                 {
                     if (n.Icon != null)

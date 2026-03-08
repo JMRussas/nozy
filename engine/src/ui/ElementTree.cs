@@ -30,6 +30,7 @@ public static unsafe partial class ElementTree
     private static NativeArray<byte>[] _data = null!;
     private static NativeArray<Element> _elements;
     private static NativeHashMap<UnsafeRef<WidgetState>> _widgets;
+    private static NativeHashMap<UnsafeRef<WidgetState>> _widgetsPrev;
     private static NativeArray<ushort> _stack;    
     private static NativeArray<ushort> _trees;
     private static ushort _frame;
@@ -61,6 +62,7 @@ public static unsafe partial class ElementTree
     {
         _elements = new NativeArray<Element>(MaxElements);
         _widgets = new NativeHashMap<UnsafeRef<WidgetState>>(MaxWidgets);
+        _widgetsPrev = new NativeHashMap<UnsafeRef<WidgetState>>(MaxWidgets);
         _data = [
             new NativeArray<byte>(MaxDataSize),
             new NativeArray<byte>(MaxDataSize)
@@ -78,6 +80,7 @@ public static unsafe partial class ElementTree
     {
         _elements.Dispose();
         _widgets.Dispose();
+        _widgetsPrev.Dispose();
         _data[0].Dispose();
         _data[1].Dispose();
         _vertices.Dispose();
@@ -96,12 +99,12 @@ public static unsafe partial class ElementTree
         _stack.Clear();
         _trees.Clear();
         _data[_frame & 1].Clear();
+        _widgetsPrev.SwapAndClear(ref _widgets);
 
         _assetCount = 0;
         _currentWidget = WidgetId.None;
         _popupCount = 0;
         _activePopupCount = 0;
-        ClosePopups = false;
 
         ref var e = ref _elements.Add();
         e = default;
@@ -204,8 +207,6 @@ public static unsafe partial class ElementTree
     internal static UnsafeSpan<char> InsertText(ReadOnlySpan<char> text, int start, ReadOnlySpan<char> insert)
     {
         var result = AllocString(text.Length + insert.Length);
-        for (int i = 0; i < result.Length; i++)
-            result[i] = ' ';
         if (start > 0)
             text[..start].CopyTo(result.AsSpan(0, start));
         insert.CopyTo(result.AsSpan(start, insert.Length));

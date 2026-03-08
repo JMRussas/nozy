@@ -58,7 +58,7 @@ public static unsafe partial class ElementTree
     public static bool HoverEnter() { var f = GetWidgetFlags(); return f.HasFlag(WidgetFlags.HoverChanged) && f.HasFlag(WidgetFlags.Hovered); }
     public static bool HoverExit() { var f = GetWidgetFlags(); return f.HasFlag(WidgetFlags.HoverChanged) && !f.HasFlag(WidgetFlags.Hovered); }
     public static bool HoverChanged() => GetWidgetFlags().HasFlag(WidgetFlags.HoverChanged);
-    public static bool HasFocus() => false; //  _focusId == CurrentWidget.Data.Widget.Id;
+    public static bool HasFocus() => _focusId == _currentWidget;
     public static bool HasFocusOn(WidgetId id) => _focusId == id;
 
     internal static bool IsHovered(WidgetId id) => GetWidgetFlags(id).HasFlag(WidgetFlags.Hovered);
@@ -131,11 +131,14 @@ public static unsafe partial class ElementTree
     private static UnsafeRef<WidgetState> BeginWidgetInternal(WidgetId id, int stateSize)
     {
         Debug.Assert(id >= 0);
-        
-        stateSize += sizeof(WidgetState);   
-        var state = new UnsafeRef<WidgetState>((WidgetState*)AllocData(stateSize).Ptr);
-        if (IsValidWidgetId(id))
-            NativeMemory.Copy(_widgets[id].Ptr, state.Ptr, (nuint)stateSize);        
+
+        stateSize += sizeof(WidgetState);
+        var data = AllocData(stateSize);
+        NativeMemory.Clear(data.Ptr, (nuint)stateSize);
+        var state = new UnsafeRef<WidgetState>((WidgetState*)data.Ptr);
+        var hasPrev = _widgetsPrev.ContainsKey(id);
+        if (hasPrev)
+            NativeMemory.Copy(_widgetsPrev[id].Ptr, state.Ptr, (nuint)stateSize);
 
         ref var e = ref BeginElement(ElementType.Widget);
         e.Data = default;
@@ -143,13 +146,14 @@ public static unsafe partial class ElementTree
         e.Data.Widget.LastFrame = _frame;
 
         state.Ptr->Index = e.Index;
+
         _widgets[id] = state;
         _currentWidget = id;
         return state;
     }
 
     public static ref T BeginWidget<T>(WidgetId id) where T : unmanaged =>
-        ref *((T*)BeginWidgetInternal(id, sizeof(T)).Ptr);
+        ref *((T*)(BeginWidgetInternal(id, sizeof(T)).Ptr + 1));
 
     public static void BeginWidget(WidgetId id)
     {

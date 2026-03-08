@@ -658,18 +658,50 @@ public static class EditorStyle
         {
             Width = 120f
         };
+
+        public static PopupMenuStyle Style = new()
+        {
+            BackgroundColor = Popup.FillColor,
+            BorderRadius = 6f,
+            BorderWidth = 1.0f,
+            BorderColor = Popup.BorderColor,
+            Padding = EdgeInsets.Symmetric(4, 0),
+            MinWidth = 140,
+            ItemHeight = Control.Height,
+            ItemPadding = EdgeInsets.LeftRight(4.0f, 4.0f),
+            ItemContentPadding = Control.ContentPadding,
+            ItemContentSpacing = Control.Spacing,
+            ItemHoverColor = Palette.Active,
+            FontSize = Control.TextSize,
+            TextColor = Palette.Content,
+            DisabledTextColor = Palette.Disabled,
+            IconSize = Control.IconSize,
+            CheckWidth = Control.Height / 2,
+            SeparatorHeight = 1,
+            SeparatorMargin = EdgeInsets.Symmetric(2, 4),
+            SeparatorColor = Palette.Active,
+            TitleFontSize = Control.TextSize,
+            TitleColor = Palette.SecondaryText,
+            TitlePadding = EdgeInsets.LeftRight(4.0f),
+            ShortcutColor = Palette.Label,
+            SubmenuSpacing = Control.Spacing,
+        };
     }
 
     // :notification
     public static class Notifications
     {
-        public readonly static ContainerStyle Root = new()
+        public readonly static ContainerStyle Wrapper = new()
         {
             AlignX = Align.Max,
             AlignY = Align.Max,
+            Padding = EdgeInsets.BottomRight(Workspace.Padding),
+        };
+
+        public readonly static ContainerStyle Root = new()
+        {
             Width = 240.0f,
             Height = Size.Fit,
-            Margin = EdgeInsets.BottomRight(Workspace.Padding),
             Spacing = Control.Spacing,
         };
 
@@ -689,6 +721,13 @@ public static class EditorStyle
     // :confirm
     public static class Confirm
     {
+        public static readonly ContainerStyle Backdrop = new()
+        {
+            AlignX = Align.Center,
+            AlignY = Align.Center,
+            Color = new Color(0, 0, 0, 0.4f),
+        };
+
         public static readonly ContainerStyle Root = Popup.Root with
         {
             AlignX = Align.Center,
@@ -823,6 +862,13 @@ public static class EditorStyle
             AlignY = Align.Center
         };
 
+        private static readonly Func<TextInputStyle, WidgetFlags, TextInputStyle> TextInputResolve = (s, f) =>
+        {
+            if (f.HasFlag(WidgetFlags.Focus) || f.HasFlag(WidgetFlags.Hovered))
+                s.BorderColor = Palette.FocusRing;
+            return s;
+        };
+
         public static readonly TextInputStyle TextBox = new()
         {
             Height = ControlHeight,
@@ -833,20 +879,11 @@ public static class EditorStyle
             BorderRadius = BorderRadius,
             BorderWidth = 1,
             BorderColor = Color.Transparent,
-            //FocusBorderRadius = BorderRadius,
-            //FocusBorderWidth = 1,
-            //FocusBorderColor = Palette.FocusRing,
             Padding = EdgeInsets.Symmetric(2, 8),
+            Resolve = TextInputResolve,
         };
 
-        public static readonly TextInputStyle TextBoxHovered = TextBox with
-        {
-            BorderRadius = BorderRadius,
-            BorderWidth = 1,
-            BorderColor = Palette.FocusRing,
-        };
-
-        public static readonly TextAreaStyle TextArea = new()
+        public static readonly TextInputStyle TextArea = new()
         {
             Height = ControlHeight * 3,
             FontSize = FontSize,
@@ -856,18 +893,8 @@ public static class EditorStyle
             BorderRadius = BorderRadius,
             BorderWidth = 1,
             BorderColor = Color.Transparent,
-            FocusBorderRadius = BorderRadius,
-            FocusBorderWidth = 1,
-            FocusBorderColor = Palette.FocusRing,
             Padding = EdgeInsets.Symmetric(8, 10),
-            CommitOnEnter = true
-        };
-
-        public static readonly TextAreaStyle TextAreaHovered = TextArea with
-        {
-            BorderRadius = BorderRadius,
-            BorderWidth = 1,
-            BorderColor = Palette.FocusRing,
+            Resolve = TextInputResolve,
         };
 
         public static readonly ContainerStyle FieldContainer = new()
@@ -1245,6 +1272,8 @@ public static class EditorStyle
 
     public static void Init()
     {
+        ContextMenu.Style.CheckIcon = EditorAssets.Sprites.IconCheck;
+        ContextMenu.Style.SubmenuIcon = EditorAssets.Sprites.IconSubmenu;
     }
 
     public static void Shutdown()

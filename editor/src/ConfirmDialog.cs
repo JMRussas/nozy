@@ -6,7 +6,7 @@ namespace NoZ.Editor;
 
 public static partial class ConfirmDialog
 {
-    private static partial class ElementId 
+    private static partial class WidgetIds 
     {
         public static partial WidgetId Yes { get; }
         public static partial WidgetId No { get; }
@@ -39,7 +39,7 @@ public static partial class ConfirmDialog
         _message = message;
         _onConfirm = onConfirm;
         _visible = true;
-        UI.SetHot(ElementId.No);
+        UI.SetHot(WidgetIds.No);
     }
 
     public static void Close()
@@ -79,30 +79,32 @@ public static partial class ConfirmDialog
 
         Action? executed = null;
 
-        using (UI.BeginContainer(ElementId.Close))
+        using (UI.BeginContainer(WidgetIds.Close, EditorStyle.Confirm.Backdrop))
+        {
+            using (UI.BeginColumn(EditorStyle.Confirm.Root))
+            {
+                UI.Text(_message, EditorStyle.Confirm.MessageLabel);
+
+                using (UI.BeginRow(EditorStyle.Confirm.ButtonContainer))
+                {
+                    if (UI.Button(WidgetIds.Yes, _yesText, EditorStyle.Button.Primary))
+                        executed = _onConfirm;
+
+                    if (UI.Button(WidgetIds.No, _noText, EditorStyle.Button.Secondary))
+                    {
+                        Input.ConsumeButton(InputCode.MouseLeft);
+                        Close();
+                    }
+                }
+            }
+
             if (UI.WasPressed())
             {
                 Input.ConsumeButton(InputCode.MouseLeft);
                 Close();
             }
-
-        using (UI.BeginColumn(EditorStyle.Confirm.Root))
-        {
-            UI.Text(_message, EditorStyle.Confirm.MessageLabel);
-
-            using (UI.BeginRow(EditorStyle.Confirm.ButtonContainer))
-            {
-                if (EditorUI.Button(ElementId.Yes, _yesText, selected: true))
-                    executed = _onConfirm;
-
-                if (EditorUI.Button(ElementId.No, _noText))
-                {
-                    Input.ConsumeButton(InputCode.MouseLeft);
-                    Close();
-                }
-            }
         }
-        
+
         if (executed != null)
         {
             Input.ConsumeButton(InputCode.MouseLeft);

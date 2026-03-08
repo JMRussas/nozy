@@ -13,38 +13,41 @@ public static partial class UI
         string? placeholder = null,
         IChangeHandler? handler = null)
     {
-        var font = style.Font ?? DefaultFont;
-        var height = style.Height.IsFixed ? style.Height.Value : style.FontSize * 1.8f;
-
         ElementTree.BeginTree();
 
         ref var state = ref ElementTree.BeginWidget<EditableTextState>(id);
 
-        if (style.BorderWidth > 0)
-            ElementTree.BeginBorder(style.BorderWidth, style.BorderColor, style.BorderRadius);
+        var flags = ElementTree.GetWidgetFlags();
+        var s = style.Resolve != null ? style.Resolve(style, flags) : style;
+
+        var font = s.Font ?? DefaultFont;
+        var height = s.Height.IsFixed ? s.Height.Value : s.FontSize * 1.8f;
 
         ElementTree.BeginSize(Size.Percent(1), new Size(height));
 
-        if (style.BackgroundColor.A > 0)
-            ElementTree.BeginFill(style.BackgroundColor, style.BorderRadius);
+        if (s.BorderWidth > 0)
+            ElementTree.BeginBorder(s.BorderWidth, s.BorderColor, s.BorderRadius);
 
-        var hasPadding = !style.Padding.IsZero;
+        if (s.BackgroundColor.A > 0)
+            ElementTree.BeginFill(s.BackgroundColor, s.BorderRadius);
+
+        var hasPadding = !s.Padding.IsZero;
         if (hasPadding)
-            ElementTree.BeginPadding(style.Padding);
+            ElementTree.BeginPadding(s.Padding);
 
         value = ElementTree.EditableText(
             ref state,
             value,
             font,
-            style.FontSize,
-            style.TextColor,
-            style.TextColor,
-            style.SelectionColor,
+            s.FontSize,
+            s.TextColor,
+            s.TextColor,
+            s.SelectionColor,
             placeholder,
-            style.PlaceholderColor,
+            s.PlaceholderColor,
+            s.MultiLine,
             false,
-            false,
-            style.Scope);
+            s.Scope);
 
         ElementTree.EndTree();
 

@@ -104,7 +104,7 @@ public static partial class ElementTree
                 return FitEditableTextAxis(ref e, axis);
 
             case ElementType.Popup:
-                return e.ChildCount > 0 ? FitAxis(e.FirstChild, axis, -1) : 0;
+                return 0;
 
             default:
                 return 0;
@@ -119,6 +119,12 @@ public static partial class ElementTree
         for (int i = 0; i < e.ChildCount; i++)
         {
             ref var child = ref GetElement(childOffset);
+            if (child.Type == ElementType.Popup)
+            {
+                childOffset = child.NextSibling;
+                continue;
+            }
+
             if (child.Type == ElementType.Flex)
             {
                 if (axis != containerAxis)
@@ -517,6 +523,12 @@ public static partial class ElementTree
         for (int i = 0; i < e.ChildCount; i++)
         {
             ref var child = ref GetElement(childOffset);
+            if (child.Type == ElementType.Popup)
+            {
+                childOffset = child.NextSibling;
+                continue;
+            }
+
             if (child.Type == ElementType.Flex)
                 flexTotal += child.Data.Flex;
             else
@@ -529,13 +541,23 @@ public static partial class ElementTree
             fixedTotal += (childCount - 1) * spacing;
 
         var offset = 0f;
+        var isFirst = true;
         var remaining = e.Rect.GetSize(axis) - fixedTotal;
         childOffset = (int)e.FirstChild;
         for (int i = 0; i < e.ChildCount; i++)
         {
-            if (i > 0) offset += spacing;
-
             ref var child = ref GetElement(childOffset);
+
+            if (child.Type == ElementType.Popup)
+            {
+                LayoutAxis(childOffset, e.Rect[axis], 0, axis, containerAxis);
+                childOffset = child.NextSibling;
+                continue;
+            }
+
+            if (!isFirst) offset += spacing;
+            isFirst = false;
+
             var childPos = e.Rect[axis] + offset;
 
             if (child.Type == ElementType.Flex)

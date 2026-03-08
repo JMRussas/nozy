@@ -279,7 +279,7 @@ public static partial class UI
         ElementTree.Draw();
 
 #if DEBUG
-        if (Input.IsCtrlDown() && Input.WasButtonPressed(InputCode.KeyF12))
+        if (Input.IsButtonDownRaw(InputCode.KeyLeftCtrl) && Input.IsButtonDownRaw(InputCode.KeyF12))
         {
             Directory.CreateDirectory("temp");
             File.WriteAllText("temp/et_dump.txt", ElementTree.DebugDumpTree());

@@ -10,6 +10,7 @@ public static unsafe partial class ElementTree
 {
     private static bool _inputMousePressed;
     private static bool _inputMouseDown;
+    private static WidgetId _hoveredWidget;
 
     private static void HandlePopupAutoClose()
     {
@@ -114,6 +115,8 @@ public static unsafe partial class ElementTree
         }
 
         HandlePopupAutoClose();
+        _hoveredWidget = WidgetId.None;
+        FindHoveredWidget(0);
         HandleInputElement(0);
         HandleScrollableInput();
         HandleSceneInput(0);
@@ -505,6 +508,33 @@ public static unsafe partial class ElementTree
         }
     }
 
+    private static void FindHoveredWidget(int index)
+    {
+        ref var e = ref GetElement(index);
+
+        if (e.Type == ElementType.Widget)
+        {
+            if (_activePopupCount > 0 && !IsInsidePopup(e.Index))
+                return;
+
+            if (IsInsideNonInteractivePopup(e.Index))
+                return;
+
+            Matrix3x2.Invert(e.Transform, out var inv);
+            var localMouse = Vector2.Transform(MouseWorldPosition, inv);
+            if (e.Rect.Contains(localMouse))
+                _hoveredWidget = e.Data.Widget.Id;
+        }
+
+        var childIndex = (int)e.FirstChild;
+        for (int i = 0; i < e.ChildCount; i++)
+        {
+            ref var child = ref GetElement(childIndex);
+            FindHoveredWidget(childIndex);
+            childIndex = child.NextSibling;
+        }
+    }
+
     private static void HandleWidgetInput(ref Element e)
     {
         ref var d = ref e.Data.Widget;
@@ -512,25 +542,23 @@ public static unsafe partial class ElementTree
         var prevFlags = state.Flags;
         state.Flags = WidgetFlags.None;
 
-        // Block input for widgets outside popups when popups are open
         if (_activePopupCount > 0 && !IsInsidePopup(e.Index))
             return;
 
         if (IsInsideNonInteractivePopup(e.Index))
             return;
 
-        Matrix3x2.Invert(e.Transform, out var widgetInv);
-        var localMouse = Vector2.Transform(MouseWorldPosition, widgetInv);
-        var hovered = e.Rect.Contains(localMouse);
+        var isHovered = _hoveredWidget == d.Id;
 
-        if (hovered)
+        if (isHovered)
             state.Flags |= WidgetFlags.Hovered;
 
-        if (hovered && _inputMousePressed && (_captureId == 0 || _captureId == d.Id))
+        var isCaptured = _captureId != 0 && _captureId == d.Id;
+
+        if (isHovered && _inputMousePressed && (_captureId == 0 || _captureId == d.Id))
             state.Flags |= WidgetFlags.Pressed;
 
-        var isCaptured = _captureId != 0 && _captureId == d.Id;
-        if (isCaptured ? _inputMouseDown : (hovered && _inputMouseDown))
+        if (isCaptured ? _inputMouseDown : (isHovered && _inputMouseDown))
             state.Flags |= WidgetFlags.Down;
 
         if (_focusId == d.Id)
@@ -540,12 +568,15 @@ public static unsafe partial class ElementTree
             state.Flags |= WidgetFlags.HoverChanged;
     }
 
-    private static void HandleInputElement(int offset)
+    private static void HandleInputElement(int index)
     {
-        ref var e = ref GetElement(offset);
+        ref var e = ref GetElement(index);
 
         if (e.Type == ElementType.Widget)
-            HandleWidgetInput(ref e);        
+            HandleWidgetInput(ref e);
+
+        if (e.Type == ElementType.EditableText)
+            HandleEditableTextInput(ref e);
 
         var childIndex = (int)e.FirstChild;
         for (int i = 0; i < e.ChildCount; i++)
