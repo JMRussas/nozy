@@ -12,8 +12,6 @@ public static partial class UI
     private static int _hotCurrentHash;
     private static int _lastElementId;
     private static bool _valueChanged;
-    private static bool _hotClickedThisFrame;
-
     public static void SetHot<T>(int elementId, T originalValue) where T : notnull
         => SetHot(elementId, originalValue.GetHashCode());
 

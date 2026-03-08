@@ -183,7 +183,7 @@ internal static partial class Inspector
         var propertyId = GetNextPropertyId();
 
         using (BeginRow())
-        using (UI.BeginContainer(new ContainerStyle { Width = Size.Percent(1), Height = Size.Fit }))
+        using (UI.BeginFlex())
         {
             var hovered = UI.IsHovered(propertyId);
 

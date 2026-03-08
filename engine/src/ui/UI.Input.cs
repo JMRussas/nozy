@@ -15,11 +15,9 @@ public static partial class UI
         var mouse = Camera!.ScreenToWorld(Input.MousePosition);
         MouseWorldPosition = mouse;
 
-        _hotClickedThisFrame = false;
-
         // Clear hot focus when clicking outside the hot element
         var mousePressed = Input.WasButtonPressedRaw(InputCode.MouseLeft);
-        if (mousePressed && !_hotClickedThisFrame && _hotId != 0)
+        if (mousePressed && _hotId != 0 && !ElementTree.WasPressedById(_hotId))
             ElementTree.ClearFocus();
 
         // Don't consume mouse buttons when hovering over a Scene element (pass-through),

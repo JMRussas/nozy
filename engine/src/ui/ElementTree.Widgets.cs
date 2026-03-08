@@ -181,6 +181,7 @@ public static unsafe partial class ElementTree
 
         ws.StateOffset = offset;
         ws.StateSize = (ushort)size;
+        ws.LastFrame = _frame;
 
         return ref *(T*)ptr;
     }
@@ -216,6 +217,7 @@ public static unsafe partial class ElementTree
 
         ws.StateOffset = offset;
         ws.StateSize = (ushort)size;
+        ws.LastFrame = _frame;
         return ref *(T*)ptr;
     }
 
