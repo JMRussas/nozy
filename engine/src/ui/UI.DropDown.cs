@@ -7,20 +7,19 @@ namespace NoZ;
 public struct DropDownStyle()
 {
     public Size Width = Size.Fit;
-    public Size Height = 30.0f;
-    public Color Color = Color.Transparent;
-    public Color ContentColor = Color.White;
-    public float FontSize = 12.0f;
-    public float IconSize = 16.0f;
+    public Size Height = Style.Widget.Height;
+    public Color Color = Style.Palette.Background;
+    public Color ContentColor = Style.Palette.Content;
+    public float FontSize = Style.Widget.FontSize;
+    public float IconSize = Style.Widget.IconSize;
     public float ArrowSize = 12.0f;
-    public float Spacing = 6.0f;
-    public float BorderRadius = 0;
+    public float Spacing = Style.Widget.Spacing;
+    public float BorderRadius = Style.Widget.BorderRadius;
     public float BorderWidth = 0;
-    public Color BorderColor = Color.Transparent;
+    public Color BorderColor = Style.Palette.Border;
     public EdgeInsets Padding = EdgeInsets.Zero;
     public Font? Font = null;
     public Sprite? ArrowIcon = null;
-    public PopupMenuStyle MenuStyle = new();
     public Func<DropDownStyle, WidgetFlags, DropDownStyle>? Resolve;
 
     public static readonly DropDownStyle Default = new();
@@ -30,24 +29,14 @@ public static partial class UI
 {
     public static bool DropDown(
         WidgetId id,
-        string text,
-        PopupMenuItem[] items) =>
-        DropDown(id, text, null, items, DropDownStyle.Default);
-
-    public static bool DropDown(
-        WidgetId id,
-        string text,
         PopupMenuItem[] items,
-        in DropDownStyle style) =>
-        DropDown(id, text, null, items, style);
-
-    public static bool DropDown(
-        WidgetId id,
-        string? text,
-        Sprite? icon,
-        PopupMenuItem[] items,
-        in DropDownStyle style)
+        string? text = null,
+        Sprite? icon = null,
+        DropDownStyle? style = null,
+        PopupMenuStyle? menuStyle = null)
     {
+        var s = style ?? Style.DropDown;
+        var ms = menuStyle ?? Style.PopupMenu;
         var isOpen = IsPopupMenuOpen(id);
 
         ElementTree.BeginTree();
@@ -57,7 +46,8 @@ public static partial class UI
         if (isOpen)
             flags |= WidgetFlags.Checked;
 
-        var s = style.Resolve != null ? style.Resolve(style, flags) : style;
+        if (s.Resolve != null)
+            s = s.Resolve(s, flags);
 
         ElementTree.BeginSize(new Size2(s.Width, s.Height));
 
@@ -129,7 +119,7 @@ public static partial class UI
                     AnchorRect = anchorRect,
                     MinWidth = anchorRect.Width,
                 };
-                OpenPopupMenu(id, items, s.MenuStyle, popupStyle);
+                OpenPopupMenu(id, items, ms, popupStyle);
             }
         }
 

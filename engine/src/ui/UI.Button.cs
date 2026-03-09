@@ -7,16 +7,16 @@ namespace NoZ;
 public struct ButtonStyle()
 {
     public Size Width = Size.Fit;
-    public Size Height = 30.0f;
+    public Size Height = Style.Widget.Height;
     public float MinWidth = 0;
-    public Color Color = Color.Transparent;
-    public Color ContentColor = Color.White;
-    public float FontSize = 12.0f;
-    public float IconSize = 16.0f;
-    public float Spacing = 6.0f;
-    public float BorderRadius = 0;
+    public Color Color = Style.Palette.Background;
+    public Color ContentColor = Style.Palette.Content;
+    public float FontSize = Style.Widget.FontSize;
+    public float IconSize = Style.Widget.IconSize;
+    public float Spacing = Style.Widget.Spacing;
+    public float BorderRadius = Style.Widget.BorderRadius;
     public float BorderWidth = 0;
-    public Color BorderColor = Color.Transparent;
+    public Color BorderColor = Style.Palette.Border;
     public EdgeInsets Padding = EdgeInsets.Zero;
     public Font? Font = null;
     public Func<ButtonStyle, WidgetFlags, ButtonStyle>? Resolve;

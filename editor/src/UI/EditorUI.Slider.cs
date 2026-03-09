@@ -8,7 +8,7 @@ internal static partial class EditorUI
 {
     private static readonly SliderStyle _sliderStyle = new()
     {
-        Height = EditorStyle.Inspector.ControlHeight,
+        Height = EditorStyle.Control.Height,
         TrackHeight = EditorStyle.Slider.TrackHeight,
         ThumbSize = EditorStyle.Slider.ThumbSize,
         TrackColor = EditorStyle.Palette.PageBG,

@@ -15,7 +15,7 @@ internal static partial class EditorUI
 
     public static void SectionHeader(string text)
     {
-        UI.Spacer(EditorStyle.Inspector.SectionGap / 2);
+        UI.Spacer(EditorStyle.Control.Spacing / 2);
         using (UI.BeginRow(EditorStyle.Inspector.SectionHeader))
             UI.Text(text, EditorStyle.Inspector.SectionText);
         UI.Container(EditorStyle.Inspector.Separator);

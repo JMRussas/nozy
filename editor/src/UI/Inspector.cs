@@ -32,6 +32,7 @@ internal static partial class Inspector
     private static bool _propertyEnabled;
     private static bool _propertyHovered;
     private static bool _sectionCollapsed;
+    private static bool _sectionActive;
     private static string? _dropdownText = null!;
     private static Color32 _valueColor;
 
@@ -54,42 +55,60 @@ internal static partial class Inspector
     public static AutoSection BeginSection(string name, Sprite? icon = null, Action? content = null, bool isActive = false)
     {
         var sectionId = _nextSectionId++;
+        _sectionActive = isActive;
 
-        UI.BeginColumn();
-
-#if false
-        var headerStyle = isActive
-            ? EditorStyle.Inspector.SectionHeaderActive
-            : EditorStyle.Inspector.SectionHeader;
-        var textStyle = isActive
-            ? EditorStyle.Inspector.SectionTextActive
-            : EditorStyle.Inspector.SectionText;
-
-        UI.BeginColumn(EditorStyle.Inspector.Section);
-
-        bool pressed;
-        using (UI.BeginRow(sectionId, headerStyle))
+        // Outer section wrapper
+        ElementTree.BeginColumn();
+        if (isActive)
         {
-            ref var state = ref ElementTree.GetWidgetState<SectionState>();
-            var chevron = state.Collapsed != 0
-                ? EditorAssets.Sprites.IconFoldoutClosed
-                : EditorAssets.Sprites.IconFoldoutOpen;
-            UI.Image(chevron, EditorStyle.Inspector.ChevronIcon);
-
-            if (icon != null)
-                UI.Image(icon, EditorStyle.Inspector.SectionIcon);
-
-            UI.Label(name, textStyle);
-            UI.Flex();
-            content?.Invoke();
-
-            pressed = UI.WasPressed();
-            if (pressed)
-                state.Collapsed = (byte)(state.Collapsed != 0 ? 0 : 1);
+            ElementTree.BeginBorder(1, EditorStyle.Palette.Primary);
+            ElementTree.BeginPadding(EdgeInsets.All(1));
+            ElementTree.BeginColumn();
         }
 
-        _sectionCollapsed = ElementTree.GetWidgetData<SectionState>(sectionId).Collapsed != 0;
-#endif
+        // Header (self-contained tree)
+        ElementTree.BeginTree();
+        ref var state = ref ElementTree.BeginWidget<SectionState>(sectionId);
+        var flags = ElementTree.GetWidgetFlags();
+        var hovered = flags.HasFlag(WidgetFlags.Hovered);
+
+        if (flags.HasFlag(WidgetFlags.Pressed))
+            state.Collapsed = (byte)(state.Collapsed != 0 ? 0 : 1);
+
+        var iconColor = isActive ? EditorStyle.Palette.Content : EditorStyle.Palette.HeaderText;
+        var headerBg = hovered ? EditorStyle.Palette.Secondary : EditorStyle.Palette.Header;
+        var chevron = state.Collapsed != 0
+            ? EditorAssets.Sprites.IconFoldoutClosed
+            : EditorAssets.Sprites.IconFoldoutOpen;
+
+        ElementTree.BeginSize(Size.Default, EditorStyle.Inspector.SectionHeaderHeight);
+        ElementTree.BeginFill(headerBg);
+        ElementTree.BeginPadding(EdgeInsets.LeftRight(8));
+        ElementTree.BeginAlign(new Align2(Align.Min, Align.Center));
+        ElementTree.BeginRow(EditorStyle.Inspector.HeaderGap);
+
+        ElementTree.Image(chevron, EditorStyle.Inspector.IconSize, ImageStretch.Uniform, iconColor, 1.0f, new Align2(Align.Center, Align.Center));
+
+        if (icon != null)
+            ElementTree.Image(icon, EditorStyle.Inspector.IconSize, ImageStretch.Uniform, iconColor, 1.0f, new Align2(Align.Center, Align.Center));
+
+        ElementTree.Text(name, UI.DefaultFont, EditorStyle.Inspector.HeaderFontSize, iconColor, new Align2(Align.Min, Align.Center));
+
+        ElementTree.Flex();
+
+        content?.Invoke();
+
+        ElementTree.EndTree();
+
+        _sectionCollapsed = state.Collapsed != 0;
+
+        // Body (only if not collapsed)
+        if (!_sectionCollapsed)
+        {
+            ElementTree.BeginColumn(EditorStyle.Inspector.BodyGap);
+            ElementTree.BeginFill(EditorStyle.Palette.Panel);
+            ElementTree.BeginPadding(EdgeInsets.Symmetric(EditorStyle.Inspector.BodyPaddingV, EditorStyle.Inspector.BodyPaddingH));
+        }
 
         return new AutoSection();
     }
@@ -101,9 +120,24 @@ internal static partial class Inspector
 
     public static void EndSection()
     {
+        if (!_sectionCollapsed)
+        {
+            ElementTree.EndPadding();
+            ElementTree.EndFill();
+            ElementTree.EndColumn();
+        }
+
         _sectionCollapsed = false;
-        UI.EndColumn();
-        EditorUI.PanelSeparator();
+
+        if (_sectionActive)
+        {
+            ElementTree.EndColumn();
+            ElementTree.EndPadding();
+            ElementTree.EndBorder();
+        }
+
+        ElementTree.EndColumn();
+        _sectionActive = false;
     }
 
     public static bool Property(Action content, string? name = null, Sprite? icon = null, bool isEnabled = true, bool forceHovered=false) =>
@@ -118,7 +152,7 @@ internal static partial class Inspector
         var pressed = false;
         var propertyStyle = new ContainerStyle
         {
-            Height = EditorStyle.Inspector.ControlHeight,
+            Height = EditorStyle.Control.Height,
             Spacing = EditorStyle.Inspector.BodyGap,
             Padding = EdgeInsets.LeftRight(8)
         };
@@ -190,7 +224,13 @@ internal static partial class Inspector
         using (BeginRow())
         using (UI.BeginFlex())
         {
+            var prev = value;
             value = UI.TextInput(propertyId, value, EditorStyle.Inspector.TextArea, placeholder, handler);
+            if (value != prev && handler != null)
+            {
+                handler.BeginChange();
+                handler.NotifyChange();
+            }
         }
 
         return value;

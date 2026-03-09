@@ -22,7 +22,7 @@ public static class EditorStyle
         public static readonly Color PrimaryHover = Color.FromRgb(0xF04848);
 
         // Text & Icon
-        public static readonly Color Content = Color.FromRgb(0xFFFFFF);
+        public static readonly Color Content = Color.FromRgb(0xE0E0E0);
         public static readonly Color HeaderText = Color.FromRgb(0xAAAAAA);
         public static readonly Color SecondaryText = Color.FromRgb(0x999999);
         public static readonly Color Label = Color.FromRgb(0x777777);
@@ -55,6 +55,7 @@ public static class EditorStyle
     public static readonly ContainerStyle Panel = new()
     {
         Color = Palette.Panel,
+        Spacing = Control.Spacing
     };
 
     // :icon
@@ -514,7 +515,7 @@ public static class EditorStyle
 
     public static DropDownStyle DropDown = new()
     {
-        Width = Size.Fit,
+        Width = Size.Default,
         Height = Control.Height,
         Color = Palette.PageBG,
         ContentColor = Palette.Content,
@@ -525,7 +526,6 @@ public static class EditorStyle
         BorderRadius = Control.BorderRadius,
         Padding = EdgeInsets.LeftRight(10),
         ArrowIcon = null,
-        MenuStyle = ContextMenu.Style,
         Resolve = (s, f) =>
         {
             if ((f & WidgetFlags.Disabled) != 0) return s with
@@ -799,7 +799,6 @@ public static class EditorStyle
     public static class Inspector
     {
         // Inspector-specific sizes (28px controls, not the global 40px)
-        public const float ControlHeight = 28f;
         public const float FontSize = 11f;
         public const float HeaderFontSize = 12f;
         public const float LabelFontSize = 9f;
@@ -808,28 +807,27 @@ public static class EditorStyle
         public const float BodyPaddingV = 10f;
         public const float BodyPaddingH = 12f;
         public const float BodyGap = 6f;
-        public const float SectionGap = 2f;
         public const float HeaderGap = 6f;
         public const float LabelWidth = 80f;
+        public const float SectionHeaderHeight = 28f;
 
         public static readonly ContainerStyle Root = Panel with
         {
-            Width = 280.0f,
+            Width = 300.0f,
             Padding = EdgeInsets.Symmetric(BodyPaddingV, BodyPaddingH)
         };
 
         public static readonly ContainerStyle SectionHeader = new()
         {
-            Height = Control.Height,
+            Height = SectionHeaderHeight,
             Color = Palette.Header,
             Padding = EdgeInsets.LeftRight(8),
             Spacing = HeaderGap,
-            BorderRadius = BorderRadius
         };
 
         public static readonly LabelStyle SectionText = new()
         {
-            FontSize = Control.TextSize,
+            FontSize = HeaderFontSize,
             Color = Palette.HeaderText,
             AlignX = Align.Min,
             AlignY = Align.Center
@@ -838,7 +836,7 @@ public static class EditorStyle
         public static readonly ImageStyle ChevronIcon = new()
         {
             Color = Palette.HeaderText,
-            Size = Control.IconSize,
+            Size = IconSize,
             AlignX = Align.Center,
             AlignY = Align.Center
         };
@@ -857,15 +855,12 @@ public static class EditorStyle
 
         public static readonly ContainerStyle Section = new()
         {
-            MinHeight = ControlHeight,
-            Padding = EdgeInsets.TopBottom(4),
-            Spacing = SectionGap,
             Height = Size.Fit,
         };
 
         public static readonly ContainerStyle Property = new()
         {
-            Height = ControlHeight,
+            Height = Control.Height,
         };
 
         public static readonly LabelStyle PropertyName = new()
@@ -878,14 +873,14 @@ public static class EditorStyle
 
         public static readonly ContainerStyle Content = new()
         {
-            Spacing = SectionGap,
+            Spacing = Control.Spacing,
             Padding = EdgeInsets.Symmetric(4, Control.Spacing)
         };
 
         public static readonly ContainerStyle Row = new()
         {
             Height = Size.Fit,
-            MinHeight = ControlHeight,
+            MinHeight = Control.Height,
             Padding = EdgeInsets.LeftRight(4),
             Spacing = BodyGap
         };
@@ -906,7 +901,7 @@ public static class EditorStyle
 
         public static readonly TextInputStyle TextBox = new()
         {
-            Height = ControlHeight,
+            Height = Control.Height,
             FontSize = FontSize,
             TextColor = Palette.Content,
             PlaceholderColor = Palette.Placeholder,
@@ -920,7 +915,7 @@ public static class EditorStyle
 
         public static readonly TextInputStyle TextArea = new()
         {
-            Height = ControlHeight * 3,
+            Height = Control.Height * 3,
             FontSize = FontSize,
             TextColor = Palette.Content,
             PlaceholderColor = Palette.Placeholder,
@@ -953,13 +948,13 @@ public static class EditorStyle
         public static readonly ContainerStyle Separator = new()
         {
             Height = 1,
-            Margin = EdgeInsets.Symmetric(SectionGap / 2, 0),
+            Margin = EdgeInsets.Symmetric(Control.Spacing / 2, 0),
             Color = Palette.Active
         };
 
         public static readonly ContainerStyle EmitterTab = new()
         {
-            Height = ControlHeight,
+            Height = Control.Height,
             Padding = EdgeInsets.LeftRight(10),
             BorderRadius = BorderRadius
         };
@@ -997,7 +992,7 @@ public static class EditorStyle
 
         public static readonly ContainerStyle Root = new()
         {
-            Height = Inspector.ControlHeight,
+            Height = Control.Height,
             MinWidth = 100,
         };
 
@@ -1314,6 +1309,9 @@ public static class EditorStyle
         ContextMenu.Style.CheckIcon = EditorAssets.Sprites.IconCheck;
         ContextMenu.Style.SubmenuIcon = EditorAssets.Sprites.IconSubmenu;
         DropDown.ArrowIcon = EditorAssets.Sprites.IconFoldoutClosed;
+
+        Style.DropDown = DropDown;
+        Style.PopupMenu = ContextMenu.Style;
     }
 
     public static void Shutdown()

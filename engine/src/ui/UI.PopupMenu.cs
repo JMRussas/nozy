@@ -54,20 +54,20 @@ public struct PopupMenuStyle()
     public float MinWidth = 140;
 
     // Items
-    public float ItemHeight = 40;
+    public float ItemHeight = Style.Widget.Height;
     public EdgeInsets ItemPadding = new(0, 4, 0, 4);
     public float ItemContentPadding = 4;
-    public float ItemContentSpacing = 6;
+    public float ItemContentSpacing = Style.Widget.Spacing;
     public Color ItemHoverColor = Color.FromRgb(0x3D3D3D);
 
     // Text
-    public float FontSize = 16;
-    public Color TextColor = Color.White;
+    public float FontSize = Style.Widget.FontSize;
+    public Color TextColor = Style.Palette.Content;
     public Color DisabledTextColor = Color.FromRgb(0x666666);
     public Font? Font = null;
 
     // Icons
-    public float IconSize = 14;
+    public float IconSize = Style.Widget.IconSize;
     public float CheckWidth = 20;
 
     // Separator

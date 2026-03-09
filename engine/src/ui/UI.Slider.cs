@@ -12,7 +12,7 @@ public struct SliderStyle()
     public Color TrackColor = new(0.3f, 0.3f, 0.3f, 1f);
     public Color FillColor = new(0.4f, 0.6f, 1f, 1f);
     public Color ThumbColor = Color.White;
-    public float BorderRadius = 0;
+    public float BorderRadius = Style.Widget.BorderRadius;
     public float Step = 0;
     public Func<SliderStyle, WidgetFlags, SliderStyle>? Resolve;
 

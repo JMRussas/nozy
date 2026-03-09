@@ -8,7 +8,7 @@ namespace NoZ.Editor;
 
 public partial class GenSpriteEditor : DocumentEditor
 {
-    private static partial class ElementId
+    private static partial class WidgetIds
     {
         public static partial WidgetId Root { get; }
         public static partial WidgetId LayerItem { get; }
@@ -130,7 +130,7 @@ public partial class GenSpriteEditor : DocumentEditor
         var items = sizes.Select(s =>
             PopupMenuItem.Item(s.Label, () => SetConstraint(s.Size))).ToArray();
 
-        UI.DropDown(ElementId.ConstraintDropDown, constraintLabel, EditorAssets.Sprites.IconConstraint, items, EditorStyle.DropDown);
+        UI.DropDown(WidgetIds.ConstraintDropDown, items, constraintLabel, EditorAssets.Sprites.IconConstraint);
     }
 
     private void StyleUI()
@@ -145,7 +145,7 @@ public partial class GenSpriteEditor : DocumentEditor
                 items.Add(PopupMenuItem.Item(styleDoc.Name, () => SetStyle(styleDoc)));
         }
 
-        UI.DropDown(ElementId.StyleDropDown, Document.StyleName ?? "None", null, items.ToArray(), EditorStyle.DropDown);
+        UI.DropDown(WidgetIds.StyleDropDown, items.ToArray(), Document.StyleName ?? "None");
     }
 
     private void GenSpriteInspectorUI()
@@ -220,7 +220,7 @@ public partial class GenSpriteEditor : DocumentEditor
                     });
                 }
 
-                if (UI.Button(ElementId.GenerateButton, "Cancel", EditorAssets.Sprites.IconDelete, EditorStyle.Button.Secondary with { Width = Size.Percent(1), MinWidth = 0 }))
+                if (UI.Button(WidgetIds.GenerateButton, "Cancel", EditorAssets.Sprites.IconDelete, EditorStyle.Button.Secondary with { Width = Size.Percent(1), MinWidth = 0 }))
                     genImage.CancelGeneration();
             }
         }
@@ -229,7 +229,7 @@ public partial class GenSpriteEditor : DocumentEditor
             if (genImage.GenerationError != null)
                 UI.Text(genImage.GenerationError, EditorStyle.Text.Secondary with { Color = EditorStyle.ErrorColor });
 
-            if (UI.Button(ElementId.GenerateButton, "Generate", EditorAssets.Sprites.IconAi, EditorStyle.Button.Primary with { Width = Size.Percent(1), MinWidth = 0 }))
+            if (UI.Button(WidgetIds.GenerateButton, "Generate", EditorAssets.Sprites.IconAi, EditorStyle.Button.Primary with { Width = Size.Percent(1), MinWidth = 0 }))
                 Document.GenerateAsync();
         }
     }
@@ -240,7 +240,7 @@ public partial class GenSpriteEditor : DocumentEditor
         {
             UI.Flex();
 
-            if (EditorUI.SmallButton(ElementId.AddLayerButton, EditorAssets.Sprites.IconLayer))
+            if (EditorUI.SmallButton(WidgetIds.AddLayerButton, EditorAssets.Sprites.IconLayer))
             {
                 Undo.Record(Document);
                 Document.AddLayer();
@@ -250,7 +250,7 @@ public partial class GenSpriteEditor : DocumentEditor
 
             if (Document.Layers.Count > 1)
             {
-                if (EditorUI.SmallButton(ElementId.RemoveLayerButton, EditorAssets.Sprites.IconDelete))
+                if (EditorUI.SmallButton(WidgetIds.RemoveLayerButton, EditorAssets.Sprites.IconDelete))
                 {
                     Undo.Record(Document);
                     Document.RemoveLayer(Document.ActiveLayerIndex);
