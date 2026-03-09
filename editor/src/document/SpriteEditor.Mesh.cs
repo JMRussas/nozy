@@ -81,9 +81,6 @@ public partial class SpriteEditor
             {
                 if (!layers[layerIdx].Visible) continue;
 
-                // Generated layers render as a single composite image, not vector mesh
-                if (layers[layerIdx].IsGenerated) continue;
-
                 // Snapshot accumulated paths at layer start for clip (cross-layer only)
                 var lowerLayerPaths = accumulatedPaths;
 
@@ -267,33 +264,4 @@ public partial class SpriteEditor
         }
     }
 
-    /// <summary>
-    /// Renders layer images at SortGroup 3 (same as mesh fill).
-    /// Wireframes are still drawn at SortGroup 4 on top of these.
-    /// </summary>
-    private void DrawGeneratedLayers()
-    {
-        var texture = Document.Generation.Texture;
-        if (texture == null) return;
-
-        var ppu = EditorApplication.Config.PixelsPerUnitInv;
-        var bounds = Document.RasterBounds;
-
-        var rect = new Rect(
-            bounds.X * ppu,
-            bounds.Y * ppu,
-            bounds.Width * ppu,
-            bounds.Height * ppu);
-
-        using (Graphics.PushState())
-        {
-            Graphics.SetSortGroup(3);
-            Graphics.SetLayer(EditorLayer.DocumentEditor);
-            Graphics.SetTransform(Document.Transform);
-            Graphics.SetTexture(texture);
-            Graphics.SetShader(EditorAssets.Shaders.Texture);
-            Graphics.SetColor(Color.White.WithAlpha(Workspace.XrayAlpha));
-            Graphics.Draw(rect);
-        }
-    }
 }

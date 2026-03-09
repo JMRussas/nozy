@@ -88,14 +88,10 @@ public class SpriteLayer
     public float Opacity = 1.0f;
     public byte SortOrder;
     public StringId Bone;
-    public GenerationConfig? Generation;
     public int Index;
 
     public readonly SpriteFrame[] Frames = new SpriteFrame[Sprite.MaxFrames];
     public ushort FrameCount = 1;
-
-    public bool IsGenerated => Generation != null;
-    public bool HasGeneration => Generation is { HasPrompt: true };
 
     public int TotalTimeSlots
     {
@@ -163,7 +159,6 @@ public class SpriteLayer
             SortOrder = SortOrder,
             Index = Index,
             Bone = Bone,
-            Generation = Generation?.Clone(),
             FrameCount = FrameCount,
         };
         for (var i = 0; i < FrameCount; i++)

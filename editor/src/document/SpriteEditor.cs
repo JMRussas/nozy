@@ -24,7 +24,6 @@ public partial class SpriteEditor : DocumentEditor
         public static partial WidgetId BonePathButton { get; }
         public static partial WidgetId StrokeWidth { get; }
         public static partial WidgetId AddFrameButton { get; }
-        public static partial WidgetId GenerateButton { get; }
         public static partial WidgetId PlayButton { get; }
         public static partial WidgetId AllLayerVisibility { get; }
         public static partial WidgetId AllLayerLocked { get; }
@@ -42,12 +41,6 @@ public partial class SpriteEditor : DocumentEditor
         public static partial WidgetId SkeletonDropDown { get; }
         public static partial WidgetId ShowInSkeleton { get; }
         public static partial WidgetId ShowSkeletonOverlay { get; }
-        public static partial WidgetId GenerateAiButton { get; }
-        public static partial WidgetId RemoveGenerateButton { get; }
-        public static partial WidgetId CancelGenerateButton { get; }
-        public static partial WidgetId GenStrength { get; }
-        public static partial WidgetId GenPrompt { get; }
-        public static partial WidgetId GenNegativePrompt { get; }
         public static partial WidgetId PathNormal { get; }
         public static partial WidgetId PathSubtract { get; }
         public static partial WidgetId PathClip { get; }
@@ -125,7 +118,6 @@ public partial class SpriteEditor : DocumentEditor
             new Command { Name = "Duplicate", Handler = DuplicateSelected, Key = InputCode.KeyD, Ctrl = true },
             new Command { Name = "Copy", Handler = CopySelected, Key = InputCode.KeyC, Ctrl = true },
             new Command { Name = "Paste", Handler = PasteSelected, Key = InputCode.KeyV, Ctrl = true },
-            new Command { Name = "Generate", Handler = () => Document.GenerateAsync(), Key = InputCode.KeyG, Ctrl = true },
         ];
 
         bool HasSelection() => CurrentShape.HasSelection();
@@ -199,7 +191,6 @@ public partial class SpriteEditor : DocumentEditor
 
         UpdateMesh();
         DrawMesh();
-        DrawGeneratedLayers();
 
         if (Document.ShowSkeletonOverlay)
             DrawSkeletonOverlay();
@@ -1823,95 +1814,6 @@ public partial class SpriteEditor : DocumentEditor
         }
     }
 
-    private void LayerInspectorUI()
-    {
-        static void GenerateContent()
-        {
-            var doc = (SpriteDocument)Workspace.ActiveDocument!;
-
-            UI.Flex();
-            if (UI.Button(ElementId.GenerateAiButton, EditorAssets.Sprites.IconAi, EditorStyle.Button.IconOnly))
-                doc.ActiveLayer.Generation = new GenerationConfig { };
-        }
-
-        static void RemoveGenerateContent()
-        {
-            var doc = (SpriteDocument)Workspace.ActiveDocument!;
-
-            UI.Flex();
-            if (UI.Button(ElementId.RemoveGenerateButton, EditorAssets.Sprites.IconDelete, EditorStyle.Button.IconOnly))
-                doc.ActiveLayer.Generation = null;
-        }
-
-        var layer = Document.ActiveLayer;
-        var isGenerated = layer.IsGenerated; 
-
-        using (Inspector.BeginSection("GENERATE", content: isGenerated ? RemoveGenerateContent : GenerateContent))
-        {
-            if (!Inspector.IsSectionCollapsed && isGenerated)
-            {
-                var gen = layer.Generation!;
-                var genImage = Document.Generation;
-
-                if (genImage.IsGenerating)
-                {
-                    var progressText = genImage.GenerationState switch
-                    {
-                        GenerationState.Queued when genImage.QueuePosition > 0 =>
-                            $"Queued (position {genImage.QueuePosition})",
-                        GenerationState.Queued => "Queued...",
-                        GenerationState.Running when genImage.TotalSteps > 0 =>
-                            $"Generating {genImage.CurrentStep}/{genImage.TotalSteps}",
-                        GenerationState.Running => "Processing...",
-                        _ => "Starting..."
-                    };
-                    UI.Text(progressText, EditorStyle.Text.Secondary);
-
-                    // Progress bar
-                    if (genImage.GenerationState == GenerationState.Running && genImage.TotalSteps > 0)
-                    {
-                        using (UI.BeginContainer(new ContainerStyle
-                        {
-                            Width = Size.Percent(1),
-                            Height = 4f,
-                            Color = EditorStyle.Palette.PanelSeparator,
-                            BorderRadius = 2f
-                        }))
-                        {
-                            UI.BeginContainer(new ContainerStyle
-                            {
-                                Width = Size.Percent(genImage.GenerationProgress),
-                                Height = 4f,
-                                Color = EditorStyle.Palette.Primary,
-                                BorderRadius = 2f
-                            });
-                            UI.EndContainer();
-                        }
-                    }
-
-                    // Cancel button
-                    if (UI.Button(ElementId.CancelGenerateButton, EditorAssets.Sprites.IconDelete, EditorStyle.Button.IconOnly))
-                        genImage.CancelGeneration();
-                }
-                else
-                {
-                    if (genImage.GenerationError != null)
-                        UI.Text(genImage.GenerationError, EditorStyle.Text.Secondary with { Color = EditorStyle.ErrorColor });
-
-                    UI.Slider(ElementId.GenStrength, ref gen.Strength, EditorStyle.Slider.Style, 0, 1);
-                    UI.HandleChange(Document);
-
-                    using (Inspector.BeginRow())
-                    using (UI.BeginFlex())
-                        gen.Prompt = UI.TextInput(ElementId.GenPrompt, gen.Prompt, EditorStyle.TextArea, "Prompt", Document);
-
-                    using (Inspector.BeginRow())
-                    using (UI.BeginFlex())
-                        gen.NegativePrompt = UI.TextInput(ElementId.GenNegativePrompt, gen.NegativePrompt, EditorStyle.TextArea, "Negative Prompt", Document);
-                }
-            }
-        }
-    }
 
     private void PathInspectorUI()
     {
@@ -1999,7 +1901,6 @@ public partial class SpriteEditor : DocumentEditor
     public override void InspectorUI()
     {
         SpriteInspectorUI();
-        LayerInspectorUI();
         PathInspectorUI();
     }
 

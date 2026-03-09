@@ -65,6 +65,7 @@ public static unsafe partial class ElementTree
             // Re-alloc editing buffer from previous frame's (still valid) pool into current pool
             state.EditText = AllocString(state.EditText.AsReadOnlySpan());
             d.Text = state.EditText;
+            value = new string(state.EditText.AsReadOnlySpan());
         }
         else
         {

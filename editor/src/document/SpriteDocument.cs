@@ -5,7 +5,6 @@
 using System.Diagnostics.Contracts;
 using System.Globalization;
 using System.Numerics;
-using System.Security.Cryptography;
 using System.Text;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -137,13 +136,6 @@ public partial class SpriteDocument : Document, ISpriteSource, IShapeDocument
     public bool ShowSkeletonOverlay { get; set; }
     public Vector2Int? ConstrainedSize { get; set; }
 
-    public GenerationImage Generation { get; } = new();
-    public GenerationConfig? Refine;
-
-    public bool HasGeneration => _layers.Any(l => l.HasGeneration);
-
-    public bool IsGenerating => Generation.IsGenerating;
-
     public void EnsureDefaultLayer()
     {
         if (_layers.Count == 0)
@@ -265,7 +257,6 @@ public partial class SpriteDocument : Document, ISpriteSource, IShapeDocument
         Edges = EdgeInsets.Zero;
         Binding.Clear();
 
-        // Dispose old generated textures before clearing layers
         foreach (var layer in _layers)
             for (var fi = 0; fi < layer.FrameCount; fi++)
                 layer.Frames[fi].Dispose();
@@ -277,9 +268,7 @@ public partial class SpriteDocument : Document, ISpriteSource, IShapeDocument
         var tk = new Tokenizer(contents);
         Load(ref tk);
 
-        // Resolve skeleton binding and recreate generated textures
         Binding.Resolve();
-        LoadGeneratedTexture();
 
         // Update bounds and mark sprite dirty
         UpdateBounds();
@@ -344,13 +333,10 @@ public partial class SpriteDocument : Document, ISpriteSource, IShapeDocument
                     }
                     else if (tk.ExpectIdentifier("image"))
                     {
-                        // Legacy per-frame image — load into document-level GenerationImage
+                        // Legacy per-frame image — skip
                         if (layer.FrameCount == 0)
                             layer.FrameCount = 1;
-
-                        var base64 = tk.ExpectQuotedString();
-                        if (!string.IsNullOrEmpty(base64))
-                            Generation.ImageData = Convert.FromBase64String(base64);
+                        tk.ExpectQuotedString();
                     }
                     else if (tk.ExpectIdentifier("path"))
                     {
@@ -402,13 +388,22 @@ public partial class SpriteDocument : Document, ISpriteSource, IShapeDocument
             }
             else if (tk.ExpectIdentifier("gen_image"))
             {
-                var base64 = tk.ExpectQuotedString();
-                if (!string.IsNullOrEmpty(base64))
-                    Generation.ImageData = Convert.FromBase64String(base64);
+                // Legacy — skip
+                tk.ExpectQuotedString();
             }
             else if (tk.ExpectIdentifier("refine"))
             {
-                Refine = ParseGenerationConfig(ref tk);
+                // Legacy — skip generation config tokens
+                while (!tk.IsEOF)
+                {
+                    if (tk.ExpectIdentifier("prompt")) tk.ExpectQuotedString();
+                    else if (tk.ExpectIdentifier("prompt_neg")) tk.ExpectQuotedString();
+                    else if (tk.ExpectIdentifier("seed")) tk.ExpectInt();
+                    else if (tk.ExpectIdentifier("strength")) tk.ExpectFloat(0);
+                    else if (tk.ExpectIdentifier("steps")) tk.ExpectInt();
+                    else if (tk.ExpectIdentifier("guidance_scale")) tk.ExpectFloat(0);
+                    else break;
+                }
             }
             else
             {
@@ -443,34 +438,6 @@ public partial class SpriteDocument : Document, ISpriteSource, IShapeDocument
         EnsureDefaultLayer();
     }
 
-    private static GenerationConfig ParseGenerationConfig(ref Tokenizer tk)
-    {
-        var config = new GenerationConfig();
-        while (!tk.IsEOF)
-        {
-            if (tk.ExpectIdentifier("prompt"))
-                config.Prompt = tk.ExpectQuotedString() ?? "";
-            else if (tk.ExpectIdentifier("prompt_neg"))
-                config.NegativePrompt = tk.ExpectQuotedString() ?? "";
-            else if (tk.ExpectIdentifier("seed"))
-                config.Seed = tk.ExpectInt();
-            else if (tk.ExpectIdentifier("strength"))
-                config.Strength = tk.ExpectFloat(0.8f);
-            else if (tk.ExpectIdentifier("steps"))
-                config.Steps = tk.ExpectInt();
-            else if (tk.ExpectIdentifier("guidance_scale"))
-                config.GuidanceScale = tk.ExpectFloat(6.0f);
-            else
-                break;
-        }
-        return config;
-    }
-
-    private static void ParseGenerate(ref Tokenizer tk, SpriteLayer layer)
-    {
-        layer.Generation = ParseGenerationConfig(ref tk);
-    }
-
     private void ParseDocumentLayer(ref Tokenizer tk)
     {
         var layer = new SpriteLayer
@@ -484,7 +451,19 @@ public partial class SpriteDocument : Document, ISpriteSource, IShapeDocument
             if (tk.ExpectIdentifier("sort"))
                 layer.SortOrder = (byte)tk.ExpectInt();
             else if (tk.ExpectIdentifier("generate"))
-                ParseGenerate(ref tk, layer);
+            {
+                // Legacy — skip generation config tokens
+                while (!tk.IsEOF)
+                {
+                    if (tk.ExpectIdentifier("prompt")) tk.ExpectQuotedString();
+                    else if (tk.ExpectIdentifier("prompt_neg")) tk.ExpectQuotedString();
+                    else if (tk.ExpectIdentifier("seed")) tk.ExpectInt();
+                    else if (tk.ExpectIdentifier("strength")) tk.ExpectFloat(0);
+                    else if (tk.ExpectIdentifier("steps")) tk.ExpectInt();
+                    else if (tk.ExpectIdentifier("guidance_scale")) tk.ExpectFloat(0);
+                    else break;
+                }
+            }
             else if (tk.ExpectIdentifier("locked"))
                 layer.Locked = true;
             else if (tk.ExpectIdentifier("hidden"))
@@ -873,13 +852,6 @@ public partial class SpriteDocument : Document, ISpriteSource, IShapeDocument
                 writer.Write(string.Format(CultureInfo.InvariantCulture, " opacity {0}", layer.Opacity));
             writer.WriteLine();
 
-            // Write generation settings (stored in the .sprite file, not .meta)
-            if (layer.IsGenerated)
-            {
-                writer.WriteLine("generate");
-                WriteGenerationConfig(writer, layer.Generation!);
-            }
-
             // Write this layer's frames
             for (ushort frameIndex = 0; frameIndex < layer.FrameCount; frameIndex++)
             {
@@ -903,32 +875,6 @@ public partial class SpriteDocument : Document, ISpriteSource, IShapeDocument
                 writer.WriteLine();
         }
 
-        // Write document-level generation image
-        if (Generation.HasImageData)
-        {
-            writer.WriteLine();
-            writer.WriteLine($"gen_image \"{Convert.ToBase64String(Generation.ImageData!)}\"");
-        }
-
-        // Write refine config
-        if (Refine != null)
-        {
-            writer.WriteLine();
-            writer.WriteLine("refine");
-            WriteGenerationConfig(writer, Refine);
-        }
-    }
-
-    private static void WriteGenerationConfig(StreamWriter writer, GenerationConfig config)
-    {
-        if (!string.IsNullOrEmpty(config.Prompt))
-            writer.WriteLine($"prompt \"{config.Prompt.Replace("\"", "\\\"")}\"");
-        if (!string.IsNullOrEmpty(config.NegativePrompt))
-            writer.WriteLine($"prompt_neg \"{config.NegativePrompt.Replace("\"", "\\\"")}\"");
-        writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "seed {0}", config.Seed));
-        writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "strength {0}", config.Strength));
-        writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "steps {0}", config.Steps));
-        writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "guidance_scale {0}", config.GuidanceScale));
     }
 
     private static void SaveLayerFrame(Shape shape, StreamWriter writer)
@@ -1122,356 +1068,8 @@ public partial class SpriteDocument : Document, ISpriteSource, IShapeDocument
     public override void PostLoad()
     {
         Binding.Resolve();
-        LoadGeneratedTexture();
     }
 
-    #region AI Generation
-
-    /// <summary>
-    /// Create GPU texture from document-level generated image for editor preview.
-    /// </summary>
-    internal void LoadGeneratedTexture()
-    {
-        Generation.Dispose();
-
-        if (!Generation.HasImageData) return;
-
-        try
-        {
-            using var ms = new MemoryStream(Generation.ImageData!);
-            using var srcImage = SixLabors.ImageSharp.Image.Load<Rgba32>(ms);
-
-            if (ConstrainedSize.HasValue)
-            {
-                var cs = ConstrainedSize.Value;
-                if (srcImage.Width != cs.X || srcImage.Height != cs.Y)
-                    srcImage.Mutate(x => x.Resize(cs.X, cs.Y));
-            }
-
-            var w = srcImage.Width;
-            var h = srcImage.Height;
-            var pixels = new byte[w * h * 4];
-            srcImage.CopyPixelDataTo(pixels);
-            Generation.Texture = Texture.Create(w, h, pixels, TextureFormat.RGBA8, TextureFilter.Linear, $"{Name}_gen");
-        }
-        catch (Exception ex)
-        {
-            Log.Error($"Failed to create generated texture for '{Name}': {ex.Message}");
-        }
-    }
-
-    private string ComputeGenerationHash(GenerationConfig gen)
-    {
-        var input = $"{gen.Prompt}|{gen.NegativePrompt}|{gen.Seed}|{gen.Strength}|{gen.Steps}|{gen.GuidanceScale}";
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
-        return Convert.ToHexString(bytes);
-    }
-
-
-
-    private bool TryBlitGeneratedImage(PixelData<Color32> image, in AtlasSpriteRect rect, int padding)
-    {
-        if (!Generation.HasImageData)
-            return false;
-
-        try
-        {
-            using var ms = new MemoryStream(Generation.ImageData!);
-            using var srcImage = SixLabors.ImageSharp.Image.Load<Rgba32>(ms);
-
-            // Size to match the sprite's raster bounds (not the full atlas rect which may span multiple slots)
-            var targetW = RasterBounds.Size.X;
-            var targetH = RasterBounds.Size.Y;
-            if (targetW <= 0 || targetH <= 0)
-                return false;
-
-            if (srcImage.Width != targetW || srcImage.Height != targetH)
-                srcImage.Mutate(x => x.Resize(targetW, targetH));
-
-            var rasterRect = new RectInt(
-                rect.Rect.Position + new Vector2Int(padding, padding),
-                new Vector2Int(targetW, targetH));
-
-            for (int y = 0; y < targetH; y++)
-            {
-                for (int x = 0; x < targetW; x++)
-                {
-                    var pixel = srcImage[x, y];
-                    var src = new Color32(pixel.R, pixel.G, pixel.B, pixel.A);
-                    var dst = image[rasterRect.X + x, rasterRect.Y + y];
-                    image[rasterRect.X + x, rasterRect.Y + y] = Color32.Blend(src, dst);
-                }
-            }
-
-            var padding2 = padding * 2;
-            var outerRect = new RectInt(rect.Rect.Position, new Vector2Int(targetW + padding2, targetH + padding2));
-            image.BleedColors(rasterRect);
-            for (int p = padding - 1; p >= 0; p--)
-            {
-                var padRect = new RectInt(
-                    outerRect.Position + new Vector2Int(p, p),
-                    outerRect.Size - new Vector2Int(p * 2, p * 2));
-                image.ExtrudeEdges(padRect);
-            }
-
-            return true;
-        }
-        catch (Exception ex)
-        {
-            Log.Error($"Failed to blit generated image: {ex.Message}");
-            return false;
-        }
-    }
-
-    /// <summary>
-    /// Rasterizes a layer's vector paths as a filled mask (white shapes on black background)
-    /// for use as inpainting mask in the generation API.
-    /// Subtract paths carve black holes in the white shapes.
-    /// </summary>
-    private byte[] RasterizeMaskToPng(int targetLayerIndex)
-    {
-        UpdateBounds();
-        var dpi = EditorApplication.Config.PixelsPerUnit;
-        var w = RasterBounds.Size.X;
-        var h = RasterBounds.Size.Y;
-        if (w <= 0 || h <= 0)
-            return [];
-
-        using var pixels = new PixelData<Color32>(w, h);
-        pixels.Clear(new Color32(0, 0, 0, 255)); // Opaque black background
-        var targetRect = new RectInt(0, 0, w, h);
-        var sourceOffset = -RasterBounds.Position;
-        var white = new Color32(255, 255, 255, 255);
-
-        var layer = _layers[targetLayerIndex];
-        var shape = layer.Frames[0].Shape;
-
-        // Collect positive (fill) and negative (subtract) contours
-        var positivePaths = new Clipper2Lib.PathsD();
-        var negativePaths = new Clipper2Lib.PathsD();
-
-        for (ushort pi = 0; pi < shape.PathCount; pi++)
-        {
-            ref readonly var path = ref shape.GetPath(pi);
-            if (path.AnchorCount < 3) continue;
-
-            var pathShape = new Msdf.Shape();
-            Msdf.ShapeClipper.AppendContour(pathShape, shape, pi);
-            pathShape = Msdf.ShapeClipper.Union(pathShape);
-            var contours = Msdf.ShapeClipper.ShapeToPaths(pathShape, 8);
-            if (contours.Count == 0) continue;
-
-            if (path.IsSubtract)
-                negativePaths.AddRange(contours);
-            else
-                positivePaths.AddRange(contours);
-        }
-
-        if (positivePaths.Count == 0)
-            return [];
-
-        // Apply subtract paths: positive - negative = final mask
-        Clipper2Lib.PathsD maskPaths;
-        if (negativePaths.Count > 0)
-        {
-            maskPaths = Clipper2Lib.Clipper.BooleanOp(Clipper2Lib.ClipType.Difference,
-                positivePaths, negativePaths, Clipper2Lib.FillRule.NonZero, precision: 6);
-        }
-        else
-        {
-            maskPaths = positivePaths;
-        }
-
-        if (maskPaths.Count > 0)
-            Rasterizer.Fill(maskPaths, pixels, targetRect, sourceOffset, dpi, white);
-
-        // Convert to ImageSharp image (background is already opaque black, shapes are white)
-        using var img = new Image<Rgba32>(w, h);
-        for (int y = 0; y < h; y++)
-        {
-            for (int x = 0; x < w; x++)
-            {
-                var c = pixels[x, y];
-                img[x, y] = new Rgba32(c.R, c.G, c.B, 255);
-            }
-        }
-
-        using var ms = new MemoryStream();
-        img.SaveAsPng(ms);
-        var pngBytes = ms.ToArray();
-
-        // Debug: write mask to tmp folder for inspection
-        try
-        {
-            var tmpDir = System.IO.Path.Combine(EditorApplication.ProjectPath, "tmp");
-            Directory.CreateDirectory(tmpDir);
-            File.WriteAllBytes(System.IO.Path.Combine(tmpDir, $"{Name}_mask_L{targetLayerIndex}.png"), pngBytes);
-        }
-        catch { }
-
-        return pngBytes;
-    }
-
-    public void GenerateAsync()
-    {
-        // Collect all generated layers (bottom to top)
-        var genLayers = new List<(int Index, SpriteLayer Layer)>();
-        for (int i = 0; i < _layers.Count; i++)
-        {
-            if (_layers[i].IsGenerated)
-                genLayers.Add((i, _layers[i]));
-        }
-
-        if (genLayers.Count == 0)
-        {
-            Log.Error($"No generated layers found for '{Name}'");
-            return;
-        }
-
-        // Check if any layer is already generating
-        if (Generation.IsGenerating)
-            return;
-
-        if (!ConstrainedSize.HasValue)
-        {
-            Log.Error($"Generation requires a sprite size constraint for '{Name}'");
-            return;
-        }
-
-        // Build shapes array from all generated layers (bottom to top)
-        var shapes = new List<GenerationShape>();
-        foreach (var (layerIndex, layer) in genLayers)
-        {
-            var gen = layer.Generation!;
-            var maskBytes = RasterizeMaskToPng(layerIndex);
-
-            shapes.Add(new GenerationShape
-            {
-                Mask = maskBytes.Length > 0 ? $"data:image/png;base64,{Convert.ToBase64String(maskBytes)}" : null,
-                Prompt = gen.Prompt,
-                NegativePrompt = string.IsNullOrEmpty(gen.NegativePrompt) ? null : gen.NegativePrompt,
-                Strength = gen.Strength,
-                Steps = gen.Steps,
-                GuidanceScale = gen.GuidanceScale,
-            });
-        }
-
-        var server = EditorApplication.Config?.GenerationServer ?? "http://127.0.0.1:7860";
-        var primaryGen = genLayers[0].Layer.Generation!;
-        var refine = Refine ?? primaryGen;
-        var request = new GenerationRequest
-        {
-            Server = server,
-            Shapes = shapes,
-            Refine = new GenerationRefine
-            {
-                Prompt = refine.Prompt,
-                NegativePrompt = string.IsNullOrEmpty(refine.NegativePrompt) ? null : refine.NegativePrompt,
-                Strength = refine.Strength,
-                Steps = refine.Steps,
-                GuidanceScale = refine.GuidanceScale,
-            },
-            Seed = primaryGen.Seed == 0 ? null : primaryGen.Seed,
-            StyleReferences = null,
-        };
-
-        Log.Info($"Starting generation for '{Name}' ({shapes.Count} shapes) on {server}...");
-
-        var genImage = Generation;
-        genImage.IsGenerating = true;
-        genImage.GenerationError = null;
-
-        var cts = new System.Threading.CancellationTokenSource();
-        genImage.CancellationSource = cts;
-
-        GenerationClient.Generate(request, status =>
-        {
-            if (genImage.CancellationSource == null)
-                return;
-
-            switch (status.State)
-            {
-                case GenerationState.Queued:
-                    genImage.GenerationState = GenerationState.Queued;
-                    genImage.QueuePosition = status.QueuePosition;
-                    genImage.GenerationProgress = 0f;
-                    Log.Info($"Generation queued for '{Name}' (position {status.QueuePosition})");
-                    break;
-
-                case GenerationState.Running:
-                    genImage.GenerationState = GenerationState.Running;
-                    genImage.CurrentStep = status.CurrentStep;
-                    genImage.TotalSteps = status.TotalSteps;
-                    genImage.GenerationProgress = status.Progress;
-                    break;
-
-                case GenerationState.Completed:
-                    genImage.IsGenerating = false;
-                    genImage.CancellationSource = null;
-                    genImage.GenerationState = GenerationState.Completed;
-                    genImage.GenerationProgress = 1f;
-
-                    if (status.Result == null)
-                    {
-                        Log.Error($"Generation completed but no result for '{Name}'");
-                        return;
-                    }
-
-                    try
-                    {
-                        var imageBytes = Convert.FromBase64String(status.Result.Image);
-
-                        using var ms = new MemoryStream(imageBytes);
-                        using var srcImage = SixLabors.ImageSharp.Image.Load<Rgba32>(ms);
-
-                        var cs = ConstrainedSize!.Value;
-                        if (srcImage.Width != cs.X || srcImage.Height != cs.Y)
-                            srcImage.Mutate(x => x.Resize(cs.X, cs.Y));
-
-                        using var outMs = new MemoryStream();
-                        srcImage.SaveAsPng(outMs);
-                        genImage.ImageData = outMs.ToArray();
-
-                        // Recreate GPU texture
-                        genImage.Dispose();
-                        var w = srcImage.Width;
-                        var h = srcImage.Height;
-                        var px = new byte[w * h * 4];
-                        srcImage.CopyPixelDataTo(px);
-                        genImage.Texture = Texture.Create(w, h, px, TextureFormat.RGBA8, TextureFilter.Linear, $"{Name}_gen");
-
-                        try
-                        {
-                            var tmpDir = System.IO.Path.Combine(EditorApplication.ProjectPath, "tmp");
-                            Directory.CreateDirectory(tmpDir);
-                            File.WriteAllBytes(System.IO.Path.Combine(tmpDir, $"{Name}_gen.png"), genImage.ImageData);
-                        }
-                        catch { }
-
-                        if (primaryGen.Seed == 0 && status.Result.Seed != 0)
-                            primaryGen.Seed = status.Result.Seed;
-
-                        Log.Info($"Generation complete for '{Name}' ({status.Result.Width}x{status.Result.Height}, seed={status.Result.Seed})");
-                        IncrementVersion();
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error($"Failed to process generated image for '{Name}': {ex.Message}");
-                    }
-                    break;
-
-                case GenerationState.Failed:
-                    genImage.IsGenerating = false;
-                    genImage.CancellationSource = null;
-                    genImage.GenerationState = GenerationState.Failed;
-                    genImage.GenerationError = status.Error;
-                    Log.Error($"Generation failed for '{Name}': {status.Error}");
-                    break;
-            }
-        }, cts.Token);
-    }
-
-    #endregion
 
     void ISpriteSource.ClearAtlasUVs() => ClearAtlasUVs();
 
@@ -1485,9 +1083,6 @@ public partial class SpriteDocument : Document, ISpriteSource, IShapeDocument
     {
         var frameIndex = rect.FrameIndex;
         var dpi = EditorApplication.Config.PixelsPerUnit;
-
-        // Blit the generated composite image first (below all vector layers).
-        TryBlitGeneratedImage(image, rect, padding);
 
         var slots = GetMeshSlots(frameIndex);
         var slotBounds = GetMeshSlotBounds(frameIndex);
@@ -1510,17 +1105,12 @@ public partial class SpriteDocument : Document, ISpriteSource, IShapeDocument
                 new Vector2Int(slotWidth, slotRasterBounds.Size.Y + padding2));
             var sourceOffset = -slotRasterBounds.Position + new Vector2Int(padding, padding);
 
-            // Rasterize vector layers only (generated layers already blitted above)
             var hasVectorContent = false;
             var hasAnyLayer = false;
             foreach (var (layerIdx, layerShape) in slot.LayerShapes)
             {
                 if (layerIdx >= _layers.Count) continue;
-                var docLayer = _layers[layerIdx];
                 hasAnyLayer = true;
-
-                if (docLayer.IsGenerated)
-                    continue; // Skip — generated image already composited below
 
                 if (layerShape.PathCount > 0)
                 {
@@ -1930,11 +1520,6 @@ public partial class SpriteDocument : Document, ISpriteSource, IShapeDocument
 
     private RectInt GetSlotBounds(MeshSlot slot, int timeSlot)
     {
-        // When a generated image exists, it covers the full RasterBounds area.
-        // The atlas rect must be large enough to hold it.
-        if (Generation.HasImageData)
-            return RasterBounds;
-
         var bounds = RectInt.Zero;
         var first = true;
         foreach (var (layerIdx, _) in slot.LayerShapes)

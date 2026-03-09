@@ -220,7 +220,7 @@ public static partial class AssetBrowser
                         AlignY = Align.Center,
                     });
 
-                    if (UI.WasPressed())
+                    if (UI.WasPressed(itemId))
                     {
                         _selected = name;
                         Close();
