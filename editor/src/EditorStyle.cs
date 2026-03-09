@@ -895,6 +895,9 @@ public static class EditorStyle
             BorderColor = Color.Transparent,
             Padding = EdgeInsets.Symmetric(8, 10),
             MultiLine = true,
+            PlaceholderMode = PlaceholderMode.FloatingLabel,
+            LabelFontSize = 9,
+            LabelColor = Palette.Placeholder,
             Resolve = TextInputResolve,
         };
 

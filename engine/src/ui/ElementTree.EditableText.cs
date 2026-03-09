@@ -58,13 +58,17 @@ public static unsafe partial class ElementTree
 
         // Detect external defocus: state thinks we're focused but we weren't hot last frame
         var focused = state.Focused != 0;
-        if (focused)
-            Log.Info($"[EditText.Build] widget={_currentWidget} prevHot={_prevHotId} match={_prevHotId == _currentWidget}");
         if (focused && _prevHotId != _currentWidget)
         {
-            Log.Info($"[EditText.Build] DEFOCUS widget={_currentWidget}");
-            state.FocusExited = 1;
+            // Commit immediately to avoid one-frame flash of old value
+            if (state.WasCancelled == 0)
+            {
+                var finalHash = string.GetHashCode(state.EditText.AsReadOnlySpan());
+                if (finalHash != state.PrevTextHash)
+                    value = new string(state.EditText.AsReadOnlySpan());
+            }
             state.Focused = 0;
+            state.WasCancelled = 0;
             focused = false;
         }
 
@@ -93,6 +97,8 @@ public static unsafe partial class ElementTree
         d.CursorIndex = state.CursorIndex;
         d.SelectionStart = state.SelectionStart;
         d.Scope = scope;
+
+        EndElement(ElementType.EditableText);
 
         return value;
     }
