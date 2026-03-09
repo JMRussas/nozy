@@ -38,6 +38,21 @@ public partial class SpriteEditor : DocumentEditor
         public static partial WidgetId AddVectorLayerBtn { get; }
         public static partial WidgetId AddLayerButton { get; }
         public static partial WidgetId RemoveLayerButton { get; }
+        public static partial WidgetId ConstraintDropDown { get; }
+        public static partial WidgetId SkeletonDropDown { get; }
+        public static partial WidgetId ShowInSkeleton { get; }
+        public static partial WidgetId ShowSkeletonOverlay { get; }
+        public static partial WidgetId GenerateAiButton { get; }
+        public static partial WidgetId RemoveGenerateButton { get; }
+        public static partial WidgetId CancelGenerateButton { get; }
+        public static partial WidgetId GenStrength { get; }
+        public static partial WidgetId GenPrompt { get; }
+        public static partial WidgetId GenNegativePrompt { get; }
+        public static partial WidgetId PathNormal { get; }
+        public static partial WidgetId PathSubtract { get; }
+        public static partial WidgetId PathClip { get; }
+        public static partial WidgetId FillColor { get; }
+        public static partial WidgetId StrokeColor { get; }
     }
 
     private int _currentTimeSlot;
@@ -1744,17 +1759,13 @@ public partial class SpriteEditor : DocumentEditor
                             break;
                         }
 
-                Inspector.DropdownProperty(
-                    constraintLabel,
-                    () => {
-                        return [
-                            ..EditorApplication.Config.SpriteSizes.Select(s =>
-                            new PopupMenuItem { Label = s.Label, Handler = () => SetConstraint(s.Size) }
-                        ),
-                        new PopupMenuItem { Label = "None", Handler = () => SetConstraint(null)}
-                        ];
-                    },
-                    icon: EditorAssets.Sprites.IconConstraint);
+                PopupMenuItem[] items = [
+                    ..EditorApplication.Config.SpriteSizes.Select(s =>
+                    new PopupMenuItem { Label = s.Label, Handler = () => SetConstraint(s.Size) }
+                ),
+                new PopupMenuItem { Label = "None", Handler = () => SetConstraint(null)}
+                ];
+                UI.DropDown(ElementId.ConstraintDropDown, items, constraintLabel, EditorAssets.Sprites.IconConstraint);
             }
 
         }
@@ -1768,42 +1779,34 @@ public partial class SpriteEditor : DocumentEditor
                     ? StringId.Get(Document.Binding.Skeleton!.Name).ToString()
                     : "None";
 
-                Inspector.DropdownProperty(
-                    skeletonLabel,
-                    () =>
-                    {
-                        var items = new List<PopupMenuItem>();
+                var skeletonItems = new List<PopupMenuItem>();
 
-                        foreach (var doc in DocumentManager.Documents)
-                        {
-                            if (doc is not SkeletonDocument skeleton || skeleton.BoneCount == 0)
-                                continue;
+                foreach (var doc in DocumentManager.Documents)
+                {
+                    if (doc is not SkeletonDocument skeleton || skeleton.BoneCount == 0)
+                        continue;
 
-                            var name = StringId.Get(skeleton.Name).ToString();
-                            items.Add(new PopupMenuItem { Label = name, Handler = () => CommitSkeletonBinding(skeleton) });
-                        }
+                    var name = StringId.Get(skeleton.Name).ToString();
+                    skeletonItems.Add(new PopupMenuItem { Label = name, Handler = () => CommitSkeletonBinding(skeleton) });
+                }
 
-                        items.Add(new PopupMenuItem { Label = "None", Handler = ClearSkeletonBinding });
-                        return items.ToArray();
-                    },
-                    icon: EditorAssets.Sprites.IconBone);
+                skeletonItems.Add(new PopupMenuItem { Label = "None", Handler = ClearSkeletonBinding });
+                UI.DropDown(ElementId.SkeletonDropDown, skeletonItems.ToArray(), skeletonLabel, EditorAssets.Sprites.IconBone);
             }
 
             if (Document.Binding.IsBound)
             {
-                var showInSkeleton = Document.ShowInSkeleton;
-                if (Inspector.ToggleProperty(EditorAssets.Sprites.IconPreview, ref showInSkeleton))
+                if (EditorUI.ToggleButton(ElementId.ShowInSkeleton, EditorAssets.Sprites.IconPreview, isChecked: Document.ShowInSkeleton))
                 {
                     Undo.Record(Document);
-                    Document.ShowInSkeleton = showInSkeleton;
+                    Document.ShowInSkeleton = !Document.ShowInSkeleton;
                     Document.Binding.Skeleton?.UpdateSprites();
                 }
 
-                var showSkeletonOverlay = Document.ShowSkeletonOverlay;
-                if (Inspector.ToggleProperty(EditorAssets.Sprites.IconBone, ref showSkeletonOverlay))
+                if (EditorUI.ToggleButton(ElementId.ShowSkeletonOverlay, EditorAssets.Sprites.IconBone, isChecked: Document.ShowSkeletonOverlay))
                 {
                     Undo.Record(Document);
-                    Document.ShowSkeletonOverlay = showSkeletonOverlay;
+                    Document.ShowSkeletonOverlay = !Document.ShowSkeletonOverlay;
                 }
             }
         }
@@ -1816,7 +1819,7 @@ public partial class SpriteEditor : DocumentEditor
             var doc = (SpriteDocument)Workspace.ActiveDocument!;
 
             UI.Flex();
-            if (Inspector.Button(EditorAssets.Sprites.IconAi))
+            if (EditorUI.Button(ElementId.GenerateAiButton, EditorAssets.Sprites.IconAi))
                 doc.ActiveLayer.Generation = new GenerationConfig { };
         }
 
@@ -1825,7 +1828,7 @@ public partial class SpriteEditor : DocumentEditor
             var doc = (SpriteDocument)Workspace.ActiveDocument!;
 
             UI.Flex();
-            if (Inspector.Button(EditorAssets.Sprites.IconDelete))
+            if (EditorUI.Button(ElementId.RemoveGenerateButton, EditorAssets.Sprites.IconDelete))
                 doc.ActiveLayer.Generation = null;
         }
 
@@ -1876,7 +1879,7 @@ public partial class SpriteEditor : DocumentEditor
                     }
 
                     // Cancel button
-                    if (Inspector.Button(EditorAssets.Sprites.IconDelete))
+                    if (EditorUI.Button(ElementId.CancelGenerateButton, EditorAssets.Sprites.IconDelete))
                         genImage.CancelGeneration();
                 }
                 else
@@ -1884,9 +1887,16 @@ public partial class SpriteEditor : DocumentEditor
                     if (genImage.GenerationError != null)
                         UI.Text(genImage.GenerationError, EditorStyle.Text.Secondary with { Color = EditorStyle.ErrorColor });
 
-                    gen.Strength = Inspector.SliderProperty(gen.Strength, handler: Document);
-                    gen.Prompt = Inspector.StringProperty(gen.Prompt, handler: Document, placeholder: "Prompt", multiLine: true);
-                    gen.NegativePrompt = Inspector.StringProperty(gen.NegativePrompt, handler: Document, placeholder: "Negative Prompt", multiLine: true);
+                    EditorUI.Slider(ElementId.GenStrength, ref gen.Strength, 0, 1);
+                    UI.HandleChange(Document);
+
+                    using (Inspector.BeginRow())
+                    using (UI.BeginFlex())
+                        gen.Prompt = UI.TextInput(ElementId.GenPrompt, gen.Prompt, EditorStyle.Inspector.TextArea, "Prompt", Document);
+
+                    using (Inspector.BeginRow())
+                    using (UI.BeginFlex())
+                        gen.NegativePrompt = UI.TextInput(ElementId.GenNegativePrompt, gen.NegativePrompt, EditorStyle.Inspector.TextArea, "Negative Prompt", Document);
                 }
             }
         }
@@ -1903,16 +1913,13 @@ public partial class SpriteEditor : DocumentEditor
             {
                 using (Inspector.BeginRow())
                 {
-                    var operation = Document.CurrentOperation == PathOperation.Normal;
-                    if (Inspector.ToggleProperty(EditorAssets.Sprites.IconFill, ref operation))
+                    if (EditorUI.ToggleButton(ElementId.PathNormal, EditorAssets.Sprites.IconFill, isChecked: Document.CurrentOperation == PathOperation.Normal))
                         SetPathOperation(PathOperation.Normal);
 
-                    operation = Document.CurrentOperation == PathOperation.Subtract;
-                    if (Inspector.ToggleProperty(EditorAssets.Sprites.IconSubtract, ref operation))
+                    if (EditorUI.ToggleButton(ElementId.PathSubtract, EditorAssets.Sprites.IconSubtract, isChecked: Document.CurrentOperation == PathOperation.Subtract))
                         SetPathOperation(PathOperation.Subtract);
 
-                    operation = Document.CurrentOperation == PathOperation.Clip;
-                    if (Inspector.ToggleProperty(EditorAssets.Sprites.IconClip, ref operation))
+                    if (EditorUI.ToggleButton(ElementId.PathClip, EditorAssets.Sprites.IconClip, isChecked: Document.CurrentOperation == PathOperation.Clip))
                         SetPathOperation(PathOperation.Clip);
                 }
             }
@@ -1926,8 +1933,22 @@ public partial class SpriteEditor : DocumentEditor
                 {
                     using var __ = UI.BeginFlex();
 
-                    var fillColor = Inspector.ColorProperty(Document.CurrentFillColor, handler: Document);
-                    if (UI.WasChanged()) SetFillColor(fillColor);
+                    var fillColor = Document.CurrentFillColor;
+                    using (UI.BeginContainer(ElementId.FillColor, new ContainerStyle
+                    {
+                        Width = 16, Height = 16,
+                        Color = fillColor.ToColor(),
+                        BorderRadius = 3, BorderWidth = 1, BorderColor = Color.FromRgb(0x555555),
+                        AlignY = Align.Center
+                    }))
+                    {
+                        if (UI.WasPressed())
+                            ColorPicker.Open(ElementId.FillColor, fillColor);
+                    }
+                    ColorPicker.Popup(ElementId.FillColor, ref fillColor);
+                    UI.SetLastElement(ElementId.FillColor);
+                    UI.HandleChange(Document);
+                    if (fillColor != Document.CurrentFillColor) SetFillColor(fillColor);
                 }
             }
         }
@@ -1940,8 +1961,22 @@ public partial class SpriteEditor : DocumentEditor
                 {
                     using var __ = UI.BeginFlex();
 
-                    var strokeColor = Inspector.ColorProperty(Document.CurrentStrokeColor, handler: Document);
-                    if (UI.WasChanged()) SetStrokeColor(strokeColor);
+                    var strokeColor = Document.CurrentStrokeColor;
+                    using (UI.BeginContainer(ElementId.StrokeColor, new ContainerStyle
+                    {
+                        Width = 16, Height = 16,
+                        Color = strokeColor.ToColor(),
+                        BorderRadius = 3, BorderWidth = 1, BorderColor = Color.FromRgb(0x555555),
+                        AlignY = Align.Center
+                    }))
+                    {
+                        if (UI.WasPressed())
+                            ColorPicker.Open(ElementId.StrokeColor, strokeColor);
+                    }
+                    ColorPicker.Popup(ElementId.StrokeColor, ref strokeColor);
+                    UI.SetLastElement(ElementId.StrokeColor);
+                    UI.HandleChange(Document);
+                    if (strokeColor != Document.CurrentStrokeColor) SetStrokeColor(strokeColor);
                 }
             }
         }

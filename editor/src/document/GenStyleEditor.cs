@@ -4,8 +4,21 @@
 
 namespace NoZ.Editor;
 
-public class GenStyleEditor : DocumentEditor
+public partial class GenStyleEditor : DocumentEditor
 {
+    private static partial class WidgetIds
+    {
+        public static partial WidgetId LayerPrompt { get; }
+        public static partial WidgetId LayerNegativePrompt { get; }
+        public static partial WidgetId LayerStrength { get; }
+        public static partial WidgetId LayerGuidance { get; }
+        public static partial WidgetId RefinePrompt { get; }
+        public static partial WidgetId RefineNegativePrompt { get; }
+        public static partial WidgetId RefineStrength { get; }
+        public static partial WidgetId RefineGuidance { get; }
+        public static partial WidgetId StyleRefStrength { get; }
+    }
+
     public new GenStyleDocument Document => (GenStyleDocument)base.Document;
 
     public override bool ShowInspector => true;
@@ -36,10 +49,27 @@ public class GenStyleEditor : DocumentEditor
         using var _ = Inspector.BeginSection("LAYER DEFAULTS");
         if (Inspector.IsSectionCollapsed) return;
 
-        Document.Prompt = Inspector.StringProperty(Document.Prompt, handler: Document, placeholder: "Prompt", multiLine: true);
-        Document.NegativePrompt = Inspector.StringProperty(Document.NegativePrompt, handler: Document, placeholder: "Negative Prompt", multiLine: true);
-        Document.DefaultStrength = Inspector.SliderProperty(Document.DefaultStrength, handler: Document);
-        Document.DefaultGuidanceScale = Inspector.SliderProperty(Document.DefaultGuidanceScale, minValue: 1.0f, maxValue: 20.0f, handler: Document);
+        using (Inspector.BeginRow())
+        using (UI.BeginFlex())
+            Document.Prompt = UI.TextInput(WidgetIds.LayerPrompt, Document.Prompt, EditorStyle.Inspector.TextArea, "Prompt", Document);
+
+        using (Inspector.BeginRow())
+        using (UI.BeginFlex())
+            Document.NegativePrompt = UI.TextInput(WidgetIds.LayerNegativePrompt, Document.NegativePrompt, EditorStyle.Inspector.TextArea, "Negative Prompt", Document);
+
+        {
+            var strength = Document.DefaultStrength;
+            EditorUI.Slider(WidgetIds.LayerStrength, ref strength, 0, 1);
+            Document.DefaultStrength = strength;
+            UI.HandleChange(Document);
+        }
+
+        {
+            var guidance = Document.DefaultGuidanceScale;
+            EditorUI.Slider(WidgetIds.LayerGuidance, ref guidance, 1.0f, 20.0f);
+            Document.DefaultGuidanceScale = guidance;
+            UI.HandleChange(Document);
+        }
     }
 
     private void RefineDefaultsUI()
@@ -47,10 +77,27 @@ public class GenStyleEditor : DocumentEditor
         using var _ = Inspector.BeginSection("REFINE DEFAULTS");
         if (Inspector.IsSectionCollapsed) return;
 
-        Document.RefinePrompt = Inspector.StringProperty(Document.RefinePrompt, handler: Document, placeholder: "Refine Prompt", multiLine: true);
-        Document.RefineNegativePrompt = Inspector.StringProperty(Document.RefineNegativePrompt, handler: Document, placeholder: "Negative Prompt", multiLine: true);
-        Document.RefineStrength = Inspector.SliderProperty(Document.RefineStrength, handler: Document);
-        Document.RefineGuidanceScale = Inspector.SliderProperty(Document.RefineGuidanceScale, minValue: 1.0f, maxValue: 20.0f, handler: Document);
+        using (Inspector.BeginRow())
+        using (UI.BeginFlex())
+            Document.RefinePrompt = UI.TextInput(WidgetIds.RefinePrompt, Document.RefinePrompt, EditorStyle.Inspector.TextArea, "Refine Prompt", Document);
+
+        using (Inspector.BeginRow())
+        using (UI.BeginFlex())
+            Document.RefineNegativePrompt = UI.TextInput(WidgetIds.RefineNegativePrompt, Document.RefineNegativePrompt, EditorStyle.Inspector.TextArea, "Negative Prompt", Document);
+
+        {
+            var strength = Document.RefineStrength;
+            EditorUI.Slider(WidgetIds.RefineStrength, ref strength, 0, 1);
+            Document.RefineStrength = strength;
+            UI.HandleChange(Document);
+        }
+
+        {
+            var guidance = Document.RefineGuidanceScale;
+            EditorUI.Slider(WidgetIds.RefineGuidance, ref guidance, 1.0f, 20.0f);
+            Document.RefineGuidanceScale = guidance;
+            UI.HandleChange(Document);
+        }
     }
 
     private void StyleReferencesUI()
@@ -64,9 +111,10 @@ public class GenStyleEditor : DocumentEditor
             using (Inspector.BeginRow())
             {
                 UI.Text(name, EditorStyle.Text.Primary);
-                var newStrength = Inspector.SliderProperty(strength, handler: Document);
-                if (MathF.Abs(newStrength - strength) > float.Epsilon)
-                    Document.StyleReferences[i] = (name, newStrength);
+                EditorUI.Slider(WidgetIds.StyleRefStrength + i, ref strength, 0, 1);
+                if (MathF.Abs(strength - Document.StyleReferences[i].Strength) > float.Epsilon)
+                    Document.StyleReferences[i] = (name, strength);
+                UI.HandleChange(Document);
             }
         }
     }

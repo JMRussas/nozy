@@ -17,6 +17,15 @@ public partial class GenSpriteEditor : DocumentEditor
         public static partial WidgetId RemoveLayerButton { get; }
         public static partial WidgetId ConstraintDropDown { get; }
         public static partial WidgetId StyleDropDown { get; }
+        public static partial WidgetId LayerStrength { get; }
+        public static partial WidgetId LayerPrompt { get; }
+        public static partial WidgetId LayerNegativePrompt { get; }
+        public static partial WidgetId RefineStrength { get; }
+        public static partial WidgetId RefinePrompt { get; }
+        public static partial WidgetId RefineNegativePrompt { get; }
+        public static partial WidgetId PathNormal { get; }
+        public static partial WidgetId PathSubtract { get; }
+        public static partial WidgetId PathClip { get; }
     }
 
     private readonly Vector2[] _savedPositions = new Vector2[Shape.MaxAnchors];
@@ -281,9 +290,17 @@ public partial class GenSpriteEditor : DocumentEditor
                 if (!Inspector.IsSectionCollapsed && isActive)
                 {
                     var gen = layer.Generation;
-                    gen.Strength = Inspector.SliderProperty(gen.Strength, handler: Document);
-                    gen.Prompt = Inspector.StringProperty(gen.Prompt, handler: Document, placeholder: "Prompt", multiLine: true);
-                    gen.NegativePrompt = Inspector.StringProperty(gen.NegativePrompt, handler: Document, placeholder: "Negative Prompt", multiLine: true);
+
+                    EditorUI.Slider(WidgetIds.LayerStrength + i, ref gen.Strength, 0, 1);
+                    UI.HandleChange(Document);
+
+                    using (Inspector.BeginRow())
+                    using (UI.BeginFlex())
+                        gen.Prompt = UI.TextInput(WidgetIds.LayerPrompt + i, gen.Prompt, EditorStyle.Inspector.TextArea, "Prompt", Document);
+
+                    using (Inspector.BeginRow())
+                    using (UI.BeginFlex())
+                        gen.NegativePrompt = UI.TextInput(WidgetIds.LayerNegativePrompt + i, gen.NegativePrompt, EditorStyle.Inspector.TextArea, "Negative Prompt", Document);
                 }
             }
         }
@@ -299,9 +316,17 @@ public partial class GenSpriteEditor : DocumentEditor
             if (!Inspector.IsSectionCollapsed)
             {
                 var refine = Document.Refine;
-                refine.Strength = Inspector.SliderProperty(refine.Strength, handler: Document);
-                refine.Prompt = Inspector.StringProperty(refine.Prompt, handler: Document, placeholder: "Refine Prompt", multiLine: true);
-                refine.NegativePrompt = Inspector.StringProperty(refine.NegativePrompt, handler: Document, placeholder: "Negative Prompt", multiLine: true);
+
+                EditorUI.Slider(WidgetIds.RefineStrength, ref refine.Strength, 0, 1);
+                UI.HandleChange(Document);
+
+                using (Inspector.BeginRow())
+                using (UI.BeginFlex())
+                    refine.Prompt = UI.TextInput(WidgetIds.RefinePrompt, refine.Prompt, EditorStyle.Inspector.TextArea, "Refine Prompt", Document);
+
+                using (Inspector.BeginRow())
+                using (UI.BeginFlex())
+                    refine.NegativePrompt = UI.TextInput(WidgetIds.RefineNegativePrompt, refine.NegativePrompt, EditorStyle.Inspector.TextArea, "Negative Prompt", Document);
             }
         }
     }
@@ -317,16 +342,13 @@ public partial class GenSpriteEditor : DocumentEditor
                     var shape = CurrentShape;
                     var currentOp = GetSelectedPathOperation(shape);
 
-                    var isNormal = currentOp == PathOperation.Normal;
-                    if (Inspector.ToggleProperty(EditorAssets.Sprites.IconFill, ref isNormal))
+                    if (EditorUI.ToggleButton(WidgetIds.PathNormal, EditorAssets.Sprites.IconFill, isChecked: currentOp == PathOperation.Normal))
                         SetPathOperation(PathOperation.Normal);
 
-                    var isSubtract = currentOp == PathOperation.Subtract;
-                    if (Inspector.ToggleProperty(EditorAssets.Sprites.IconSubtract, ref isSubtract))
+                    if (EditorUI.ToggleButton(WidgetIds.PathSubtract, EditorAssets.Sprites.IconSubtract, isChecked: currentOp == PathOperation.Subtract))
                         SetPathOperation(PathOperation.Subtract);
 
-                    var isClip = currentOp == PathOperation.Clip;
-                    if (Inspector.ToggleProperty(EditorAssets.Sprites.IconClip, ref isClip))
+                    if (EditorUI.ToggleButton(WidgetIds.PathClip, EditorAssets.Sprites.IconClip, isChecked: currentOp == PathOperation.Clip))
                         SetPathOperation(PathOperation.Clip);
                 }
             }
