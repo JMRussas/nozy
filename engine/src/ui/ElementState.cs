@@ -20,3 +20,22 @@ public enum WidgetFlags : ushort
     Disabled = 1 << 9,
     Checked = 1 << 10,
 }
+
+public struct EditableTextState
+{
+    public UnsafeSpan<char> EditText;
+    public int CursorIndex;
+    public int SelectionStart;
+    public int TextHash;
+    public int PrevTextHash;
+    public byte Focused;
+    public byte FocusExited;
+    public byte WasCancelled;
+}
+
+public struct ScrollState
+{
+    public float Offset;
+    public float ContentHeight;
+}
+

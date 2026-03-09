@@ -16,9 +16,7 @@ public static partial class UI
         var mousePressed = Input.WasButtonPressedRaw(InputCode.MouseLeft);
         if (mousePressed && ElementTree._hotId != 0)
         {
-            var wasPressed = ElementTree.WasPressed(ElementTree._hotId);
-            Log.Info($"[UI.HandleInput] hotId={ElementTree._hotId} wasPressed={wasPressed} prevHot={_prevHotId}");
-            if (!wasPressed)
+            if (!ElementTree.WasPressed(ElementTree._hotId))
                 ClearHot();
         }
 
@@ -27,7 +25,7 @@ public static partial class UI
         var popupCount = ElementTree.ActivePopupCount;
         if (!ElementTree.MouseOverScene || popupCount > 0)
         {
-            if (popupCount > 0 || ElementTree.ScrollbarDragging)
+            if (popupCount > 0)
                 Input.ConsumeButton(InputCode.MouseLeft);
 
             if (popupCount > 0)

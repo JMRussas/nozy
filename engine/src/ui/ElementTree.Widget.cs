@@ -24,6 +24,9 @@ public static unsafe partial class ElementTree
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsValidWidgetId(WidgetId id) => id > 0 && _widgets.ContainsKey(id);
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static bool IsWidgetValid(WidgetId id) => IsValidWidgetId(id);
+
     private static ref WidgetState GetWidgetState(WidgetId id) =>
         ref Unsafe.AsRef<WidgetState>(_widgets[id].Ptr);
 

@@ -8,13 +8,15 @@ namespace NoZ.Editor;
 
 public partial class GenSpriteEditor : DocumentEditor
 {
-    private static partial class ElementId 
+    private static partial class ElementId
     {
         public static partial WidgetId Root { get; }
         public static partial WidgetId LayerItem { get; }
         public static partial WidgetId GenerateButton { get; }
         public static partial WidgetId AddLayerButton { get; }
         public static partial WidgetId RemoveLayerButton { get; }
+        public static partial WidgetId ConstraintDropDown { get; }
+        public static partial WidgetId StyleDropDown { get; }
     }
 
     private readonly Vector2[] _savedPositions = new Vector2[Shape.MaxAnchors];
@@ -125,36 +127,25 @@ public partial class GenSpriteEditor : DocumentEditor
                 break;
             }
 
-        static PopupMenuItem[] GetItems() =>
-        [
-            ..EditorApplication.Config.SpriteSizes.Select(s =>
-            new PopupMenuItem { Label = s.Label, Handler = () => ((GenSpriteEditor)Workspace.ActiveEditor!).SetConstraint(s.Size) })
-        ];
+        var items = sizes.Select(s =>
+            PopupMenuItem.Item(s.Label, () => SetConstraint(s.Size))).ToArray();
 
-        Inspector.DropdownProperty(
-            constraintLabel,
-            getItems: GetItems,
-            icon: EditorAssets.Sprites.IconConstraint);
+        UI.DropDown(ElementId.ConstraintDropDown, constraintLabel, EditorAssets.Sprites.IconConstraint, items, EditorStyle.DropDown);
     }
 
     private void StyleUI()
     {
-        static PopupMenuItem[] GetItems()
+        var items = new List<PopupMenuItem>
         {
-            var editor = (GenSpriteEditor)Workspace.ActiveEditor!;
-            var items = new List<PopupMenuItem>
-            {
-                new() { Label = "None", Handler = () => editor.SetStyle(null) }
-            };
-            foreach (var doc in DocumentManager.Documents)
-            {
-                if (doc is GenStyleDocument styleDoc)
-                    items.Add(new PopupMenuItem { Label = styleDoc.Name, Handler = () => editor.SetStyle(styleDoc) });
-            }
-            return [..items];
+            PopupMenuItem.Item("None", () => SetStyle(null))
+        };
+        foreach (var doc in DocumentManager.Documents)
+        {
+            if (doc is GenStyleDocument styleDoc)
+                items.Add(PopupMenuItem.Item(styleDoc.Name, () => SetStyle(styleDoc)));
         }
 
-        Inspector.DropdownProperty(Document.StyleName ?? "None", getItems: GetItems, name: "Style");
+        UI.DropDown(ElementId.StyleDropDown, Document.StyleName ?? "None", null, items.ToArray(), EditorStyle.DropDown);
     }
 
     private void GenSpriteInspectorUI()

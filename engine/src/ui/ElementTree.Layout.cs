@@ -6,7 +6,7 @@ using System.Numerics;
 
 namespace NoZ;
 
-public static partial class ElementTree
+public static unsafe partial class ElementTree
 {
     private static int _layoutDepth;
     private static bool _layoutCycleLogged;
@@ -431,9 +431,8 @@ public static partial class ElementTree
         // Scrollable: calculate content height and clamp offset after Y layout
         if (e.Type == ElementType.Scroll && axis == 1)
         {
-#if false
-            ref var sd = ref GetElementData<ScrollElement>(ref e);
-            if (sd.WidgetId > 0)
+            ref var sd = ref e.Data.Scroll;
+            if (sd.State != null)
             {
                 var contentHeight = 0f;
                 var childOffset = (int)e.FirstChild;
@@ -445,14 +444,13 @@ public static partial class ElementTree
                     childOffset = child.NextSibling;
                 }
 
-                ref var state = ref GetWidgetData<ScrollableState>(sd.WidgetId);
+                ref var state = ref *sd.State;
                 state.ContentHeight = contentHeight;
 
                 var maxScroll = Math.Max(0, contentHeight - size);
                 if (state.Offset > maxScroll)
                     state.Offset = maxScroll;
             }
-#endif
         }
     }
 
@@ -623,12 +621,12 @@ public static partial class ElementTree
         float scrollOffset = 0;
         if (e.Type == ElementType.Scroll)
         {
-            //ref var sd = ref GetElementData<ScrollElement>(ref e);
-            //if (sd.WidgetId > 0)
-            //{
-            //    ref var state = ref GetWidgetData<ScrollableState>(sd.WidgetId);
-            //    scrollOffset = state.Offset;
-            //}
+            ref var sd = ref e.Data.Scroll;
+            if (sd.State != null)
+            {
+                ref var state = ref *sd.State;
+                scrollOffset = state.Offset;
+            }
         }
 
         var rectSize = e.Rect.Size;

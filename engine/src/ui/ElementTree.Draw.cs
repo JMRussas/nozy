@@ -117,10 +117,6 @@ public static partial class ElementTree
         if (setScissor)
             Graphics.ClearScissor();
 
-        // Draw scrollbar outside scissor, after children
-        if (e.Type == ElementType.Scroll)
-            DrawScrollbar(ref e);
-
         _drawOpacity = previousOpacity;
     }
 
@@ -387,44 +383,6 @@ public static partial class ElementTree
         }
     }
 
-    private static void DrawScrollbar(ref Element e)
-    {
-#if false
-        ref var d = ref e.Data.Scroll;
-        if (d.WidgetId <= 0) return;
-        ref var state = ref GetWidgetData<ScrollableState>(d.WidgetId);
-
-        var viewportHeight = e.Rect.Height;
-        var maxScroll = Math.Max(0, state.ContentHeight - viewportHeight);
-
-        if (d.ScrollbarVisibility == ScrollbarVisibility.Never) return;
-        if (d.ScrollbarVisibility == ScrollbarVisibility.Auto && maxScroll <= 0) return;
-
-        var trackX = e.Rect.X + e.Rect.Width - d.ScrollbarWidth - d.ScrollbarPadding;
-        var trackY = e.Rect.Y + d.ScrollbarPadding;
-        var trackH = viewportHeight - d.ScrollbarPadding * 2;
-
-        DrawTexturedRect(
-            new Rect(trackX, trackY, d.ScrollbarWidth, trackH),
-            GetTransform(ref e), null,
-            ApplyOpacity(d.ScrollbarTrackColor),
-            BorderRadius.Circular(d.ScrollbarBorderRadius));
-
-        if (maxScroll > 0 && state.ContentHeight > 0)
-        {
-            var thumbHeightRatio = viewportHeight / state.ContentHeight;
-            var thumbH = Math.Max(d.ScrollbarMinThumbHeight, trackH * thumbHeightRatio);
-            var scrollRatio = state.Offset / maxScroll;
-            var thumbY = trackY + scrollRatio * (trackH - thumbH);
-
-            DrawTexturedRect(
-                new Rect(trackX, thumbY, d.ScrollbarWidth, thumbH),
-                GetTransform(ref e), null,
-                ApplyOpacity(d.ScrollbarThumbColor),
-                BorderRadius.Circular(d.ScrollbarBorderRadius));
-        }
-#endif
-    }
 
     internal static bool MouseOverScene;
 
@@ -557,7 +515,7 @@ public static partial class ElementTree
             case ElementType.Scroll:
             {
                 ref var d = ref e.Data.Scroll;
-                sb.Append($" widgetId={d.WidgetId}");
+                sb.Append($" speed={d.ScrollSpeed}");
                 break;
             }
         }

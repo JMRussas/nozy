@@ -7,7 +7,7 @@
       "x": 0,
       "y": 0,
       "name": "Component Style Guide",
-      "width": 1000,
+      "width": 1192,
       "fill": "#111111",
       "layout": "vertical",
       "gap": 48,
@@ -1553,7 +1553,10 @@
               "id": "xj4M3",
               "name": "Button Samples",
               "width": "fill_container",
+              "fill": "#252526",
+              "cornerRadius": 6,
               "gap": 16,
+              "padding": 16,
               "children": [
                 {
                   "type": "frame",
@@ -1630,7 +1633,7 @@
                       "id": "vgHRb",
                       "name": "Secondary Button",
                       "width": 200,
-                      "height": 36,
+                      "height": 40,
                       "fill": "#333333",
                       "cornerRadius": 4,
                       "gap": 6,
@@ -1654,7 +1657,7 @@
                           "fill": "#999999",
                           "content": "Add Component",
                           "fontFamily": "Inter",
-                          "fontSize": 12,
+                          "fontSize": 16,
                           "fontWeight": "500"
                         }
                       ]
@@ -1876,7 +1879,10 @@
               "id": "4EZh4",
               "name": "Button Hover States",
               "width": "fill_container",
+              "fill": "#252526",
+              "cornerRadius": 6,
               "gap": 16,
+              "padding": 16,
               "children": [
                 {
                   "type": "frame",
@@ -1952,8 +1958,8 @@
                       "type": "frame",
                       "id": "PlyoC",
                       "name": "sh",
-                      "width": 140,
-                      "height": 36,
+                      "width": 200,
+                      "height": 40,
                       "fill": "#3D3D3D",
                       "cornerRadius": 4,
                       "gap": 6,
@@ -1977,7 +1983,7 @@
                           "fill": "#CCCCCC",
                           "content": "Add Component",
                           "fontFamily": "Inter",
-                          "fontSize": 12,
+                          "fontSize": 16,
                           "fontWeight": "500"
                         }
                       ]
@@ -2033,7 +2039,10 @@
               "id": "uWtIR",
               "name": "Button Disabled States",
               "width": "fill_container",
+              "fill": "#252526",
+              "cornerRadius": 6,
               "gap": 16,
+              "padding": 16,
               "children": [
                 {
                   "type": "frame",
@@ -2109,8 +2118,8 @@
                       "type": "frame",
                       "id": "YmjH5",
                       "name": "sd",
-                      "width": 140,
-                      "height": 36,
+                      "width": 200,
+                      "height": 40,
                       "fill": "#333333",
                       "cornerRadius": 4,
                       "gap": 6,
@@ -2134,7 +2143,7 @@
                           "fill": "#555555",
                           "content": "Add Component",
                           "fontFamily": "Inter",
-                          "fontSize": 12,
+                          "fontSize": 16,
                           "fontWeight": "500"
                         }
                       ]
@@ -2209,7 +2218,10 @@
               "id": "AwrkI",
               "name": "ddRow",
               "width": "fill_container",
+              "fill": "#252526",
+              "cornerRadius": 6,
               "gap": 16,
+              "padding": 16,
               "children": [
                 {
                   "type": "frame",
@@ -2359,6 +2371,152 @@
                 },
                 {
                   "type": "frame",
+                  "id": "RlUGg",
+                  "name": "c3",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "WhdHU",
+                      "name": "lb3",
+                      "fill": "#555555",
+                      "content": "Hover",
+                      "fontFamily": "Inter",
+                      "fontSize": 9,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "0cE1z",
+                      "name": "Dropdown Hover",
+                      "width": 200,
+                      "height": 40,
+                      "fill": "#3D3D3D",
+                      "cornerRadius": 4,
+                      "gap": 6,
+                      "padding": [
+                        0,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "VLFk4",
+                          "name": "h1i",
+                          "width": 14,
+                          "height": 14,
+                          "iconFontName": "ruler",
+                          "iconFontFamily": "lucide",
+                          "fill": "#AAAAAA"
+                        },
+                        {
+                          "type": "text",
+                          "id": "qJsO6",
+                          "name": "h1t",
+                          "fill": "#FFFFFF",
+                          "content": "1024×768",
+                          "fontFamily": "Inter",
+                          "fontSize": 16,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "fbI9a",
+                          "name": "h1f",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "type": "icon_font",
+                          "id": "gcxGe",
+                          "name": "h1c",
+                          "width": 14,
+                          "height": 14,
+                          "iconFontName": "chevron-down",
+                          "iconFontFamily": "lucide",
+                          "fill": "#AAAAAA"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "GfqGT",
+                  "name": "c5",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Ol5Jb",
+                      "name": "lb5",
+                      "fill": "#555555",
+                      "content": "Open",
+                      "fontFamily": "Inter",
+                      "fontSize": 9,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ry5mW",
+                      "name": "Dropdown Open",
+                      "width": 200,
+                      "height": 40,
+                      "fill": "#3D3D3D",
+                      "cornerRadius": 4,
+                      "gap": 6,
+                      "padding": [
+                        0,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "bHocN",
+                          "name": "o1i",
+                          "width": 14,
+                          "height": 14,
+                          "iconFontName": "ruler",
+                          "iconFontFamily": "lucide",
+                          "fill": "#AAAAAA"
+                        },
+                        {
+                          "type": "text",
+                          "id": "m4pGY",
+                          "name": "o1t",
+                          "fill": "#FFFFFF",
+                          "content": "1024×768",
+                          "fontFamily": "Inter",
+                          "fontSize": 16,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "v0fVI",
+                          "name": "o1f",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "type": "icon_font",
+                          "id": "BkH05",
+                          "name": "o1c",
+                          "width": 14,
+                          "height": 14,
+                          "iconFontName": "chevron-up",
+                          "iconFontFamily": "lucide",
+                          "fill": "#AAAAAA"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
                   "id": "mnJJb",
                   "name": "c4",
                   "layout": "vertical",
@@ -2457,7 +2615,10 @@
               "id": "ySKSZ",
               "name": "inpRow",
               "width": "fill_container",
+              "fill": "#252526",
+              "cornerRadius": 6,
               "gap": 16,
+              "padding": 16,
               "children": [
                 {
                   "type": "frame",
@@ -2716,7 +2877,10 @@
               "id": "XUTIS",
               "name": "focRow",
               "width": "fill_container",
+              "fill": "#252526",
+              "cornerRadius": 6,
               "gap": 16,
+              "padding": 16,
               "children": [
                 {
                   "type": "frame",
@@ -3021,7 +3185,10 @@
               "id": "fiA1B",
               "name": "Input Disabled & Placeholder",
               "width": "fill_container",
+              "fill": "#252526",
+              "cornerRadius": 6,
               "gap": 16,
+              "padding": 16,
               "children": [
                 {
                   "type": "frame",
@@ -3272,7 +3439,10 @@
               "id": "irQUF",
               "name": "lrRow",
               "width": "fill_container",
+              "fill": "#252526",
+              "cornerRadius": 6,
               "gap": 16,
+              "padding": 16,
               "children": [
                 {
                   "type": "frame",

@@ -17,6 +17,7 @@ public static class EditorStyle
         public static readonly Color Header = Color.FromRgb(0x2D2D2D);
         public static readonly Color Secondary = Color.FromRgb(0x333333);
         public static readonly Color Active = Color.FromRgb(0x3D3D3D);
+        public static readonly Color Panel = Color.FromRgb(0x252526);
         public static readonly Color Primary = Color.FromRgb(0xE83A3A);
         public static readonly Color PrimaryHover = Color.FromRgb(0xF04848);
 
@@ -48,6 +49,13 @@ public static class EditorStyle
     public const float MeshVertexSize = 0.12f;
     public const float MeshWeightOutlineSize = 0.20f;
     public const float MeshWeightSize = 0.19f;
+
+
+
+    public static readonly ContainerStyle Panel = new()
+    {
+        Color = Palette.Panel,
+    };
 
     // :icon
     public static class Icon
@@ -244,8 +252,9 @@ public static class EditorStyle
         };
     }
 
+
     // :panel
-    public static class Panel
+    public static class PanelOld
     {
         public const float BorderRadius = 6f;
         public const float BorderWidth = 1.0f;
@@ -371,10 +380,10 @@ public static class EditorStyle
         {
             Width = Size.Fit,
             MinWidth = 80.0f,
-            Height = Control.SecondaryHeight,
+            Height = Control.Height,
             Color = Palette.Secondary,
             ContentColor = Palette.SecondaryText,
-            FontSize = 12.0f,
+            FontSize = Control.TextSize,
             IconSize = IconSize,
             Spacing = Control.Spacing,
             BorderRadius = Control.BorderRadius,
@@ -503,6 +512,33 @@ public static class EditorStyle
         };
     }
 
+    public static DropDownStyle DropDown = new()
+    {
+        Width = Size.Fit,
+        Height = Control.Height,
+        Color = Palette.PageBG,
+        ContentColor = Palette.Content,
+        FontSize = Control.TextSize,
+        IconSize = Control.IconSize,
+        ArrowSize = 14.0f,
+        Spacing = Control.Spacing,
+        BorderRadius = Control.BorderRadius,
+        Padding = EdgeInsets.LeftRight(10),
+        ArrowIcon = null,
+        MenuStyle = ContextMenu.Style,
+        Resolve = (s, f) =>
+        {
+            if ((f & WidgetFlags.Disabled) != 0) return s with
+            {
+                Color = Palette.PageBG,
+                ContentColor = Palette.DisabledLight
+            };
+            if ((f & WidgetFlags.Checked) != 0) return s with { Color = Palette.Active };
+            if ((f & WidgetFlags.Hovered) != 0) return s with { Color = Palette.Active };
+            return s;
+        },
+    };
+
     public static class List
     {
         public const float ItemHeight = 28f;
@@ -596,10 +632,10 @@ public static class EditorStyle
     {
         public static readonly ContainerStyle Root = new()
         {
-            Padding = EdgeInsets.Symmetric(4, Control.Spacing + Panel.BorderWidth),
+            Padding = EdgeInsets.Symmetric(4, Control.Spacing + PanelOld.BorderWidth),
             Spacing = Control.Spacing,
             Height = Size.Fit,
-            Margin = EdgeInsets.Top(Panel.VerticalSpacing)
+            Margin = EdgeInsets.Top(PanelOld.VerticalSpacing)
         };
 
         public static readonly ContainerStyle Spacer = new()
@@ -666,11 +702,11 @@ public static class EditorStyle
             BorderWidth = 1.0f,
             BorderColor = Popup.BorderColor,
             Padding = EdgeInsets.Symmetric(4, 0),
-            MinWidth = 140,
+            MinWidth = 180,
             ItemHeight = Control.Height,
-            ItemPadding = EdgeInsets.LeftRight(4.0f, 4.0f),
+            ItemPadding = EdgeInsets.LeftRight(10.0f, 10.0f),
             ItemContentPadding = Control.ContentPadding,
-            ItemContentSpacing = Control.Spacing,
+            ItemContentSpacing = 8,
             ItemHoverColor = Palette.Active,
             FontSize = Control.TextSize,
             TextColor = Palette.Content,
@@ -682,8 +718,8 @@ public static class EditorStyle
             SeparatorColor = Palette.Active,
             TitleFontSize = Control.TextSize,
             TitleColor = Palette.SecondaryText,
-            TitlePadding = EdgeInsets.LeftRight(4.0f),
-            ShortcutColor = Palette.Label,
+            TitlePadding = EdgeInsets.LeftRight(10.0f),
+            ShortcutColor = Palette.Placeholder,
             SubmenuSpacing = Control.Spacing,
         };
     }
@@ -710,7 +746,7 @@ public static class EditorStyle
             Height = Control.Height + 8,
             Padding = EdgeInsets.Symmetric(4, 12),
             Color = Popup.FillColor,
-            BorderRadius = Panel.BorderRadius
+            BorderRadius = PanelOld.BorderRadius
         };
 
         public readonly static ImageStyle NotificationIcon = Control.Icon;
@@ -776,10 +812,9 @@ public static class EditorStyle
         public const float HeaderGap = 6f;
         public const float LabelWidth = 80f;
 
-        public static readonly ContainerStyle Root = new()
+        public static readonly ContainerStyle Root = Panel with
         {
             Width = 280.0f,
-            Color = Palette.PageBG,
             Padding = EdgeInsets.Symmetric(BodyPaddingV, BodyPaddingH)
         };
 
@@ -1048,7 +1083,7 @@ public static class EditorStyle
         public static readonly ContainerStyle ColorPicker = new()
         {
             Padding = EdgeInsets.All(4f),
-            BorderRadius = Panel.ContentBorderRadius
+            BorderRadius = PanelOld.ContentBorderRadius
         };
 
         public static readonly ContainerStyle PaletteColor = new()
@@ -1278,6 +1313,7 @@ public static class EditorStyle
     {
         ContextMenu.Style.CheckIcon = EditorAssets.Sprites.IconCheck;
         ContextMenu.Style.SubmenuIcon = EditorAssets.Sprites.IconSubmenu;
+        DropDown.ArrowIcon = EditorAssets.Sprites.IconFoldoutClosed;
     }
 
     public static void Shutdown()

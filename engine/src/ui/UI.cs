@@ -358,12 +358,16 @@ public static partial class UI
     public static AutoScrollable BeginScrollable(WidgetId id, in ScrollableStyle style)
     {
         Debug.Assert(id != 0);
-        ElementTree.BeginWidget<ScrollableState>(id);
-        ElementTree.BeginScrollable(id, in style);
+        ref var state = ref ElementTree.BeginWidget<ScrollState>(id);
+        ElementTree.BeginScrollable(ref state, in style);
         return new AutoScrollable();
     }
 
-    public static void EndScrollable() => EndContainerImpl();
+    public static void EndScrollable()
+    {
+        ElementTree.EndScrollable();
+        ElementTree.EndWidget();
+    }
 
     public static AutoGrid BeginGrid(GridStyle style)
     {

@@ -354,7 +354,7 @@ public static partial class Workspace
         using var _ = UI.BeginContainer(new ContainerStyle
         {
             Height = Size.Fit,
-            Color = EditorStyle.Panel.Root.Color
+            Color = EditorStyle.PanelOld.Root.Color
         });
         using var __ = UI.BeginRow(new ContainerStyle { 
             Padding = EdgeInsets.Symmetric(4, EditorStyle.Control.Spacing),
@@ -434,7 +434,7 @@ public static partial class Workspace
         using (UI.BeginColumn())
         {
             ToolbarUI();
-            UI.Container(new ContainerStyle { Height = 1, Color = EditorStyle.Panel.Root.BorderColor });
+            UI.Container(new ContainerStyle { Height = 1, Color = EditorStyle.PanelOld.Root.BorderColor });
 
             using (UI.BeginFlex())
             {

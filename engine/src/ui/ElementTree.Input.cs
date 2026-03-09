@@ -175,236 +175,23 @@ public static unsafe partial class ElementTree
         }
     }
 
-    internal static bool ScrollbarDragging => _scrollbarDragging;
-    private static bool _scrollbarDragging;
-    private static int _scrollbarDragWidgetId;
-    private static float _scrollbarDragStartOffset;
-    private static float _scrollbarDragStartMouseY;
-    private static int _activeScrollWidgetId;
-    private static float _lastScrollMouseY;
-
     private static void HandleScrollableInput()
     {
-        HandleScrollbarDrag();
-        HandleScrollableContentDrag();
         HandleScrollableMouseWheel();
-    }
-
-    private static void HandleScrollbarDrag()
-    {
-#if false
-        if (_scrollbarDragging)
-        {
-            if (!_inputMouseDown)
-            {
-                _scrollbarDragging = false;
-                Input.ReleaseMouseCapture();
-                return;
-            }
-
-            ref var state = ref GetWidgetData<ScrollableState>(_scrollbarDragWidgetId);
-            var viewportHeight = GetScrollableViewportHeight(_scrollbarDragWidgetId);
-            var maxScroll = Math.Max(0, state.ContentHeight - viewportHeight);
-            if (maxScroll <= 0) return;
-
-            // Find the scrollable element to get style data
-            var scrollOffset = FindScrollableOffset(_scrollbarDragWidgetId);
-            if (scrollOffset < 0) return;
-            ref var e = ref GetElement(scrollOffset);
-            ref var d = ref GetElementData<ScrollElement>(ref e);
-
-            var trackH = viewportHeight - d.ScrollbarPadding * 2;
-            var thumbHeightRatio = viewportHeight / state.ContentHeight;
-            var thumbH = Math.Max(d.ScrollbarMinThumbHeight, trackH * thumbHeightRatio);
-            var availableTrackSpace = trackH - thumbH;
-
-            if (availableTrackSpace > 0)
-            {
-                var mouseDeltaY = MouseWorldPosition.Y - _scrollbarDragStartMouseY;
-                var scrollDelta = (mouseDeltaY / availableTrackSpace) * maxScroll;
-                state.Offset = Math.Clamp(_scrollbarDragStartOffset + scrollDelta, 0, maxScroll);
-            }
-            return;
-        }
-
-        if (!_inputMousePressed) return;
-
-        // Check for new scrollbar interactions
-        FindScrollbarInteraction(0);
-#endif
-    }
-
-    private static void FindScrollbarInteraction(int offset)
-    {
-#if false
-        ref var e = ref GetElement(offset);
-
-        if (e.Type == ElementType.Scroll)
-        {
-            ref var d = ref GetElementData<ScrollElement>(ref e);
-            if (d.WidgetId > 0)
-            {
-                ref var state = ref GetWidgetData<ScrollableState>(d.WidgetId);
-                var viewportHeight = e.Rect.Height;
-                var maxScroll = Math.Max(0, state.ContentHeight - viewportHeight);
-
-                // Check thumb hit
-                if (GetScrollbarThumbRect(ref e, ref d, ref state, out var thumbRect) && thumbRect.Contains(MouseWorldPosition))
-                {
-                    _scrollbarDragging = true;
-                    _scrollbarDragWidgetId = d.WidgetId;
-                    _scrollbarDragStartOffset = state.Offset;
-                    _scrollbarDragStartMouseY = MouseWorldPosition.Y;
-                    Input.CaptureMouse();
-                    return;
-                }
-
-                // Check track hit (page scroll)
-                if (GetScrollbarTrackRect(ref e, ref d, ref state, out var trackRect) && trackRect.Contains(MouseWorldPosition))
-                {
-                    if (maxScroll > 0)
-                    {
-                        var clickRelativeY = MouseWorldPosition.Y - trackRect.Y;
-                        var clickRatio = clickRelativeY / trackRect.Height;
-                        var targetOffset = clickRatio * maxScroll;
-                        var pageAmount = viewportHeight * 0.9f;
-                        var newOffset = state.Offset < targetOffset
-                            ? Math.Min(state.Offset + pageAmount, targetOffset)
-                            : Math.Max(state.Offset - pageAmount, targetOffset);
-                        state.Offset = Math.Clamp(newOffset, 0, maxScroll);
-                    }
-                    Input.ConsumeButton(InputCode.MouseLeft);
-                    return;
-                }
-            }
-        }
-
-        var childOffset = (int)e.FirstChild;
-        for (int i = 0; i < e.ChildCount; i++)
-        {
-            ref var child = ref GetElement(childOffset);
-            FindScrollbarInteraction(childOffset);
-            childOffset = child.NextSibling;
-        }
-#endif
-    }
-
-    private static bool GetScrollbarThumbRect(ref Element e, ref ScrollElement d, ref ScrollableState state, out Rect thumbRect)
-    {
-#if false
-        thumbRect = Rect.Zero;
-        var viewportHeight = e.Rect.Height;
-        var maxScroll = Math.Max(0, state.ContentHeight - viewportHeight);
-        if (d.ScrollbarVisibility == ScrollbarVisibility.Never || maxScroll <= 0) return false;
-
-        var pos = Vector2.Transform(e.Rect.Position, GetTransform(ref e));
-        var trackX = pos.X + e.Rect.Width - d.ScrollbarWidth - d.ScrollbarPadding;
-        var trackY = pos.Y + d.ScrollbarPadding;
-        var trackH = viewportHeight - d.ScrollbarPadding * 2;
-        var thumbHeightRatio = viewportHeight / state.ContentHeight;
-        var thumbH = Math.Max(d.ScrollbarMinThumbHeight, trackH * thumbHeightRatio);
-        var scrollRatio = state.Offset / maxScroll;
-        var thumbY = trackY + scrollRatio * (trackH - thumbH);
-
-        thumbRect = new Rect(trackX, thumbY, d.ScrollbarWidth, thumbH);
-#endif
-            thumbRect = Rect.Zero;
-        return true;
-    }
-
-    private static bool GetScrollbarTrackRect(ref Element e, ref ScrollElement d, ref ScrollableState state, out Rect trackRect)
-    {
-#if false
-        trackRect = Rect.Zero;
-        var viewportHeight = e.Rect.Height;
-        var maxScroll = Math.Max(0, state.ContentHeight - viewportHeight);
-        if (d.ScrollbarVisibility == ScrollbarVisibility.Never) return false;
-        if (d.ScrollbarVisibility == ScrollbarVisibility.Auto && maxScroll <= 0) return false;
-
-        var pos = Vector2.Transform(e.Rect.Position, GetTransform(ref e));
-        var trackX = pos.X + e.Rect.Width - d.ScrollbarWidth - d.ScrollbarPadding;
-        var trackY = pos.Y + d.ScrollbarPadding;
-        var trackH = viewportHeight - d.ScrollbarPadding * 2;
-
-        trackRect = new Rect(trackX, trackY, d.ScrollbarWidth, trackH);
-#endif
-        trackRect = Rect.Zero;
-        return true;
-    }
-
-    private static void HandleScrollableContentDrag()
-    {
-#if false
-        if (_scrollbarDragging) return;
-
-        if (!_inputMouseDown)
-        {
-            if (_activeScrollWidgetId != 0)
-                Input.ReleaseMouseCapture();
-            _activeScrollWidgetId = 0;
-        }
-        else if (_activeScrollWidgetId != 0)
-        {
-            var deltaY = _lastScrollMouseY - MouseWorldPosition.Y;
-            _lastScrollMouseY = MouseWorldPosition.Y;
-
-            ref var state = ref GetWidgetData<ScrollableState>(_activeScrollWidgetId);
-            var viewportHeight = GetScrollableViewportHeight(_activeScrollWidgetId);
-            var maxScroll = Math.Max(0, state.ContentHeight - viewportHeight);
-            state.Offset = Math.Clamp(state.Offset + deltaY, 0, maxScroll);
-        }
-        else if (_inputMousePressed)
-        {
-            FindScrollableContentDragStart(0);
-        }
-#endif
-    }
-
-    private static void FindScrollableContentDragStart(int offset)
-    {
-#if false
-        ref var e = ref GetElement(offset);
-
-        if (e.Type == ElementType.Scroll)
-        {
-            ref var d = ref GetElementData<ScrollElement>(ref e);
-            if (d.WidgetId > 0)
-            {
-                ref var ws = ref _widgetStates[d.WidgetId];
-                if ((ws.Flags & ElementFlags.Pressed) != 0)
-                {
-                    _activeScrollWidgetId = d.WidgetId;
-                    _lastScrollMouseY = MouseWorldPosition.Y;
-                    Input.CaptureMouse();
-                    return;
-                }
-            }
-        }
-
-        var childOffset = (int)e.FirstChild;
-        for (int i = 0; i < e.ChildCount; i++)
-        {
-            ref var child = ref GetElement(childOffset);
-            FindScrollableContentDragStart(childOffset);
-            childOffset = child.NextSibling;
-        }
-#endif
     }
 
     private static void HandleScrollableMouseWheel()
     {
         var scrollDelta = Input.GetAxisValue(InputCode.MouseScrollY);
         if (scrollDelta == 0) return;
-
         FindScrollableForWheel(0, scrollDelta);
     }
 
     private static bool FindScrollableForWheel(int offset, float scrollDelta)
     {
-#if false
         ref var e = ref GetElement(offset);
 
-        // Check children first (deeper scrollables take priority)
+        // Children first (deeper scrollables take priority)
         var childOffset = (int)e.FirstChild;
         for (int i = 0; i < e.ChildCount; i++)
         {
@@ -415,14 +202,14 @@ public static unsafe partial class ElementTree
 
         if (e.Type == ElementType.Scroll)
         {
-            ref var d = ref GetElementData<ScrollElement>(ref e);
-            if (d.WidgetId > 0)
+            ref var d = ref e.Data.Scroll;
+            if (d.State != null)
             {
-                Matrix3x2.Invert(GetTransform(ref e), out var scrollInv);
+                Matrix3x2.Invert(e.Transform, out var scrollInv);
                 var localMouse = Vector2.Transform(MouseWorldPosition, scrollInv);
                 if (e.Rect.Contains(localMouse))
                 {
-                    ref var state = ref GetWidgetData<ScrollableState>(d.WidgetId);
+                    ref var state = ref *d.State;
                     var maxScroll = Math.Max(0, state.ContentHeight - e.Rect.Height);
                     state.Offset = Math.Clamp(state.Offset - scrollDelta * d.ScrollSpeed, 0, maxScroll);
                     Input.ConsumeScroll();
@@ -430,61 +217,22 @@ public static unsafe partial class ElementTree
                 }
             }
         }
-#endif
 
         return false;
     }
 
-    private static int FindScrollableOffset(int widgetId)
-    {
-        return FindScrollableOffsetRecursive(0, widgetId);
-    }
-
-    private static int FindScrollableOffsetRecursive(int offset, int widgetId)
-    {
-#if false
-        ref var e = ref GetElement(offset);
-        if (e.Type == ElementType.Scroll)
-        {
-            ref var d = ref GetElementData<ScrollElement>(ref e);
-            if (d.WidgetId == widgetId) return offset;
-        }
-        var childOffset = (int)e.FirstChild;
-        for (int i = 0; i < e.ChildCount; i++)
-        {
-            ref var child = ref GetElement(childOffset);
-            var found = FindScrollableOffsetRecursive(childOffset, widgetId);
-            if (found >= 0) return found;
-            childOffset = child.NextSibling;
-        }
-#endif
-
-        return -1;
-    }
-
-    private static float GetScrollableViewportHeight(int widgetId)
-    {
-        var offset = FindScrollableOffset(widgetId);
-        if (offset < 0) return 0;
-        ref var e = ref GetElement(offset);
-        return e.Rect.Height;
-    }
-
     internal static float GetScrollOffset(WidgetId id)
     {
-#if false
-        if (widgetId <= 0) return 0;
-        ref var state = ref GetWidgetData<ScrollableState>(widgetId);
+        if (id == 0 || !_widgets.ContainsKey(id)) return 0;
+        ref var state = ref GetWidgetState<ScrollState>(id);
         return state.Offset;
-#endif
-        return 0;
     }
 
     internal static void SetScrollOffset(WidgetId id, float offset)
     {
-        //if (widgetId <= 0) return;
-        //ref var state = ref GetWidgetData<ScrollableState>(widgetId);
-        //state.Offset = offset;
+        if (id == 0 || !_widgets.ContainsKey(id)) return;
+        ref var state = ref GetWidgetState<ScrollState>(id);
+        state.Offset = offset;
     }
 
     private static void HandleTrackInput(ref Element e)

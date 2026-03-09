@@ -159,24 +159,10 @@ internal struct SceneElement
     public ushort DrawCallback;
 }
 
-internal struct ScrollElement
+internal unsafe struct ScrollElement
 {
     public float ScrollSpeed;
-    public ScrollbarVisibility ScrollbarVisibility;
-    public float ScrollbarWidth;
-    public float ScrollbarMinThumbHeight;
-    public Color ScrollbarTrackColor;
-    public Color ScrollbarThumbColor;
-    public Color ScrollbarThumbHoverColor;
-    public float ScrollbarPadding;
-    public float ScrollbarBorderRadius;
-    public int WidgetId;
-}
-
-internal struct ScrollableState
-{
-    public float Offset;
-    public float ContentHeight;
+    public ScrollState* State;
 }
 
 internal struct TrackElement

@@ -479,8 +479,8 @@ internal static partial class EditorUI
     public static void PanelSeparator()
     {
         if (UI.IsRow())
-            UI.Container(EditorStyle.Panel.SeparatorVertical);
+            UI.Container(EditorStyle.PanelOld.SeparatorVertical);
         else if (UI.IsColumn())
-            UI.Container(EditorStyle.Panel.SeparatorHorizontal);
+            UI.Container(EditorStyle.PanelOld.SeparatorHorizontal);
     }
 }

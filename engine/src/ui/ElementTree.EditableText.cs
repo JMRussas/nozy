@@ -7,19 +7,6 @@ using System.Runtime.CompilerServices;
 
 namespace NoZ;
 
-
-public struct EditableTextState
-{
-    public UnsafeSpan<char> EditText;
-    public int CursorIndex;
-    public int SelectionStart;
-    public int TextHash;
-    public int PrevTextHash;
-    public byte Focused;
-    public byte FocusExited;
-    public byte WasCancelled;
-}
-
 public static unsafe partial class ElementTree
 {
     public static string EditableText(

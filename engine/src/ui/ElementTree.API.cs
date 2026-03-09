@@ -3,6 +3,7 @@
 //
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace NoZ;
 
@@ -87,7 +88,7 @@ public static unsafe partial class ElementTree
 
     public static void EndOpacity() => EndElement(ElementType.Opacity);
 
-    internal static int BeginCursor(Sprite sprite)
+    public static int BeginCursor(Sprite sprite)
     {
         ref var e = ref BeginElement(ElementType.Cursor);
         ref var d = ref e.Data.Cursor;
@@ -96,7 +97,7 @@ public static unsafe partial class ElementTree
         return e.Index;
     }
 
-    internal static int BeginCursor(SystemCursor cursor)
+    public static int BeginCursor(SystemCursor cursor)
     {
         ref var e = ref BeginElement(ElementType.Cursor);
         ref var d = ref e.Data.Cursor;
@@ -105,9 +106,9 @@ public static unsafe partial class ElementTree
         return e.Index;
     }
 
-    internal static void EndCursor() => EndElement(ElementType.Cursor);
+    public static void EndCursor() => EndElement(ElementType.Cursor);
 
-    internal static int BeginTransform(Vector2 pivot, Vector2 translate, float rotate, Vector2 scale)
+    public static int BeginTransform(Vector2 pivot, Vector2 translate, float rotate, Vector2 scale)
     {
         ref var e = ref BeginElement(ElementType.Transform);
         ref var d = ref e.Data.Transform;
@@ -118,9 +119,9 @@ public static unsafe partial class ElementTree
         return e.Index;
     }
 
-    internal static void EndTransform() => EndElement(ElementType.Transform);
+    public static void EndTransform() => EndElement(ElementType.Transform);
 
-    internal static int BeginGrid(
+    public static int BeginGrid(
         float spacing,
         int columns,
         float cellWidth,
@@ -143,26 +144,18 @@ public static unsafe partial class ElementTree
         return e.Index;
     }
 
-    internal static void EndGrid() => EndElement(ElementType.Grid);
+    public static void EndGrid() => EndElement(ElementType.Grid);
 
-    internal static int BeginScrollable(ulong widgetId, in ScrollableStyle style)
+    public static int BeginScrollable(ref ScrollState state, in ScrollableStyle style)
     {
         ref var e = ref BeginElement(ElementType.Scroll);
         ref var d = ref e.Data.Scroll;
         d.ScrollSpeed = style.ScrollSpeed;
-        d.ScrollbarVisibility = style.Scrollbar;
-        d.ScrollbarWidth = style.ScrollbarWidth;
-        d.ScrollbarMinThumbHeight = style.ScrollbarMinThumbHeight;
-        d.ScrollbarTrackColor = style.ScrollbarTrackColor;
-        d.ScrollbarThumbColor = style.ScrollbarThumbColor;
-        d.ScrollbarThumbHoverColor = style.ScrollbarThumbHoverColor;
-        d.ScrollbarPadding = style.ScrollbarPadding;
-        d.ScrollbarBorderRadius = style.ScrollbarBorderRadius;
-        //d.WidgetId = widgetId;
+        d.State = (ScrollState*)Unsafe.AsPointer(ref state);
         return e.Index;
     }
 
-    internal static void EndScrollable() => EndElement(ElementType.Scroll);
+    public static void EndScrollable() => EndElement(ElementType.Scroll);
 
     public static int BeginRow(float spacing = 0)
     {
@@ -199,7 +192,7 @@ public static unsafe partial class ElementTree
 
     public static void EndFlex() => EndElement(ElementType.Flex);
 
-    internal static int BeginPopup(
+    public static int BeginPopup(
         Rect anchorRect,
         Align2 anchor,
         Align2 popupAlign,
@@ -230,7 +223,7 @@ public static unsafe partial class ElementTree
         return e.Index;
     }
 
-    internal static void EndPopup() => EndElement(ElementType.Popup);
+    public static void EndPopup() => EndElement(ElementType.Popup);
 
     public static int Spacer(float size)
     {
