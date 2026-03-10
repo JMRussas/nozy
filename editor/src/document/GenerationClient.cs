@@ -217,11 +217,7 @@ public static class GenerationClient
             State = state,
             JobId = job.JobId,
             QueuePosition = job.QueuePosition ?? 0,
-            CurrentNode = job.CurrentNode,
-            NodesCompleted = job.NodesCompleted ?? 0,
-            TotalNodes = job.TotalNodes ?? 0,
-            CurrentStep = job.CurrentStep ?? 0,
-            TotalSteps = job.TotalSteps ?? 0,
+            Progress = job.Progress ?? 0f,
             Result = job.Result,
             Error = job.Error ?? (state == GenerationState.Failed ? "Unknown error" : null)
         };
@@ -319,19 +315,13 @@ public class GenerationStatus
     public int QueuePosition { get; set; }
 
     // Running
-    public string? CurrentNode { get; set; }
-    public int NodesCompleted { get; set; }
-    public int TotalNodes { get; set; }
-    public int CurrentStep { get; set; }
-    public int TotalSteps { get; set; }
+    public float Progress { get; set; }
 
     // Completed
     public GenerationResponse? Result { get; set; }
 
     // Failed
     public string? Error { get; set; }
-
-    public float Progress => TotalSteps > 0 ? (float)CurrentStep / TotalSteps : 0f;
     public bool IsTerminal => State is GenerationState.Completed or GenerationState.Failed;
 }
 
@@ -349,11 +339,7 @@ public class GenerationJobResponse
     public string JobId { get; set; } = "";
     public string Status { get; set; } = "";
     public int? QueuePosition { get; set; }
-    public string? CurrentNode { get; set; }
-    public int? NodesCompleted { get; set; }
-    public int? TotalNodes { get; set; }
-    public int? CurrentStep { get; set; }
-    public int? TotalSteps { get; set; }
+    public float? Progress { get; set; }
     public GenerationResponse? Result { get; set; }
     public string? Error { get; set; }
 }

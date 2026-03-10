@@ -13,8 +13,6 @@ public class GenerationImage : IDisposable
     public GenerationState GenerationState;
     public int QueuePosition;
     public float GenerationProgress;
-    public int CurrentStep;
-    public int TotalSteps;
     public string? GenerationError;
     public CancellationTokenSource? CancellationSource;
 

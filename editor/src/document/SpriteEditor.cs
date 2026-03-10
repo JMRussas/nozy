@@ -1759,13 +1759,12 @@ public partial class SpriteEditor : DocumentEditor
                             break;
                         }
 
-                PopupMenuItem[] items = [
+                UI.DropDown(WidgetIds.ConstraintDropDown, () => [
                     ..EditorApplication.Config.SpriteSizes.Select(s =>
                     new PopupMenuItem { Label = s.Label, Handler = () => SetConstraint(s.Size) }
                 ),
                 new PopupMenuItem { Label = "None", Handler = () => SetConstraint(null)}
-                ];
-                UI.DropDown(WidgetIds.ConstraintDropDown, items, constraintLabel, EditorAssets.Sprites.IconConstraint);
+                ], constraintLabel, EditorAssets.Sprites.IconConstraint);
             }
 
         }
@@ -1779,19 +1778,22 @@ public partial class SpriteEditor : DocumentEditor
                     ? StringId.Get(Document.Binding.Skeleton!.Name).ToString()
                     : "None";
 
-                var skeletonItems = new List<PopupMenuItem>();
-
-                foreach (var doc in DocumentManager.Documents)
+                UI.DropDown(WidgetIds.SkeletonDropDown, () =>
                 {
-                    if (doc is not SkeletonDocument skeleton || skeleton.BoneCount == 0)
-                        continue;
+                    var skeletonItems = new List<PopupMenuItem>();
 
-                    var name = StringId.Get(skeleton.Name).ToString();
-                    skeletonItems.Add(new PopupMenuItem { Label = name, Handler = () => CommitSkeletonBinding(skeleton) });
-                }
+                    foreach (var doc in DocumentManager.Documents)
+                    {
+                        if (doc is not SkeletonDocument skeleton || skeleton.BoneCount == 0)
+                            continue;
 
-                skeletonItems.Add(new PopupMenuItem { Label = "None", Handler = ClearSkeletonBinding });
-                UI.DropDown(WidgetIds.SkeletonDropDown, skeletonItems.ToArray(), skeletonLabel, EditorAssets.Sprites.IconBone);
+                        var name = StringId.Get(skeleton.Name).ToString();
+                        skeletonItems.Add(new PopupMenuItem { Label = name, Handler = () => CommitSkeletonBinding(skeleton) });
+                    }
+
+                    skeletonItems.Add(new PopupMenuItem { Label = "None", Handler = ClearSkeletonBinding });
+                    return skeletonItems.ToArray();
+                }, skeletonLabel, EditorAssets.Sprites.IconBone);
             }
 
             if (Document.Binding.IsBound)

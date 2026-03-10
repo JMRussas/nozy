@@ -30,7 +30,7 @@ public static partial class UI
 {
     public static bool DropDown(
         WidgetId id,
-        PopupMenuItem[] items,
+        Func<PopupMenuItem[]> getItems,
         string? text = null,
         Sprite? icon = null,
         DropDownStyle? style = null,
@@ -119,7 +119,7 @@ public static partial class UI
                     AnchorRect = anchorRect,
                     MinWidth = anchorRect.Width,
                 };
-                OpenPopupMenu(id, items, ms, popupStyle);
+                OpenPopupMenu(id, getItems(), ms, popupStyle);
             }
         }
 

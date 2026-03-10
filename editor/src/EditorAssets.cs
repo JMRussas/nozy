@@ -59,8 +59,10 @@ public static class EditorAssets
         public const string IconPlay = "icon_play";
         public const string IconPreview = "icon_preview";
         public const string IconPublish = "icon_publish";
+        public const string IconRandom = "icon_random";
         public const string IconRootMotion = "icon_root_motion";
         public const string IconSearch = "icon_search";
+        public const string IconSeed = "icon_seed";
         public const string IconSort = "icon_sort";
         public const string IconStroke = "icon_stroke";
         public const string IconSubmenu = "icon_submenu";
@@ -180,8 +182,10 @@ public static class EditorAssets
         public static Sprite IconPlay { get; private set; } = null!;
         public static Sprite IconPreview { get; private set; } = null!;
         public static Sprite IconPublish { get; private set; } = null!;
+        public static Sprite IconRandom { get; private set; } = null!;
         public static Sprite IconRootMotion { get; private set; } = null!;
         public static Sprite IconSearch { get; private set; } = null!;
+        public static Sprite IconSeed { get; private set; } = null!;
         public static Sprite IconSort { get; private set; } = null!;
         public static Sprite IconStroke { get; private set; } = null!;
         public static Sprite IconSubmenu { get; private set; } = null!;
@@ -238,8 +242,10 @@ public static class EditorAssets
             IconPlay = (Sprite)Asset.Load(AssetType.Sprite, Names.IconPlay)!;
             IconPreview = (Sprite)Asset.Load(AssetType.Sprite, Names.IconPreview)!;
             IconPublish = (Sprite)Asset.Load(AssetType.Sprite, Names.IconPublish)!;
+            IconRandom = (Sprite)Asset.Load(AssetType.Sprite, Names.IconRandom)!;
             IconRootMotion = (Sprite)Asset.Load(AssetType.Sprite, Names.IconRootMotion)!;
             IconSearch = (Sprite)Asset.Load(AssetType.Sprite, Names.IconSearch)!;
+            IconSeed = (Sprite)Asset.Load(AssetType.Sprite, Names.IconSeed)!;
             IconSort = (Sprite)Asset.Load(AssetType.Sprite, Names.IconSort)!;
             IconStroke = (Sprite)Asset.Load(AssetType.Sprite, Names.IconStroke)!;
             IconSubmenu = (Sprite)Asset.Load(AssetType.Sprite, Names.IconSubmenu)!;
@@ -297,8 +303,10 @@ public static class EditorAssets
             IconPlay?.Dispose();
             IconPreview?.Dispose();
             IconPublish?.Dispose();
+            IconRandom?.Dispose();
             IconRootMotion?.Dispose();
             IconSearch?.Dispose();
+            IconSeed?.Dispose();
             IconSort?.Dispose();
             IconStroke?.Dispose();
             IconSubmenu?.Dispose();

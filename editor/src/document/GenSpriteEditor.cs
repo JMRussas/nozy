@@ -127,7 +127,6 @@ public partial class GenSpriteEditor : DocumentEditor
     public override void Dispose()
     {
         ClearSelection();
-        // TODO: migrate to UI.PopupMenu
         EditorUI.ClosePopup();
         base.Dispose();
     }
@@ -145,25 +144,25 @@ public partial class GenSpriteEditor : DocumentEditor
                 break;
             }
 
-        var items = sizes.Select(s =>
-            PopupMenuItem.Item(s.Label, () => SetConstraint(s.Size))).ToArray();
-
-        UI.DropDown(WidgetIds.ConstraintDropDown, items, constraintLabel, EditorAssets.Sprites.IconConstraint);
+        UI.DropDown(WidgetIds.ConstraintDropDown, () => sizes.Select(s =>
+            PopupMenuItem.Item(s.Label, () => SetConstraint(s.Size))).ToArray(), constraintLabel, EditorAssets.Sprites.IconConstraint);
     }
 
     private void StyleUI()
     {
-        var items = new List<PopupMenuItem>
+        UI.DropDown(WidgetIds.StyleDropDown, () =>
         {
-            PopupMenuItem.Item("None", () => SetStyle(null))
-        };
-        foreach (var doc in DocumentManager.Documents)
-        {
-            if (doc is GenStyleDocument styleDoc)
-                items.Add(PopupMenuItem.Item(styleDoc.Name, () => SetStyle(styleDoc)));
-        }
-
-        UI.DropDown(WidgetIds.StyleDropDown, items.ToArray(), Document.StyleName ?? "None");
+            var items = new List<PopupMenuItem>
+            {
+                PopupMenuItem.Item("None", () => SetStyle(null))
+            };
+            foreach (var doc in DocumentManager.Documents)
+            {
+                if (doc is GenStyleDocument styleDoc)
+                    items.Add(PopupMenuItem.Item(styleDoc.Name, () => SetStyle(styleDoc)));
+            }
+            return [.. items];
+        }, Document.StyleName ?? "None");
     }
 
     private void GenSpriteInspectorUI()
@@ -226,16 +225,12 @@ public partial class GenSpriteEditor : DocumentEditor
             Spacing = 10,
         }))
         {
-            ElementTree.Text("PROGRESS", UI.DefaultFont, EditorStyle.Control.TextSize, EditorStyle.Palette.Label);
-
             var progressText = genImage.GenerationState switch
             {
                 GenerationState.Queued when genImage.QueuePosition > 0 =>
                     $"Queued (position {genImage.QueuePosition})",
                 GenerationState.Queued => "Queued...",
-                GenerationState.Running when genImage.TotalSteps > 0 =>
-                    $"Generating {genImage.CurrentStep}/{genImage.TotalSteps}",
-                GenerationState.Running => "Processing...",
+                GenerationState.Running => $"Generating {(int)(genImage.GenerationProgress * 100)}%",
                 _ => "Starting..."
             };
 
@@ -353,13 +348,13 @@ public partial class GenSpriteEditor : DocumentEditor
                         using (UI.BeginFlex())
                         {
                             var seed = (float)layer.Seed;
-                            if (UI.NumberInput(WidgetIds.LayerSeed + i, ref seed, EditorStyle.TextInput, min: 0, max: float.MaxValue, step: 1, format: "0"))
+                            if (UI.NumberInput(WidgetIds.LayerSeed + i, ref seed, EditorStyle.TextInput, min: 0, max: float.MaxValue, step: 1, format: "0", icon: EditorAssets.Sprites.IconSeed))
                             {
                                 Undo.Record(Document);
                                 layer.Seed = (long)seed;
                             }
                         }
-                        if (UI.Button(WidgetIds.LayerSeedDice + i, EditorAssets.Sprites.IconLoop, EditorStyle.Button.SmallIconOnly))
+                        if (UI.Button(WidgetIds.LayerSeedDice + i, EditorAssets.Sprites.IconRandom, EditorStyle.Button.IconOnly))
                         {
                             Undo.Record(Document);
                             layer.Seed = Random.Shared.NextInt64(1, long.MaxValue);

@@ -185,31 +185,34 @@ public partial class GenStyleEditor : DocumentEditor
         GenerationClient.FetchLoras(server);
 
         var loras = GenerationClient.CachedLoras;
-        var loraItems = new List<PopupMenuItem>
-        {
-            PopupMenuItem.Item("None", () =>
-            {
-                Undo.Record(Document);
-                Document.LoraName = null;
-                Document.IncrementVersion();
-            })
-        };
-        if (loras != null)
-        {
-            foreach (var lora in loras)
-                loraItems.Add(PopupMenuItem.Item(lora.Name, () =>
-                {
-                    Undo.Record(Document);
-                    Document.LoraName = lora.Name;
-                    Document.LoraStrength = lora.DefaultStrength;
-                    Document.IncrementVersion();
-                }));
-        }
 
         using (Inspector.BeginRow())
         {
             using (UI.BeginFlex())
-                UI.DropDown(WidgetIds.LoraDropDown, loraItems.ToArray(), Document.LoraName ?? "None");
+                UI.DropDown(WidgetIds.LoraDropDown, () =>
+                {
+                    var loraItems = new List<PopupMenuItem>
+                    {
+                        PopupMenuItem.Item("None", () =>
+                        {
+                            Undo.Record(Document);
+                            Document.LoraName = null;
+                            Document.IncrementVersion();
+                        })
+                    };
+                    if (loras != null)
+                    {
+                        foreach (var lora in loras)
+                            loraItems.Add(PopupMenuItem.Item(lora.Name, () =>
+                            {
+                                Undo.Record(Document);
+                                Document.LoraName = lora.Name;
+                                Document.LoraStrength = lora.DefaultStrength;
+                                Document.IncrementVersion();
+                            }));
+                    }
+                    return loraItems.ToArray();
+                }, Document.LoraName ?? "None");
 
             if (!string.IsNullOrEmpty(Document.LoraName))
             {

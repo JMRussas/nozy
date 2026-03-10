@@ -625,8 +625,6 @@ public partial class GenSpriteDocument : Document, IShapeDocument
 
                 case GenerationState.Running:
                     genImage.GenerationState = GenerationState.Running;
-                    genImage.CurrentStep = status.CurrentStep;
-                    genImage.TotalSteps = status.TotalSteps;
                     genImage.GenerationProgress = status.Progress;
                     break;
 
