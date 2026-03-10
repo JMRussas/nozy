@@ -35,18 +35,40 @@ public static unsafe partial class ElementTree
         if (_inputMousePressed)
         {
             var clickInsideAutoClosePopup = false;
-            for (var i = 0; i < _popupCount; i++)
-            {
-                ref var pe = ref GetElement(_popups[i]);
-                ref var pd = ref pe.Data.Popup;
-                if (!pd.AutoClose) continue;
 
-                Matrix3x2.Invert(pe.Transform, out var popupInv);
-                var localMouse = Vector2.Transform(MouseWorldPosition, popupInv);
-                if (pe.Rect.Contains(localMouse))
+            // Check if hovered widget is inside any auto-close popup
+            if (_hoveredWidget != WidgetId.None && _widgets.ContainsKey(_hoveredWidget))
+            {
+                var widgetIdx = _widgets[_hoveredWidget].Ptr->Index;
+                for (var i = 0; i < _popupCount; i++)
                 {
-                    clickInsideAutoClosePopup = true;
-                    break;
+                    ref var pe = ref GetElement(_popups[i]);
+                    ref var pd = ref pe.Data.Popup;
+                    if (!pd.AutoClose) continue;
+                    if (IsDescendantOf(widgetIdx, _popups[i]))
+                    {
+                        clickInsideAutoClosePopup = true;
+                        break;
+                    }
+                }
+            }
+
+            // Fallback: check popup rect directly
+            if (!clickInsideAutoClosePopup)
+            {
+                for (var i = 0; i < _popupCount; i++)
+                {
+                    ref var pe = ref GetElement(_popups[i]);
+                    ref var pd = ref pe.Data.Popup;
+                    if (!pd.AutoClose) continue;
+
+                    Matrix3x2.Invert(pe.Transform, out var popupInv);
+                    var localMouse = Vector2.Transform(MouseWorldPosition, popupInv);
+                    if (pe.Rect.Contains(localMouse))
+                    {
+                        clickInsideAutoClosePopup = true;
+                        break;
+                    }
                 }
             }
 
@@ -114,9 +136,9 @@ public static unsafe partial class ElementTree
             Input.ReleaseMouseCapture();
         }
 
-        HandlePopupAutoClose();
         _hoveredWidget = WidgetId.None;
         FindHoveredWidget(0);
+        HandlePopupAutoClose();
         HandleInputElement(0);
         HandleScrollableInput();
         HandleSceneInput(0);
@@ -311,7 +333,9 @@ public static unsafe partial class ElementTree
                 Matrix3x2.Invert(e.Transform, out var inv);
                 var localMouse = Vector2.Transform(MouseWorldPosition, inv);
                 if (e.Rect.Contains(localMouse))
+                {
                     _hoveredWidget = e.Data.Widget.Id;
+                }
             }
         }
 

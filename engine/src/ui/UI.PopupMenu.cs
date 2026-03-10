@@ -220,15 +220,15 @@ public static partial class UI
 
             MenuUI(0, -1, _popupStyle, ref executed, ref shouldClose);
 
-            if (shouldClose)
-            {
-                Input.ConsumeButton(InputCode.MouseLeft);
-                Close();
-            }
-            else if (executed != null)
+            if (executed != null)
             {
                 Close();
                 executed();
+            }
+            else if (shouldClose)
+            {
+                Input.ConsumeButton(InputCode.MouseLeft);
+                Close();
             }
         }
 
@@ -300,7 +300,7 @@ public static partial class UI
 
             ElementTree.EndTree();
 
-            return flags.HasFlag(WidgetFlags.Pressed) && enabled;
+            return pressed;
         }
 
         private static string FormatShortcut(InputCode key, bool ctrl, bool alt, bool shift)

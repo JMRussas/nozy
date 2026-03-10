@@ -330,7 +330,7 @@ public partial class GenSpriteEditor : DocumentEditor
                 }
             }
 
-            using (Inspector.BeginSection(title, icon: EditorAssets.Sprites.IconLayer, isActive: isActive, content: LayerHeaderContent, collapsed: !isActive))
+            using (Inspector.BeginSection(title, icon: EditorAssets.Sprites.IconLayer, isActive: isActive, content: LayerHeaderContent))
             {
                 if (Inspector.WasHeaderPressed && !isActive)
                 {
@@ -338,7 +338,7 @@ public partial class GenSpriteEditor : DocumentEditor
                     ClearSelection();
                 }
 
-                if (!Inspector.IsSectionCollapsed && isActive)
+                if (!Inspector.IsSectionCollapsed)
                 {
                     using (Inspector.BeginRow())
                     using (UI.BeginFlex())
