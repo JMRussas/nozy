@@ -22,7 +22,6 @@ public partial class GenSpriteDocument : Document, IShapeDocument
 
     public Vector2Int ConstrainedSize { get; set; } = new(256, 256);
     public GenerationImage Generation { get; } = new();
-    public GenerationConfig? Refine;
     public string? StyleName;
     public GenStyleDocument? Style;
     public int ActiveLayerIndex;
@@ -31,7 +30,7 @@ public partial class GenSpriteDocument : Document, IShapeDocument
     public GenSpriteLayer ActiveLayer => _layers[ActiveLayerIndex];
     public bool IsActiveLayerLocked => false; // GenSprite layers are never locked
 
-    public bool HasGeneration => _layers.Any(l => l.Generation.HasPrompt);
+    public bool HasGeneration => _layers.Any(l => l.HasPrompt);
     public bool IsGenerating => Generation.IsGenerating;
 
     public static void RegisterDef()
@@ -96,10 +95,14 @@ public partial class GenSpriteDocument : Document, IShapeDocument
                 if (!string.IsNullOrEmpty(base64))
                     Generation.ImageData = Convert.FromBase64String(base64);
             }
+            // Backward compat: consume old lora/refine tokens
+            else if (tk.ExpectIdentifier("lora"))
+                tk.ExpectQuotedString();
+            else if (tk.ExpectIdentifier("lora_strength"))
+                tk.ExpectFloat(out _);
+            // Backward compat: consume old refine block
             else if (tk.ExpectIdentifier("refine"))
-            {
-                Refine = ParseGenerationConfig(ref tk);
-            }
+                ConsumeGenerationConfig(ref tk);
             else
             {
                 tk.ExpectToken(out var badToken);
@@ -123,7 +126,7 @@ public partial class GenSpriteDocument : Document, IShapeDocument
 
         // Parse generation config (mandatory for gensprite layers)
         if (tk.ExpectIdentifier("generate"))
-            layer.Generation = ParseGenerationConfig(ref tk);
+            ParseGenerationConfig(ref tk, layer);
 
         // Parse mask paths
         while (!tk.IsEOF && tk.ExpectIdentifier("path"))
@@ -162,27 +165,47 @@ public partial class GenSpriteDocument : Document, IShapeDocument
             shape.SetPathOperation(pathIndex, operation);
     }
 
-    private static GenerationConfig ParseGenerationConfig(ref Tokenizer tk)
+    private static void ParseGenerationConfig(ref Tokenizer tk, GenSpriteLayer layer)
     {
-        var config = new GenerationConfig();
         while (!tk.IsEOF)
         {
             if (tk.ExpectIdentifier("prompt"))
-                config.Prompt = tk.ExpectQuotedString() ?? "";
+                layer.Prompt = tk.ExpectQuotedString() ?? "";
             else if (tk.ExpectIdentifier("prompt_neg"))
-                config.NegativePrompt = tk.ExpectQuotedString() ?? "";
+                layer.NegativePrompt = tk.ExpectQuotedString() ?? "";
             else if (tk.ExpectIdentifier("seed"))
-                config.Seed = tk.ExpectInt();
+                layer.Seed = tk.ExpectInt();
+            // Backward compat: consume old fields
             else if (tk.ExpectIdentifier("strength"))
-                config.Strength = tk.ExpectFloat(0.8f);
+                tk.ExpectFloat(out _);
             else if (tk.ExpectIdentifier("steps"))
-                config.Steps = tk.ExpectInt();
+                tk.ExpectInt(out _);
             else if (tk.ExpectIdentifier("guidance_scale"))
-                config.GuidanceScale = tk.ExpectFloat(6.0f);
+                tk.ExpectFloat(out _);
             else
                 break;
         }
-        return config;
+    }
+
+    private static void ConsumeGenerationConfig(ref Tokenizer tk)
+    {
+        while (!tk.IsEOF)
+        {
+            if (tk.ExpectIdentifier("prompt"))
+                tk.ExpectQuotedString();
+            else if (tk.ExpectIdentifier("prompt_neg"))
+                tk.ExpectQuotedString();
+            else if (tk.ExpectIdentifier("seed"))
+                tk.ExpectInt(out _);
+            else if (tk.ExpectIdentifier("strength"))
+                tk.ExpectFloat(out _);
+            else if (tk.ExpectIdentifier("steps"))
+                tk.ExpectInt(out _);
+            else if (tk.ExpectIdentifier("guidance_scale"))
+                tk.ExpectFloat(out _);
+            else
+                break;
+        }
     }
 
     public override void Save(StreamWriter writer)
@@ -195,7 +218,7 @@ public partial class GenSpriteDocument : Document, IShapeDocument
 
             // Generation config (always present)
             writer.WriteLine("generate");
-            WriteGenerationConfig(writer, layer.Generation);
+            WriteGenerationConfig(writer, layer);
 
             // Mask paths
             SaveMaskPaths(layer.Shape, writer);
@@ -211,25 +234,15 @@ public partial class GenSpriteDocument : Document, IShapeDocument
             writer.WriteLine($"gen_image \"{Convert.ToBase64String(Generation.ImageData!)}\"");
         }
 
-        // Refine config
-        if (Refine != null)
-        {
-            writer.WriteLine();
-            writer.WriteLine("refine");
-            WriteGenerationConfig(writer, Refine);
-        }
     }
 
-    private static void WriteGenerationConfig(StreamWriter writer, GenerationConfig config)
+    private static void WriteGenerationConfig(StreamWriter writer, GenSpriteLayer layer)
     {
-        if (!string.IsNullOrEmpty(config.Prompt))
-            writer.WriteLine($"prompt \"{config.Prompt.Replace("\"", "\\\"")}\"");
-        if (!string.IsNullOrEmpty(config.NegativePrompt))
-            writer.WriteLine($"prompt_neg \"{config.NegativePrompt.Replace("\"", "\\\"")}\"");
-        writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "seed {0}", config.Seed));
-        writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "strength {0}", config.Strength));
-        writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "steps {0}", config.Steps));
-        writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "guidance_scale {0}", config.GuidanceScale));
+        if (!string.IsNullOrEmpty(layer.Prompt))
+            writer.WriteLine($"prompt \"{layer.Prompt.Replace("\"", "\\\"")}\"");
+        if (!string.IsNullOrEmpty(layer.NegativePrompt))
+            writer.WriteLine($"prompt_neg \"{layer.NegativePrompt.Replace("\"", "\\\"")}\"");
+        writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "seed {0}", layer.Seed));
     }
 
     private static void SaveMaskPaths(Shape shape, StreamWriter writer)
@@ -274,6 +287,7 @@ public partial class GenSpriteDocument : Document, IShapeDocument
 
         var style = meta.GetString("gensprite", "style", "");
         StyleName = string.IsNullOrEmpty(style) ? null : style;
+
     }
 
     public override void SaveMetadata(PropertySet meta)
@@ -474,25 +488,12 @@ public partial class GenSpriteDocument : Document, IShapeDocument
         return pngBytes;
     }
 
-    private GenerationConfig? GetStyleRefineConfig()
-    {
-        if (Style == null) return null;
-        return new GenerationConfig
-        {
-            Prompt = Style.RefinePrompt,
-            NegativePrompt = Style.RefineNegativePrompt,
-            Steps = Style.RefineSteps,
-            Strength = Style.RefineStrength,
-            GuidanceScale = Style.RefineGuidanceScale,
-        };
-    }
-
     public void GenerateAsync()
     {
         var genLayers = new List<(int Index, GenSpriteLayer Layer)>();
         for (int i = 0; i < _layers.Count; i++)
         {
-            if (_layers[i].Generation.HasPrompt)
+            if (_layers[i].HasPrompt)
                 genLayers.Add((i, _layers[i]));
         }
 
@@ -507,37 +508,80 @@ public partial class GenSpriteDocument : Document, IShapeDocument
 
         var globalPrompt = Style?.Prompt ?? "";
         var globalNegPrompt = Style?.NegativePrompt ?? "";
+        var layerSteps = Style?.DefaultSteps ?? 30;
+        var layerStrength = Style?.DefaultStrength ?? 0.8f;
+        var layerGuidance = Style?.DefaultGuidanceScale ?? 6.0f;
 
         var shapes = new List<GenerationShape>();
+        var layerPrompts = new List<string>();
+        var layerNegPrompts = new List<string>();
+
         foreach (var (layerIndex, layer) in genLayers)
         {
-            var gen = layer.Generation;
             var maskBytes = RasterizeMaskToPng(layerIndex);
 
-            var prompt = string.IsNullOrEmpty(globalPrompt) ? gen.Prompt : $"{gen.Prompt}, {globalPrompt}";
-            var negPrompt = gen.NegativePrompt;
+            var prompt = string.IsNullOrEmpty(globalPrompt) ? layer.Prompt : $"{layer.Prompt}, {globalPrompt}";
+            var negPrompt = layer.NegativePrompt;
             if (!string.IsNullOrEmpty(globalNegPrompt))
                 negPrompt = string.IsNullOrEmpty(negPrompt) ? globalNegPrompt : $"{negPrompt}, {globalNegPrompt}";
+
+            var seed = layer.Seed == 0 ? Random.Shared.NextInt64(1, long.MaxValue) : layer.Seed;
 
             shapes.Add(new GenerationShape
             {
                 Mask = maskBytes.Length > 0 ? $"data:image/png;base64,{Convert.ToBase64String(maskBytes)}" : null,
                 Prompt = prompt,
                 NegativePrompt = string.IsNullOrEmpty(negPrompt) ? null : negPrompt,
-                Strength = gen.Strength,
-                Steps = gen.Steps,
-                GuidanceScale = gen.GuidanceScale,
+                Strength = layerStrength,
+                Steps = layerSteps,
+                GuidanceScale = layerGuidance,
+                Seed = seed,
             });
+
+            if (layer.HasPrompt)
+                layerPrompts.Add(layer.Prompt);
+            if (!string.IsNullOrEmpty(layer.NegativePrompt))
+                layerNegPrompts.Add(layer.NegativePrompt);
         }
 
-        var server = EditorApplication.Config?.GenerationServer ?? "http://127.0.0.1:7860";
-        var primaryGen = genLayers[0].Layer.Generation;
-        var refine = Refine ?? GetStyleRefineConfig() ?? primaryGen;
+        // Compute a stable refine seed from the sum of all layer seeds
+        long refineSeed = 0;
+        foreach (var shape in shapes)
+            refineSeed += shape.Seed ?? 0;
 
-        var refinePrompt = string.IsNullOrEmpty(globalPrompt) ? refine.Prompt : $"{refine.Prompt}, {globalPrompt}";
-        var refineNegPrompt = refine.NegativePrompt;
-        if (!string.IsNullOrEmpty(globalNegPrompt))
-            refineNegPrompt = string.IsNullOrEmpty(refineNegPrompt) ? globalNegPrompt : $"{refineNegPrompt}, {globalNegPrompt}";
+        // Auto-build refine: concatenate layer prompts + style refine prompt
+        var refinePromptParts = new List<string>(layerPrompts);
+        if (!string.IsNullOrEmpty(Style?.RefinePrompt))
+            refinePromptParts.Add(Style.RefinePrompt);
+        var refinePrompt = string.Join(", ", refinePromptParts.Where(p => !string.IsNullOrEmpty(p)));
+
+        var refineNegParts = new List<string>(layerNegPrompts);
+        if (!string.IsNullOrEmpty(Style?.RefineNegativePrompt))
+            refineNegParts.Add(Style.RefineNegativePrompt);
+        var refineNegPrompt = string.Join(", ", refineNegParts.Where(p => !string.IsNullOrEmpty(p)));
+
+        var server = EditorApplication.Config?.GenerationServer ?? "http://127.0.0.1:7860";
+
+        // Build style block
+        GenerationStyleBlock? styleBlock = null;
+        if (Style != null)
+        {
+            var refs = GenerationClient.LoadStyleReferences(Style.StyleReferences);
+            if (refs != null)
+            {
+                styleBlock = new GenerationStyleBlock
+                {
+                    Strength = Style.StyleStrength,
+                    InpaintStrength = Style.StyleInpaintStrength,
+                    References = refs,
+                };
+            }
+        }
+
+        // Build loras from style
+        List<GenerationLora>? loras = null;
+        if (!string.IsNullOrEmpty(Style?.LoraName))
+            loras = [new GenerationLora { Name = Style.LoraName, Strength = Style.LoraStrength }];
 
         var request = new GenerationRequest
         {
@@ -547,12 +591,13 @@ public partial class GenSpriteDocument : Document, IShapeDocument
             {
                 Prompt = refinePrompt,
                 NegativePrompt = string.IsNullOrEmpty(refineNegPrompt) ? null : refineNegPrompt,
-                Strength = refine.Strength,
-                Steps = refine.Steps,
-                GuidanceScale = refine.GuidanceScale,
+                Strength = Style?.RefineStrength ?? 0.64f,
+                Steps = Style?.RefineSteps ?? 10,
+                GuidanceScale = Style?.RefineGuidanceScale ?? 6.0f,
+                Seed = refineSeed != 0 ? refineSeed : null,
             },
-            Seed = primaryGen.Seed == 0 ? Random.Shared.NextInt64(1, long.MaxValue) : primaryGen.Seed,
-            StyleReferences = Style != null ? GenerationClient.LoadStyleReferences(Style.StyleReferences) : null,
+            Style = styleBlock,
+            Loras = loras,
         };
 
         Log.Info($"Starting generation for '{Name}' ({shapes.Count} shapes) on {server}...");
@@ -627,8 +672,15 @@ public partial class GenSpriteDocument : Document, IShapeDocument
                         }
                         catch { }
 
-                        if (primaryGen.Seed == 0 && status.Result.Seed != 0)
-                            primaryGen.Seed = status.Result.Seed;
+                        // Update layer seeds from server response
+                        if (status.Result.Seed != 0)
+                        {
+                            foreach (var (_, layer) in genLayers)
+                            {
+                                if (layer.Seed == 0)
+                                    layer.Seed = status.Result.Seed;
+                            }
+                        }
 
                         Log.Info($"Generation complete for '{Name}' ({status.Result.Width}x{status.Result.Height}, seed={status.Result.Seed})");
                         IncrementVersion();
@@ -704,7 +756,6 @@ public partial class GenSpriteDocument : Document, IShapeDocument
 
         ActiveLayerIndex = src.ActiveLayerIndex;
         ConstrainedSize = src.ConstrainedSize;
-        Refine = src.Refine?.Clone();
 
         if (src.Generation.HasImageData)
             Generation.ImageData = (byte[])src.Generation.ImageData!.Clone();

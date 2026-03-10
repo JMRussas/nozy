@@ -13,12 +13,15 @@ public partial class GenStyleEditor : DocumentEditor
         public static partial WidgetId LayerStrength { get; }
         public static partial WidgetId LayerGuidance { get; }
         public static partial WidgetId LayerSteps { get; }
+        public static partial WidgetId StyleInpaintStrength { get; }
         public static partial WidgetId RefinePrompt { get; }
         public static partial WidgetId RefineNegativePrompt { get; }
         public static partial WidgetId RefineStrength { get; }
         public static partial WidgetId RefineGuidance { get; }
         public static partial WidgetId RefineSteps { get; }
-        public static partial WidgetId StyleRefStrength { get; }
+        public static partial WidgetId StyleStrength { get; }
+        public static partial WidgetId LoraDropDown { get; }
+        public static partial WidgetId LoraStrength { get; }
         public static partial WidgetId StyleRefDelete { get; }
         public static partial WidgetId AddStyleRefDropDown { get; }
     }
@@ -45,7 +48,7 @@ public partial class GenStyleEditor : DocumentEditor
     {
         LayerDefaultsUI();
         RefineDefaultsUI();
-        StyleReferencesUI();
+        StyleUI();
     }
 
     private void LayerDefaultsUI()
@@ -82,6 +85,21 @@ public partial class GenStyleEditor : DocumentEditor
                 {
                     Undo.Record(Document);
                     Document.DefaultGuidanceScale = guidance;
+                }
+            }
+        }
+
+        using (Inspector.BeginRow())
+        {
+            UI.Text("Style", EditorStyle.Text.Secondary with { AlignY = Align.Center });
+            UI.Flex();
+            using (UI.BeginContainer(new ContainerStyle { Width = 60 }))
+            {
+                var inpaintStrength = Document.StyleInpaintStrength;
+                if (UI.NumberInput(WidgetIds.StyleInpaintStrength, ref inpaintStrength, EditorStyle.TextInput, min: 0f, max: 1f, step: 0.01f, format: "0.00"))
+                {
+                    Undo.Record(Document);
+                    Document.StyleInpaintStrength = inpaintStrength;
                 }
             }
         }
@@ -134,6 +152,21 @@ public partial class GenStyleEditor : DocumentEditor
         }
 
         using (Inspector.BeginRow())
+        {
+            UI.Text("Style", EditorStyle.Text.Secondary with { AlignY = Align.Center });
+            UI.Flex();
+            using (UI.BeginContainer(new ContainerStyle { Width = 60 }))
+            {
+                var styleStrength = Document.StyleStrength;
+                if (UI.NumberInput(WidgetIds.StyleStrength, ref styleStrength, EditorStyle.TextInput, min: 0f, max: 1f, step: 0.01f, format: "0.00"))
+                {
+                    Undo.Record(Document);
+                    Document.StyleStrength = styleStrength;
+                }
+            }
+        }
+
+        using (Inspector.BeginRow())
         using (UI.BeginFlex())
             Document.RefinePrompt = UI.TextInput(WidgetIds.RefinePrompt, Document.RefinePrompt, EditorStyle.TextArea, "Refine Prompt", Document, multiLine: true);
 
@@ -142,27 +175,64 @@ public partial class GenStyleEditor : DocumentEditor
             Document.RefineNegativePrompt = UI.TextInput(WidgetIds.RefineNegativePrompt, Document.RefineNegativePrompt, EditorStyle.TextArea, "Negative Prompt", Document, multiLine: true);
     }
 
-    private void StyleReferencesUI()
+    private void StyleUI()
     {
-        using var _ = Inspector.BeginSection("STYLE REFERENCES");
+        using var _ = Inspector.BeginSection("STYLE");
         if (Inspector.IsSectionCollapsed) return;
 
+        // LoRA
+        var server = EditorApplication.Config?.GenerationServer ?? "http://127.0.0.1:7860";
+        GenerationClient.FetchLoras(server);
+
+        var loras = GenerationClient.CachedLoras;
+        var loraItems = new List<PopupMenuItem>
+        {
+            PopupMenuItem.Item("None", () =>
+            {
+                Undo.Record(Document);
+                Document.LoraName = null;
+                Document.IncrementVersion();
+            })
+        };
+        if (loras != null)
+        {
+            foreach (var lora in loras)
+                loraItems.Add(PopupMenuItem.Item(lora.Name, () =>
+                {
+                    Undo.Record(Document);
+                    Document.LoraName = lora.Name;
+                    Document.LoraStrength = lora.DefaultStrength;
+                    Document.IncrementVersion();
+                }));
+        }
+
+        using (Inspector.BeginRow())
+        {
+            using (UI.BeginFlex())
+                UI.DropDown(WidgetIds.LoraDropDown, loraItems.ToArray(), Document.LoraName ?? "None");
+
+            if (!string.IsNullOrEmpty(Document.LoraName))
+            {
+                using (UI.BeginContainer(new ContainerStyle { Width = 60 }))
+                {
+                    var strength = Document.LoraStrength;
+                    if (UI.NumberInput(WidgetIds.LoraStrength, ref strength, EditorStyle.TextInput, min: 0f, max: 2f, step: 0.05f, format: "0.00"))
+                    {
+                        Undo.Record(Document);
+                        Document.LoraStrength = strength;
+                    }
+                }
+            }
+        }
+
+        // Style references
         for (int i = 0; i < Document.StyleReferences.Count; i++)
         {
-            var (name, strength) = Document.StyleReferences[i];
+            var name = Document.StyleReferences[i];
             using (Inspector.BeginRow())
             {
                 UI.Text(name, EditorStyle.Text.Primary with { AlignY = Align.Center });
                 UI.Flex();
-
-                using (UI.BeginContainer(new ContainerStyle { Width = 60 }))
-                {
-                    if (UI.NumberInput(WidgetIds.StyleRefStrength + i, ref strength, EditorStyle.TextInput, min: 0f, max: 1f, step: 0.01f, format: "0.00"))
-                    {
-                        Undo.Record(Document);
-                        Document.StyleReferences[i] = (name, strength);
-                    }
-                }
 
                 if (UI.Button(WidgetIds.StyleRefDelete + i, EditorAssets.Sprites.IconDelete, EditorStyle.Button.SmallIconOnly))
                 {
@@ -173,12 +243,8 @@ public partial class GenStyleEditor : DocumentEditor
             }
         }
 
-        AddStyleRefUI();
-    }
-
-    private void AddStyleRefUI()
-    {
-        var existing = new HashSet<string>(Document.StyleReferences.Select(r => r.TextureName));
+        // Add style ref
+        var existing = new HashSet<string>(Document.StyleReferences);
         var names = new List<string>();
 
         foreach (var doc in DocumentManager.Documents)
@@ -188,18 +254,20 @@ public partial class GenStyleEditor : DocumentEditor
             names.Add(doc.Name);
         }
 
-        if (names.Count == 0) return;
-        names.Sort(StringComparer.OrdinalIgnoreCase);
-
-        using (Inspector.BeginRow())
-        using (UI.BeginFlex())
+        if (names.Count > 0)
         {
-            var selected = AssetBrowser.Show(WidgetIds.AddStyleRefDropDown, names.ToArray());
-            if (selected != null)
+            names.Sort(StringComparer.OrdinalIgnoreCase);
+
+            using (Inspector.BeginRow())
+            using (UI.BeginFlex())
             {
-                Undo.Record(Document);
-                Document.StyleReferences.Add((selected, 0.5f));
-                Document.IncrementVersion();
+                var selected = AssetBrowser.Show(WidgetIds.AddStyleRefDropDown, names.ToArray());
+                if (selected != null)
+                {
+                    Undo.Record(Document);
+                    Document.StyleReferences.Add(selected);
+                    Document.IncrementVersion();
+                }
             }
         }
     }

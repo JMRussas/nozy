@@ -8,8 +8,12 @@ public class GenSpriteLayer : IDisposable
 {
     public string Name = "";
     public readonly Shape Shape = new();
-    public GenerationConfig Generation = new();
+    public string Prompt = "";
+    public string NegativePrompt = "";
+    public long Seed;
     public int Index;
+
+    public bool HasPrompt => !string.IsNullOrEmpty(Prompt);
 
     public void Dispose()
     {
@@ -21,7 +25,9 @@ public class GenSpriteLayer : IDisposable
         var clone = new GenSpriteLayer
         {
             Name = Name,
-            Generation = Generation.Clone(),
+            Prompt = Prompt,
+            NegativePrompt = NegativePrompt,
+            Seed = Seed,
             Index = Index,
         };
         clone.Shape.CopyFrom(Shape);

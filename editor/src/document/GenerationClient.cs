@@ -139,13 +139,13 @@ public static class GenerationClient
         }, cancellationToken);
     }
 
-    public static List<GenerationStyleReference>? LoadStyleReferences(List<(string TextureName, float Strength)>? styles)
+    public static List<GenerationStyleReference>? LoadStyleReferences(List<string>? styles)
     {
         if (styles == null || styles.Count == 0)
             return null;
 
         var refs = new List<GenerationStyleReference>();
-        foreach (var (name, strength) in styles)
+        foreach (var name in styles)
         {
             var doc = DocumentManager.Find(AssetType.Texture, name);
             if (doc == null)
@@ -162,14 +162,43 @@ public static class GenerationClient
 
             var bytes = File.ReadAllBytes(doc.Path);
             var base64 = Convert.ToBase64String(bytes);
-            refs.Add(new GenerationStyleReference
-            {
-                Image = base64,
-                Strength = strength
-            });
+            refs.Add(new GenerationStyleReference { Image = base64 });
         }
 
         return refs.Count > 0 ? refs : null;
+    }
+
+    private static List<LoraInfo>? _cachedLoras;
+    private static string? _cachedLorasServer;
+
+    public static List<LoraInfo>? CachedLoras => _cachedLoras;
+
+    public static void FetchLoras(string server)
+    {
+        if (_cachedLorasServer == server && _cachedLoras != null)
+            return;
+
+        _cachedLorasServer = server;
+        Task.Run(async () =>
+        {
+            try
+            {
+                var response = await _http.GetAsync($"{server}/loras");
+                if (!response.IsSuccessStatusCode)
+                {
+                    Log.Warning($"Failed to fetch LoRAs: {response.StatusCode}");
+                    return;
+                }
+
+                var json = await response.Content.ReadAsStringAsync();
+                var loras = JsonSerializer.Deserialize<List<LoraInfo>>(json, _jsonOptions);
+                EditorApplication.RunOnMainThread(() => _cachedLoras = loras ?? []);
+            }
+            catch (Exception ex)
+            {
+                Log.Warning($"Failed to fetch LoRAs: {ex.Message}");
+            }
+        });
     }
 
     private static GenerationStatus MapJobToStatus(GenerationJobResponse job)
@@ -207,15 +236,29 @@ public class GenerationRequest
     public string Workflow { get; set; } = "sprite";
     public List<GenerationShape> Shapes { get; set; } = [];
     public GenerationRefine? Refine { get; set; }
-    public long? Seed { get; set; }
-    public List<GenerationStyleReference>? StyleReferences { get; set; }
+    public GenerationStyleBlock? Style { get; set; }
+    public List<GenerationLora>? Loras { get; set; }
+}
+
+public class GenerationStyleBlock
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public float Strength { get; set; } = 0.5f;
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public float InpaintStrength { get; set; } = 0.2f;
+    public List<GenerationStyleReference>? References { get; set; }
 }
 
 public class GenerationStyleReference
 {
     public string Image { get; set; } = "";
+}
+
+public class GenerationLora
+{
+    public string Name { get; set; } = "";
     [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
-    public float Strength { get; set; } = 0.5f;
+    public float Strength { get; set; } = 0.8f;
 }
 
 public class GenerationShape
@@ -229,6 +272,13 @@ public class GenerationShape
     public int Steps { get; set; } = 10;
     [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     public float GuidanceScale { get; set; } = 6.0f;
+    public long? Seed { get; set; }
+}
+
+public class LoraInfo
+{
+    public string Name { get; set; } = "";
+    public float DefaultStrength { get; set; } = 0.8f;
 }
 
 public class GenerationRefine
@@ -241,6 +291,7 @@ public class GenerationRefine
     public int Steps { get; set; } = 10;
     [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     public float GuidanceScale { get; set; } = 6.0f;
+    public long? Seed { get; set; }
 }
 
 public class GenerationResponse

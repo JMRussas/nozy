@@ -140,6 +140,7 @@ public static class DocumentManager
         if (doc == null) return null;
 
         doc.LoadMetadata();
+        doc.Loaded = true;
         doc.Load();
 
         if (position.HasValue)

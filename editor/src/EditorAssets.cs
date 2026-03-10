@@ -15,6 +15,7 @@ public static class EditorAssets
         public const string AssetIconBin = "asset_icon_bin";
         public const string AssetIconEvent = "asset_icon_event";
         public const string AssetIconFont = "asset_icon_font";
+        public const string AssetIconGenstyle = "asset_icon_genstyle";
         public const string AssetIconLua = "asset_icon_lua";
         public const string AssetIconShader = "asset_icon_shader";
         public const string AssetIconSound = "asset_icon_sound";
@@ -138,6 +139,7 @@ public static class EditorAssets
         public static Sprite AssetIconBin { get; private set; } = null!;
         public static Sprite AssetIconEvent { get; private set; } = null!;
         public static Sprite AssetIconFont { get; private set; } = null!;
+        public static Sprite AssetIconGenstyle { get; private set; } = null!;
         public static Sprite AssetIconLua { get; private set; } = null!;
         public static Sprite AssetIconShader { get; private set; } = null!;
         public static Sprite AssetIconSound { get; private set; } = null!;
@@ -195,6 +197,7 @@ public static class EditorAssets
             AssetIconBin = (Sprite)Asset.Load(AssetType.Sprite, Names.AssetIconBin)!;
             AssetIconEvent = (Sprite)Asset.Load(AssetType.Sprite, Names.AssetIconEvent)!;
             AssetIconFont = (Sprite)Asset.Load(AssetType.Sprite, Names.AssetIconFont)!;
+            AssetIconGenstyle = (Sprite)Asset.Load(AssetType.Sprite, Names.AssetIconGenstyle)!;
             AssetIconLua = (Sprite)Asset.Load(AssetType.Sprite, Names.AssetIconLua)!;
             AssetIconShader = (Sprite)Asset.Load(AssetType.Sprite, Names.AssetIconShader)!;
             AssetIconSound = (Sprite)Asset.Load(AssetType.Sprite, Names.AssetIconSound)!;
@@ -253,6 +256,7 @@ public static class EditorAssets
             AssetIconBin?.Dispose();
             AssetIconEvent?.Dispose();
             AssetIconFont?.Dispose();
+            AssetIconGenstyle?.Dispose();
             AssetIconLua?.Dispose();
             AssetIconShader?.Dispose();
             AssetIconSound?.Dispose();

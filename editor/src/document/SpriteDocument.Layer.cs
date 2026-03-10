@@ -2,72 +2,7 @@
 //  NoZ - Copyright(c) 2026 NoZ Games, LLC
 //
 
-using System.Threading;
-
 namespace NoZ.Editor;
-
-/// <summary>
-/// Generation parameters shared by both per-layer shapes and the refine pass.
-/// </summary>
-public class GenerationConfig
-{
-    public string Prompt = "";
-    public string NegativePrompt = "";
-    public long Seed;
-    public float Strength = 0.8f;
-    public int Steps = 40;
-    public float GuidanceScale = 6.0f;
-
-    public bool HasPrompt => !string.IsNullOrEmpty(Prompt);
-
-    public GenerationConfig Clone() => new()
-    {
-        Prompt = Prompt,
-        NegativePrompt = NegativePrompt,
-        Seed = Seed,
-        Strength = Strength,
-        Steps = Steps,
-        GuidanceScale = GuidanceScale,
-    };
-}
-
-/// <summary>
-/// Document-level generation state and result image.
-/// </summary>
-public class GenerationImage : IDisposable
-{
-    // Editor-only state (not persisted)
-    public bool IsGenerating;
-    public GenerationState GenerationState;
-    public int QueuePosition;
-    public float GenerationProgress;
-    public int CurrentStep;
-    public int TotalSteps;
-    public string? GenerationError;
-    public CancellationTokenSource? CancellationSource;
-
-    // Result image (persisted as base64 in .sprite file)
-    public byte[]? ImageData;
-    public Texture? Texture; // Editor-only GPU texture
-
-    public bool HasImageData => ImageData is { Length: > 0 };
-
-    public void CancelGeneration()
-    {
-        CancellationSource?.Cancel();
-        CancellationSource = null;
-        IsGenerating = false;
-        GenerationState = default;
-        GenerationProgress = 0f;
-        GenerationError = null;
-    }
-
-    public void Dispose()
-    {
-        Texture?.Dispose();
-        Texture = null;
-    }
-}
 
 public class SpriteFrame : IDisposable
 {

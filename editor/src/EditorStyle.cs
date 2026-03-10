@@ -107,10 +107,11 @@ public static class EditorStyle
         public const float OriginSize = 0.1f;
         public const float DocumentBoundsLineWidth = 0.015f;
         public static readonly Color NameColor = Color.White;
+        public static readonly Color NameOutlineColor = Color.Black;
+        public static readonly Color SelectedNameColor = Palette.Primary;
         public const float NameSize = 0.36f;
         public const float NamePadding = 0.26f;
-        public const float NameOutline = 0.1f;
-        public static readonly Color NameOutlineColor = Color.Black;
+        public const float NameOutline = 0.15f;
         public const float GridAlpha = 0.4f;
         public const float GridZeroAlpha = 0.5f;
         public const float Padding = 16f;

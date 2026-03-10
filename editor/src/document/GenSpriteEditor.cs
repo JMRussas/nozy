@@ -15,18 +15,13 @@ public partial class GenSpriteEditor : DocumentEditor
         public static partial WidgetId GenerateButton { get; }
         public static partial WidgetId ConstraintDropDown { get; }
         public static partial WidgetId StyleDropDown { get; }
-        public static partial WidgetId LayerSteps { get; }
-        public static partial WidgetId LayerStrength { get; }
-        public static partial WidgetId LayerGuidanceScale { get; }
         public static partial WidgetId LayerPrompt { get; }
         public static partial WidgetId LayerNegativePrompt { get; }
+        public static partial WidgetId LayerSeed { get; }
+        public static partial WidgetId LayerSeedDice { get; }
         public static partial WidgetId LayerDeleteButton { get; }
-        public static partial WidgetId RefineSteps { get; }
-        public static partial WidgetId RefineStrength { get; }
-        public static partial WidgetId RefineGuidanceScale { get; }
-        public static partial WidgetId RefinePrompt { get; }
-        public static partial WidgetId RefineNegativePrompt { get; }
-        public static partial WidgetId RefineDeleteButton { get; }
+        public static partial WidgetId LayerMoveUp { get; }
+        public static partial WidgetId LayerMoveDown { get; }
         public static partial WidgetId PathNormal { get; }
         public static partial WidgetId PathSubtract { get; }
         public static partial WidgetId PathClip { get; }
@@ -117,7 +112,6 @@ public partial class GenSpriteEditor : DocumentEditor
             GenSpriteInspectorUI();
 
         LayersInspectorUI();
-        RefineInspectorUI();
 
         AddComponentUI();
 
@@ -211,41 +205,17 @@ public partial class GenSpriteEditor : DocumentEditor
     {
         using (UI.BeginContainer(new ContainerStyle { Padding = EdgeInsets.Symmetric(10, 16), AlignX = Align.Center }))
         {
-            UI.SetChecked(EditorUI.IsPopupOpen(WidgetIds.AddComponentButton));
             if (UI.Button(WidgetIds.AddComponentButton, () =>
             {
-                UI.Text("+ Add Component", EditorStyle.Control.Text);
+                UI.Text("+ Add Layer", EditorStyle.Control.Text);
             }, EditorStyle.Button.Secondary))
-                // TODO: migrate to UI.PopupMenu
-                EditorUI.TogglePopup(WidgetIds.AddComponentButton);
-        }
-
-        var hasRefine = Document.Refine != null;
-
-        // TODO: migrate to UI.PopupMenu
-        EditorUI.Popup(WidgetIds.AddComponentButton, () =>
-        {
-            // TODO: migrate to UI.PopupMenu
-            if (EditorUI.PopupItem(EditorAssets.Sprites.IconLayer, "Layer"))
             {
-                // TODO: migrate to UI.PopupMenu
-                EditorUI.ClosePopup();
                 Undo.Record(Document);
                 Document.AddLayer();
                 ClearSelection();
                 Document.IncrementVersion();
             }
-
-            // TODO: migrate to UI.PopupMenu
-            if (EditorUI.PopupItem(EditorAssets.Sprites.IconAi, "Refine", disabled: hasRefine))
-            {
-                // TODO: migrate to UI.PopupMenu
-                EditorUI.ClosePopup();
-                Undo.Record(Document);
-                Document.Refine = new GenerationConfig();
-                Document.IncrementVersion();
-            }
-        });
+        }
     }
 
     private void ProgressUI(GenerationImage genImage)
@@ -319,13 +289,35 @@ public partial class GenSpriteEditor : DocumentEditor
             var isActive = Document.ActiveLayerIndex == i;
             var layerIndex = i;
 
-            var prompt = layer.Generation.Prompt;
+            var prompt = layer.Prompt;
             var title = string.IsNullOrEmpty(prompt) ? layer.Name
                 : prompt.Length > 28 ? prompt[..28] + "..."
                 : prompt;
 
             void LayerHeaderContent()
             {
+                if (layerIndex < Document.Layers.Count - 1)
+                {
+                    if (UI.Button(WidgetIds.LayerMoveUp + layerIndex, EditorAssets.Sprites.IconExpandUp, EditorStyle.Button.SmallIconOnly))
+                    {
+                        Undo.Record(Document);
+                        Document.MoveLayer(layerIndex, layerIndex + 1);
+                        Document.ActiveLayerIndex = layerIndex + 1;
+                        Document.IncrementVersion();
+                    }
+                }
+
+                if (layerIndex > 0)
+                {
+                    if (UI.Button(WidgetIds.LayerMoveDown + layerIndex, EditorAssets.Sprites.IconExpandDown, EditorStyle.Button.SmallIconOnly))
+                    {
+                        Undo.Record(Document);
+                        Document.MoveLayer(layerIndex, layerIndex - 1);
+                        Document.ActiveLayerIndex = layerIndex - 1;
+                        Document.IncrementVersion();
+                    }
+                }
+
                 if (Document.Layers.Count > 1)
                 {
                     if (UI.Button(WidgetIds.LayerDeleteButton + layerIndex, EditorAssets.Sprites.IconDelete, EditorStyle.Button.SmallIconOnly))
@@ -348,60 +340,32 @@ public partial class GenSpriteEditor : DocumentEditor
 
                 if (!Inspector.IsSectionCollapsed && isActive)
                 {
-                    var gen = layer.Generation;
-
-                    GenerationParamsUI(
-                        WidgetIds.LayerSteps + i,
-                        WidgetIds.LayerStrength + i,
-                        WidgetIds.LayerGuidanceScale + i,
-                        gen);
+                    using (Inspector.BeginRow())
+                    using (UI.BeginFlex())
+                        layer.Prompt = UI.TextInput(WidgetIds.LayerPrompt + i, layer.Prompt, EditorStyle.TextArea, "Prompt", Document, multiLine: true);
 
                     using (Inspector.BeginRow())
                     using (UI.BeginFlex())
-                        gen.Prompt = UI.TextInput(WidgetIds.LayerPrompt + i, gen.Prompt, EditorStyle.TextArea, "Prompt", Document, multiLine: true);
+                        layer.NegativePrompt = UI.TextInput(WidgetIds.LayerNegativePrompt + i, layer.NegativePrompt, EditorStyle.TextArea, "Negative Prompt", Document, multiLine: true);
 
                     using (Inspector.BeginRow())
-                    using (UI.BeginFlex())
-                        gen.NegativePrompt = UI.TextInput(WidgetIds.LayerNegativePrompt + i, gen.NegativePrompt, EditorStyle.TextArea, "Negative Prompt", Document, multiLine: true);
+                    {
+                        using (UI.BeginFlex())
+                        {
+                            var seed = (float)layer.Seed;
+                            if (UI.NumberInput(WidgetIds.LayerSeed + i, ref seed, EditorStyle.TextInput, min: 0, max: float.MaxValue, step: 1, format: "0"))
+                            {
+                                Undo.Record(Document);
+                                layer.Seed = (long)seed;
+                            }
+                        }
+                        if (UI.Button(WidgetIds.LayerSeedDice + i, EditorAssets.Sprites.IconLoop, EditorStyle.Button.SmallIconOnly))
+                        {
+                            Undo.Record(Document);
+                            layer.Seed = Random.Shared.NextInt64(1, long.MaxValue);
+                        }
+                    }
                 }
-            }
-        }
-    }
-
-    private void RefineInspectorUI()
-    {
-        if (Document.Refine == null)
-            return;
-
-        void RefineHeaderContent()
-        {
-            if (UI.Button(WidgetIds.RefineDeleteButton, EditorAssets.Sprites.IconDelete, EditorStyle.Button.SmallIconOnly))
-            {
-                Undo.Record(Document);
-                Document.Refine = null;
-                Document.IncrementVersion();
-            }
-        }
-
-        using (Inspector.BeginSection("Refine", icon: EditorAssets.Sprites.IconAi, content: RefineHeaderContent))
-        {
-            if (!Inspector.IsSectionCollapsed && Document.Refine != null)
-            {
-                var refine = Document.Refine;
-
-                GenerationParamsUI(
-                    WidgetIds.RefineSteps,
-                    WidgetIds.RefineStrength,
-                    WidgetIds.RefineGuidanceScale,
-                    refine);
-
-                using (Inspector.BeginRow())
-                using (UI.BeginFlex())
-                    refine.Prompt = UI.TextInput(WidgetIds.RefinePrompt, refine.Prompt, EditorStyle.TextArea, "Refine Prompt", Document, multiLine: true);
-
-                using (Inspector.BeginRow())
-                using (UI.BeginFlex())
-                    refine.NegativePrompt = UI.TextInput(WidgetIds.RefineNegativePrompt, refine.NegativePrompt, EditorStyle.TextArea, "Negative Prompt", Document, multiLine: true);
             }
         }
     }
@@ -456,42 +420,6 @@ public partial class GenSpriteEditor : DocumentEditor
 
             if (UI.WasPressed())
                 SetPathOperation(op);
-        }
-    }
-
-    private void GenerationParamsUI(WidgetId stepsId, WidgetId strengthId, WidgetId guidanceId, GenerationConfig gen)
-    {
-        using (Inspector.BeginRow())
-        {
-            using (UI.BeginFlex())
-            {
-                var steps = gen.Steps;
-                if (UI.NumberInput(stepsId, ref steps, EditorStyle.TextInput, min: 1, max: 100, icon: EditorAssets.Sprites.IconSort))
-                {
-                    Undo.Record(Document);
-                    gen.Steps = steps;
-                }
-            }
-
-            using (UI.BeginFlex())
-            {
-                var strength = gen.Strength;
-                if (UI.NumberInput(strengthId, ref strength, EditorStyle.TextInput, min: 0f, max: 1f, step: 0.01f, format: "0.00", icon: EditorAssets.Sprites.IconOpacity))
-                {
-                    Undo.Record(Document);
-                    gen.Strength = strength;
-                }
-            }
-
-            using (UI.BeginFlex())
-            {
-                var guidance = gen.GuidanceScale;
-                if (UI.NumberInput(guidanceId, ref guidance, EditorStyle.TextInput, min: 0f, max: 30f, step: 0.1f, format: "0.0", icon: EditorAssets.Sprites.IconConstraint))
-                {
-                    Undo.Record(Document);
-                    gen.GuidanceScale = guidance;
-                }
-            }
         }
     }
 

@@ -3,8 +3,42 @@
 //
 
 using System.Globalization;
+using System.Threading;
 
 namespace NoZ.Editor;
+
+public class GenerationImage : IDisposable
+{
+    public bool IsGenerating;
+    public GenerationState GenerationState;
+    public int QueuePosition;
+    public float GenerationProgress;
+    public int CurrentStep;
+    public int TotalSteps;
+    public string? GenerationError;
+    public CancellationTokenSource? CancellationSource;
+
+    public byte[]? ImageData;
+    public Texture? Texture;
+
+    public bool HasImageData => ImageData is { Length: > 0 };
+
+    public void CancelGeneration()
+    {
+        CancellationSource?.Cancel();
+        CancellationSource = null;
+        IsGenerating = false;
+        GenerationState = default;
+        GenerationProgress = 0f;
+        GenerationError = null;
+    }
+
+    public void Dispose()
+    {
+        Texture?.Dispose();
+        Texture = null;
+    }
+}
 
 public class GenStyleDocument : Document
 {
@@ -12,17 +46,28 @@ public class GenStyleDocument : Document
 
     public override bool CanSave => true;
 
+    // Layer defaults
     public string Prompt = "";
     public string NegativePrompt = "";
     public int DefaultSteps = 30;
     public float DefaultStrength = 0.8f;
     public float DefaultGuidanceScale = 6.0f;
+    public float StyleInpaintStrength = 0.2f;
+
+    // Refine defaults
     public string RefinePrompt = "";
     public string RefineNegativePrompt = "";
     public int RefineSteps = 30;
     public float RefineStrength = 0.64f;
     public float RefineGuidanceScale = 6.0f;
-    public List<(string TextureName, float Strength)> StyleReferences = new();
+    public float StyleStrength = 0.5f;
+
+    // LoRA
+    public string? LoraName;
+    public float LoraStrength = 0.8f;
+
+    // Style references
+    public List<string> StyleReferences = new();
 
     public GenStyleDocument()
     {
@@ -39,12 +84,13 @@ public class GenStyleDocument : Document
             Factory = () => new GenStyleDocument(),
             EditorFactory = doc => new GenStyleEditor((GenStyleDocument)doc),
             NewFile = NewFile,
-            Icon = () => EditorAssets.Sprites.AssetIconSprite
+            Icon = () => EditorAssets.Sprites.AssetIconGenstyle
         });
     }
 
     private static void NewFile(StreamWriter writer)
     {
+        writer.WriteLine("layer");
         writer.WriteLine("prompt \"\"");
     }
 
@@ -62,7 +108,24 @@ public class GenStyleDocument : Document
 
         while (!tk.IsEOF)
         {
-            if (tk.ExpectIdentifier("prompt"))
+            if (tk.ExpectIdentifier("layer"))
+                ParseLayer(ref tk);
+            else if (tk.ExpectIdentifier("refine"))
+                ParseRefine(ref tk);
+            else if (tk.ExpectIdentifier("lora"))
+                LoraName = tk.ExpectQuotedString();
+            else if (tk.ExpectIdentifier("lora_strength"))
+                LoraStrength = tk.ExpectFloat(0.8f);
+            else if (tk.ExpectIdentifier("style_ref"))
+            {
+                var name = tk.ExpectQuotedString() ?? "";
+                // Backward compat: consume old per-ref strength if present
+                tk.ExpectFloat(out _);
+                if (!string.IsNullOrEmpty(name))
+                    StyleReferences.Add(name);
+            }
+            // Backward compat: old flat format tokens
+            else if (tk.ExpectIdentifier("prompt"))
                 Prompt = tk.ExpectQuotedString() ?? "";
             else if (tk.ExpectIdentifier("prompt_neg"))
                 NegativePrompt = tk.ExpectQuotedString() ?? "";
@@ -70,7 +133,7 @@ public class GenStyleDocument : Document
                 DefaultSteps = tk.ExpectInt(30);
             else if (tk.ExpectIdentifier("strength"))
                 DefaultStrength = tk.ExpectFloat(0.8f);
-            else if (tk.ExpectIdentifier("guidance_scale"))
+            else if (tk.ExpectIdentifier("guidance") || tk.ExpectIdentifier("guidance_scale"))
                 DefaultGuidanceScale = tk.ExpectFloat(6.0f);
             else if (tk.ExpectIdentifier("refine_prompt"))
                 RefinePrompt = tk.ExpectQuotedString() ?? "";
@@ -80,15 +143,8 @@ public class GenStyleDocument : Document
                 RefineSteps = tk.ExpectInt(30);
             else if (tk.ExpectIdentifier("refine_strength"))
                 RefineStrength = tk.ExpectFloat(0.64f);
-            else if (tk.ExpectIdentifier("refine_guidance_scale"))
+            else if (tk.ExpectIdentifier("refine_guidance") || tk.ExpectIdentifier("refine_guidance_scale"))
                 RefineGuidanceScale = tk.ExpectFloat(6.0f);
-            else if (tk.ExpectIdentifier("style_ref"))
-            {
-                var name = tk.ExpectQuotedString() ?? "";
-                var strength = tk.ExpectFloat(0.5f);
-                if (!string.IsNullOrEmpty(name))
-                    StyleReferences.Add((name, strength));
-            }
             else
             {
                 tk.ExpectToken(out var badToken);
@@ -98,25 +154,88 @@ public class GenStyleDocument : Document
         }
     }
 
+    private void ParseLayer(ref Tokenizer tk)
+    {
+        while (!tk.IsEOF)
+        {
+            if (tk.ExpectIdentifier("prompt"))
+                Prompt = tk.ExpectQuotedString() ?? "";
+            else if (tk.ExpectIdentifier("prompt_neg"))
+                NegativePrompt = tk.ExpectQuotedString() ?? "";
+            else if (tk.ExpectIdentifier("steps"))
+                DefaultSteps = tk.ExpectInt(30);
+            else if (tk.ExpectIdentifier("strength"))
+                DefaultStrength = tk.ExpectFloat(0.8f);
+            else if (tk.ExpectIdentifier("guidance") || tk.ExpectIdentifier("guidance_scale"))
+                DefaultGuidanceScale = tk.ExpectFloat(6.0f);
+            else if (tk.ExpectIdentifier("style") || tk.ExpectIdentifier("style_strength"))
+                StyleInpaintStrength = tk.ExpectFloat(0.2f);
+            else
+                break;
+        }
+    }
+
+    private void ParseRefine(ref Tokenizer tk)
+    {
+        while (!tk.IsEOF)
+        {
+            if (tk.ExpectIdentifier("prompt"))
+                RefinePrompt = tk.ExpectQuotedString() ?? "";
+            else if (tk.ExpectIdentifier("prompt_neg"))
+                RefineNegativePrompt = tk.ExpectQuotedString() ?? "";
+            else if (tk.ExpectIdentifier("steps"))
+                RefineSteps = tk.ExpectInt(30);
+            else if (tk.ExpectIdentifier("strength"))
+                RefineStrength = tk.ExpectFloat(0.64f);
+            else if (tk.ExpectIdentifier("guidance") || tk.ExpectIdentifier("guidance_scale"))
+                RefineGuidanceScale = tk.ExpectFloat(6.0f);
+            else if (tk.ExpectIdentifier("style") || tk.ExpectIdentifier("style_strength"))
+                StyleStrength = tk.ExpectFloat(0.5f);
+            else
+                break;
+        }
+    }
+
     public override void Save(StreamWriter writer)
     {
+        // Layer section
+        writer.WriteLine("layer");
         if (!string.IsNullOrEmpty(Prompt))
             writer.WriteLine($"prompt \"{Prompt.Replace("\"", "\\\"")}\"");
         if (!string.IsNullOrEmpty(NegativePrompt))
             writer.WriteLine($"prompt_neg \"{NegativePrompt.Replace("\"", "\\\"")}\"");
         writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "steps {0}", DefaultSteps));
         writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "strength {0}", DefaultStrength));
-        writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "guidance_scale {0}", DefaultGuidanceScale));
-        if (!string.IsNullOrEmpty(RefinePrompt))
-            writer.WriteLine($"refine_prompt \"{RefinePrompt.Replace("\"", "\\\"")}\"");
-        if (!string.IsNullOrEmpty(RefineNegativePrompt))
-            writer.WriteLine($"refine_prompt_neg \"{RefineNegativePrompt.Replace("\"", "\\\"")}\"");
-        writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "refine_steps {0}", RefineSteps));
-        writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "refine_strength {0}", RefineStrength));
-        writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "refine_guidance_scale {0}", RefineGuidanceScale));
+        writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "guidance {0}", DefaultGuidanceScale));
+        writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "style {0}", StyleInpaintStrength));
 
-        foreach (var (name, strength) in StyleReferences)
-            writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "style_ref \"{0}\" {1}", name, strength));
+        // Refine section
+        writer.WriteLine();
+        writer.WriteLine("refine");
+        if (!string.IsNullOrEmpty(RefinePrompt))
+            writer.WriteLine($"prompt \"{RefinePrompt.Replace("\"", "\\\"")}\"");
+        if (!string.IsNullOrEmpty(RefineNegativePrompt))
+            writer.WriteLine($"prompt_neg \"{RefineNegativePrompt.Replace("\"", "\\\"")}\"");
+        writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "steps {0}", RefineSteps));
+        writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "strength {0}", RefineStrength));
+        writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "guidance {0}", RefineGuidanceScale));
+        writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "style {0}", StyleStrength));
+
+        // LoRA
+        if (!string.IsNullOrEmpty(LoraName))
+        {
+            writer.WriteLine();
+            writer.WriteLine($"lora \"{LoraName}\"");
+            writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "lora_strength {0}", LoraStrength));
+        }
+
+        // Style references
+        if (StyleReferences.Count > 0)
+        {
+            writer.WriteLine();
+            foreach (var name in StyleReferences)
+                writer.WriteLine($"style_ref \"{name}\"");
+        }
     }
 
     public override void Draw()
@@ -125,7 +244,7 @@ public class GenStyleDocument : Document
         {
             Graphics.SetLayer(EditorLayer.Document);
             Graphics.SetColor(Color.White);
-            Graphics.Draw(EditorAssets.Sprites.AssetIconSprite);
+            Graphics.Draw(EditorAssets.Sprites.AssetIconGenstyle);
         }
     }
 }

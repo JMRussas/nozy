@@ -286,7 +286,7 @@ public static unsafe partial class ElementTree
         var prevCursor = state.CursorIndex;
         var prevSelection = state.SelectionStart;
         var prevHash = state.TextHash;
-        HandleTextInput(ref state, font, d.FontSize, d.MultiLine, d.Scope, d.CommitOnEnter);
+        HandleTextInput(ref state, font, d.FontSize, d.MultiLine, e.Rect.Width, d.Scope, d.CommitOnEnter);
 
         // Reset blink timer when cursor moves or text changes
         if (state.CursorIndex != prevCursor || state.SelectionStart != prevSelection || state.TextHash != prevHash)
@@ -318,6 +318,7 @@ public static unsafe partial class ElementTree
         Font font,
         float fontSize,
         bool multiLine,
+        float contentWidth,
         InputScope scope,
         bool commitOnEnter)
     {
@@ -491,19 +492,43 @@ public static unsafe partial class ElementTree
             return;
         }
 
-        // Home
-        if (Input.WasButtonPressed(InputCode.KeyHome, true, scope))
+        // Up arrow (multiline)
+        if (multiLine && Input.WasButtonPressed(InputCode.KeyUp, true, scope))
         {
-            state.CursorIndex = 0;
+            MoveCursorVertically(ref state, font, fontSize, contentWidth, -1);
             if (!shift)
                 state.SelectionStart = state.CursorIndex;
             return;
         }
 
-        // End
+        // Down arrow (multiline)
+        if (multiLine && Input.WasButtonPressed(InputCode.KeyDown, true, scope))
+        {
+            MoveCursorVertically(ref state, font, fontSize, contentWidth, 1);
+            if (!shift)
+                state.SelectionStart = state.CursorIndex;
+            return;
+        }
+
+        // Home — start of line (multiline) or start of text; Ctrl+Home always start of text
+        if (Input.WasButtonPressed(InputCode.KeyHome, true, scope))
+        {
+            if (multiLine && !ctrl)
+                state.CursorIndex = GetCurrentLineStart(text.AsReadOnlySpan(), font, fontSize, contentWidth, state.CursorIndex);
+            else
+                state.CursorIndex = 0;
+            if (!shift)
+                state.SelectionStart = state.CursorIndex;
+            return;
+        }
+
+        // End — end of line (multiline) or end of text; Ctrl+End always end of text
         if (Input.WasButtonPressed(InputCode.KeyEnd, true, scope))
         {
-            state.CursorIndex = text.AsReadOnlySpan().Length;
+            if (multiLine && !ctrl)
+                state.CursorIndex = GetCurrentLineEnd(text.AsReadOnlySpan(), font, fontSize, contentWidth, state.CursorIndex);
+            else
+                state.CursorIndex = text.AsReadOnlySpan().Length;
             if (!shift)
                 state.SelectionStart = state.CursorIndex;
             return;
@@ -669,11 +694,17 @@ public static unsafe partial class ElementTree
         for (var i = 0; i < lineCount; i++)
         {
             var line = lines[i];
-            if (line.End <= selStart || line.Start >= selEnd) continue;
+            // Actual line end includes trailing spaces (up to next line start or text end)
+            var actualEnd = i + 1 < lineCount ? lines[i + 1].Start : text.Length;
+            // Exclude newline character at the boundary
+            if (actualEnd > line.Start && actualEnd <= text.Length && text[actualEnd - 1] == '\n')
+                actualEnd--;
+
+            if (actualEnd <= selStart || line.Start >= selEnd) continue;
 
             var lineSelStart = Math.Max(selStart, line.Start) - line.Start;
-            var lineSelEnd = Math.Min(selEnd, line.End) - line.Start;
-            var lineText = text[line.Start..line.End];
+            var lineSelEnd = Math.Min(selEnd, actualEnd) - line.Start;
+            var lineText = text[line.Start..actualEnd];
 
             var x0 = MeasureTextWidth(lineText[..lineSelStart], font, fontSize);
             var x1 = MeasureTextWidth(lineText[..lineSelEnd], font, fontSize);
@@ -701,10 +732,13 @@ public static unsafe partial class ElementTree
         for (var i = 0; i < lineCount; i++)
         {
             var line = lines[i];
-            if (cursorIndex <= line.End || i == lineCount - 1)
+            // Actual line end includes trailing spaces (next line start or text end)
+            var actualEnd = i + 1 < lineCount ? lines[i + 1].Start : text.Length;
+
+            if (cursorIndex <= actualEnd || i == lineCount - 1)
             {
-                var posInLine = Math.Clamp(cursorIndex - line.Start, 0, line.End - line.Start);
-                var lineText = text[line.Start..line.End];
+                var posInLine = Math.Clamp(cursorIndex - line.Start, 0, actualEnd - line.Start);
+                var lineText = text[line.Start..actualEnd];
                 x = MeasureTextWidth(lineText[..posInLine], font, fontSize);
                 y = i * lineHeight;
                 return;
@@ -713,6 +747,81 @@ public static unsafe partial class ElementTree
 
         x = 0;
         y = (lineCount - 1) * lineHeight;
+    }
+
+    private static void MoveCursorVertically(ref EditableTextState state, Font font, float fontSize, float maxWidth, int direction)
+    {
+        var text = state.EditText.AsReadOnlySpan();
+        if (text.Length == 0 || maxWidth <= 0) return;
+
+        Span<TextRender.CachedLine> lines = stackalloc TextRender.CachedLine[64];
+        var lineCount = TextRender.GetWrapLines(text, font, fontSize, maxWidth, 0, lines);
+        if (lineCount <= 1) return;
+
+        // Find which line the cursor is on
+        var cursorLine = lineCount - 1;
+        for (var i = 0; i < lineCount; i++)
+        {
+            var lineEnd = i + 1 < lineCount ? lines[i + 1].Start : text.Length;
+            if (state.CursorIndex <= lineEnd || i == lineCount - 1)
+            {
+                cursorLine = i;
+                break;
+            }
+        }
+
+        var targetLine = cursorLine + direction;
+        if (targetLine < 0 || targetLine >= lineCount) return;
+
+        // Get X position of cursor on current line
+        var currentLineStart = lines[cursorLine].Start;
+        var currentLineEnd = cursorLine + 1 < lineCount ? lines[cursorLine + 1].Start : text.Length;
+        var posInLine = Math.Clamp(state.CursorIndex - currentLineStart, 0, currentLineEnd - currentLineStart);
+        var cursorX = MeasureTextWidth(text[currentLineStart..(currentLineStart + posInLine)], font, fontSize);
+
+        // Hit-test on the target line to find closest char index
+        var targetLineStart = lines[targetLine].Start;
+        var targetLineEnd = targetLine + 1 < lineCount ? lines[targetLine + 1].Start : text.Length;
+        var targetLineText = text[targetLineStart..targetLineEnd];
+        state.CursorIndex = targetLineStart + FindCharIndexAtX(targetLineText, font, fontSize, cursorX);
+    }
+
+    private static int GetCurrentLineStart(ReadOnlySpan<char> text, Font font, float fontSize, float maxWidth, int cursorIndex)
+    {
+        if (text.Length == 0 || maxWidth <= 0) return 0;
+
+        Span<TextRender.CachedLine> lines = stackalloc TextRender.CachedLine[64];
+        var lineCount = TextRender.GetWrapLines(text, font, fontSize, maxWidth, 0, lines);
+        if (lineCount == 0) return 0;
+
+        for (var i = lineCount - 1; i >= 0; i--)
+        {
+            if (cursorIndex >= lines[i].Start)
+                return lines[i].Start;
+        }
+        return 0;
+    }
+
+    private static int GetCurrentLineEnd(ReadOnlySpan<char> text, Font font, float fontSize, float maxWidth, int cursorIndex)
+    {
+        if (text.Length == 0 || maxWidth <= 0) return text.Length;
+
+        Span<TextRender.CachedLine> lines = stackalloc TextRender.CachedLine[64];
+        var lineCount = TextRender.GetWrapLines(text, font, fontSize, maxWidth, 0, lines);
+        if (lineCount == 0) return text.Length;
+
+        for (var i = 0; i < lineCount; i++)
+        {
+            var lineEnd = i + 1 < lineCount ? lines[i + 1].Start : text.Length;
+            if (cursorIndex < lineEnd || i == lineCount - 1)
+            {
+                // Exclude trailing newline from the "end" position
+                if (lineEnd > 0 && lineEnd <= text.Length && text[lineEnd - 1] == '\n')
+                    lineEnd--;
+                return lineEnd;
+            }
+        }
+        return text.Length;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -735,7 +844,9 @@ public static unsafe partial class ElementTree
             var lineHeight = font.LineHeight * fontSize;
             var lineIndex = Math.Clamp((int)(relY / lineHeight), 0, lineCount - 1);
             var line = lines[lineIndex];
-            var lineText = text[line.Start..line.End];
+            // Use actual line end (including trailing spaces) for hit testing
+            var actualEnd = lineIndex + 1 < lineCount ? lines[lineIndex + 1].Start : text.Length;
+            var lineText = text[line.Start..actualEnd];
             return line.Start + FindCharIndexAtX(lineText, font, fontSize, relX);
         }
 
