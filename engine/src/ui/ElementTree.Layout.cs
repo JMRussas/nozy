@@ -277,7 +277,7 @@ public static unsafe partial class ElementTree
             {
                 ref var d = ref e.Data.Image;
                 if (d.Size[axis].IsFixed)
-                    size = d.Size[axis].Value;
+                    size = Math.Max(d.Size[axis].Value, available);
                 else if (d.Size[axis].IsPercent)
                     size = available;
                 else
@@ -339,9 +339,13 @@ public static unsafe partial class ElementTree
         if (e.Type == ElementType.Popup)
         {
             ref var pd = ref e.Data.Popup;
-            var anchorPos = pd.AnchorRect[axis] + pd.AnchorRect[axis + 2] * (axis == 0 ? pd.AnchorFactorX : pd.AnchorFactorY);
+            var defaultAnchor = pd.AnchorRect.Width == 0 && pd.AnchorRect.Height == 0;
+            var anchorRect = defaultAnchor ? new Rect(0, 0, ScreenSize.X, ScreenSize.Y) : pd.AnchorRect;
+            var anchorFactorX = defaultAnchor ? 0.5f : pd.AnchorFactorX;
+            var anchorFactorY = defaultAnchor ? 0.5f : pd.AnchorFactorY;
+            var anchorFactor = axis == 0 ? anchorFactorX : anchorFactorY;
+            var anchorPos = anchorRect[axis] + anchorRect[axis + 2] * anchorFactor;
             var popupAlignFactor = axis == 0 ? pd.PopupAlignFactorX : pd.PopupAlignFactorY;
-            var anchorFactor = axis == 0 ? pd.AnchorFactorX : pd.AnchorFactorY;
             e.Rect[axis] = anchorPos - size * popupAlignFactor;
             if (anchorFactor != popupAlignFactor)
                 e.Rect[axis] += pd.Spacing * (1f - 2f * popupAlignFactor);
