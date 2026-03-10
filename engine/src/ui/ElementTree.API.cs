@@ -157,6 +157,18 @@ public static unsafe partial class ElementTree
 
     public static void EndScrollable() => EndElement(ElementType.Scroll);
 
+    public static void BeginTrack(ref TrackState state, WidgetId id, float thumbSizeX, float thumbSizeY = 0)
+    {
+        ref var e = ref BeginElement(ElementType.Track);
+        ref var d = ref e.Data.Track;
+        d.Id = id;
+        d.ThumbSizeX = thumbSizeX;
+        d.ThumbSizeY = thumbSizeY;
+        d.State = (TrackState*)Unsafe.AsPointer(ref state);
+    }
+
+    public static void EndTrack() => EndElement(ElementType.Track);
+
     public static int BeginRow(float spacing = 0)
     {
         ref var e = ref BeginElement(ElementType.Row);

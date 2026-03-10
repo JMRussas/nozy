@@ -33,11 +33,18 @@ public struct EditableTextState
     public byte WasCancelled;
     public byte JustFocused;
     public int FocusClickIndex;
+    public float BlinkTime;
 }
 
 public struct ScrollState
 {
     public float Offset;
     public float ContentHeight;
+}
+
+public struct TrackState
+{
+    public float X;
+    public float Y;
 }
 

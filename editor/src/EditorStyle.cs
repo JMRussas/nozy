@@ -870,12 +870,7 @@ public static class EditorStyle
             Spacing = BodyGap
         };
 
-        public static readonly ContainerStyle ColorButton = new()
-        {
-            Size = Icon.Primary.Size,
-            BorderRadius = 2,
-            AlignY = Align.Center
-        };
+        public static readonly ColorButtonStyle ColorButton = new();
 
         public static readonly TextInputStyle TextBox = EditorStyle.TextInput;
         public static readonly TextInputStyle TextArea = EditorStyle.TextArea;
@@ -990,7 +985,8 @@ public static class EditorStyle
 
         public static readonly ContainerStyle LayerRow = new()
         {
-            Height = SmallWidget.Height,
+            Height = Dopesheet.FrameHeight,
+            Color = Color.FromRgb(0x2f2f2f),
         };
 
         public static readonly ContainerStyle LayerNameContainer = new()

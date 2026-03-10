@@ -165,16 +165,12 @@ internal unsafe struct ScrollElement
     public ScrollState* State;
 }
 
-internal struct TrackElement
+internal unsafe struct TrackElement
 {
     public WidgetId Id;
-    public float ThumbSize;
-    public bool Vertical;
-}
-
-internal struct TrackState
-{
-    public float Value;
+    public float ThumbSizeX;
+    public float ThumbSizeY;
+    public TrackState* State;
 }
 
 internal struct CursorElement
@@ -213,5 +209,6 @@ internal unsafe struct EditableTextElement
     public ushort Font;
     public int CursorIndex;
     public int SelectionStart;
+    public float BlinkTime;
     public InputScope Scope;
 }

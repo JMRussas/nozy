@@ -33,7 +33,8 @@ public static partial class UI
         var trackRadius = s.BorderRadius > 0 ? s.BorderRadius : s.TrackHeight / 2;
         var thumbRadius = s.ThumbSize / 2;
 
-        ref var trackState = ref ElementTree.BeginTrack(id, s.ThumbSize);
+        ref var trackState = ref ElementTree.BeginWidget<TrackState>(id);
+        ElementTree.BeginTrack(ref trackState, id, s.ThumbSize);
 
         ElementTree.BeginSize(Size.Percent(1), new Size(s.Height));
 
@@ -71,8 +72,9 @@ public static partial class UI
 
         ElementTree.EndSize();
         ElementTree.EndTrack();
+        ElementTree.EndWidget();
 
-        var newValue = MathEx.Mix(min, max, trackState.Value);
+        var newValue = MathEx.Mix(min, max, trackState.X);
 
         if (s.Step > 0)
             newValue = MathF.Round(newValue / s.Step) * s.Step;

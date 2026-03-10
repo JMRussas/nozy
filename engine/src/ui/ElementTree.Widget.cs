@@ -180,21 +180,4 @@ public static unsafe partial class ElementTree
         }
     }
 
-    internal static ref TrackState BeginTrack(WidgetId id, float thumbSize, bool vertical = false)
-    {
-        ref var trackState = ref BeginWidget<TrackState>(id);
-
-        ref var e = ref BeginElement(ElementType.Track);
-        e.Data.Track.Id = id;
-        e.Data.Track.ThumbSize = thumbSize;
-        e.Data.Track.Vertical = vertical;
-
-        return ref trackState;
-    }
-
-    internal static void EndTrack()
-    {
-        EndElement(ElementType.Track);
-        EndWidget();
-    }
 }

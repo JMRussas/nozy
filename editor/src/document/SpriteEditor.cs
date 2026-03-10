@@ -220,12 +220,17 @@ public partial class SpriteEditor : DocumentEditor
 
     public override void UpdateUI()
     {
-        using (UI.BeginColumn(ElementId.Root, EditorStyle.DocumentEditor.Root))
+        using (UI.BeginColumn())
         {
-            ToolbarUI();
-            UI.Separator(EditorStyle.Palette.PanelSeparator);
-            LayerDopeSheetUI();
-            UI.Spacer(EditorStyle.Control.Spacing);
+            UI.Flex();
+
+            using (UI.BeginColumn(ElementId.Root, EditorStyle.DocumentEditor.Root))
+            {
+                ToolbarUI();
+                UI.Separator(EditorStyle.Palette.PanelSeparator);
+                LayerDopeSheetUI();
+                UI.Spacer(EditorStyle.Control.Spacing);
+            }
         }
     }
 
@@ -321,12 +326,7 @@ public partial class SpriteEditor : DocumentEditor
                 var layer = layers[i];
                 var isSelectedLayer = Document.IsLayerActive(layer);
 
-                using (UI.BeginRow(
-                    new ContainerStyle
-                    {
-                        Height = EditorStyle.Dopesheet.FrameHeight,
-                        Color = Color.FromRgb(0x2f2f2f)
-                    }))
+                using (UI.BeginRow(EditorStyle.SpriteEditor.LayerRow))
                 {
                     LayerUI(i, layer);
 
@@ -1848,23 +1848,12 @@ public partial class SpriteEditor : DocumentEditor
                 using (Inspector.BeginRow())
                 {
                     using var __ = UI.BeginFlex();
-
                     var fillColor = Document.CurrentFillColor;
-                    using (UI.BeginContainer(ElementId.FillColor, new ContainerStyle
+                    if (EditorUI.ColorButton(ElementId.FillColor, ref fillColor, EditorStyle.Inspector.ColorButton))
                     {
-                        Width = 16, Height = 16,
-                        Color = fillColor.ToColor(),
-                        BorderRadius = 3, BorderWidth = 1, BorderColor = Color.FromRgb(0x555555),
-                        AlignY = Align.Center
-                    }))
-                    {
-                        if (UI.WasPressed())
-                            ColorPicker.Open(ElementId.FillColor, fillColor);
+                        UI.HandleChange(Document);
+                        SetFillColor(fillColor);
                     }
-                    ColorPicker.Popup(ElementId.FillColor, ref fillColor);
-                    UI.SetLastElement(ElementId.FillColor);
-                    UI.HandleChange(Document);
-                    if (fillColor != Document.CurrentFillColor) SetFillColor(fillColor);
                 }
             }
         }
@@ -1876,23 +1865,12 @@ public partial class SpriteEditor : DocumentEditor
                 using (Inspector.BeginRow())
                 {
                     using var __ = UI.BeginFlex();
-
                     var strokeColor = Document.CurrentStrokeColor;
-                    using (UI.BeginContainer(ElementId.StrokeColor, new ContainerStyle
+                    if (EditorUI.ColorButton(ElementId.StrokeColor, ref strokeColor, EditorStyle.Inspector.ColorButton))
                     {
-                        Width = 16, Height = 16,
-                        Color = strokeColor.ToColor(),
-                        BorderRadius = 3, BorderWidth = 1, BorderColor = Color.FromRgb(0x555555),
-                        AlignY = Align.Center
-                    }))
-                    {
-                        if (UI.WasPressed())
-                            ColorPicker.Open(ElementId.StrokeColor, strokeColor);
+                        UI.HandleChange(Document);
+                        SetStrokeColor(strokeColor);
                     }
-                    ColorPicker.Popup(ElementId.StrokeColor, ref strokeColor);
-                    UI.SetLastElement(ElementId.StrokeColor);
-                    UI.HandleChange(Document);
-                    if (strokeColor != Document.CurrentStrokeColor) SetStrokeColor(strokeColor);
                 }
             }
         }

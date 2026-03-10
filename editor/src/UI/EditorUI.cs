@@ -7,6 +7,15 @@ using System.Numerics;
 
 namespace NoZ.Editor;
 
+public struct ColorButtonStyle()
+{
+    public float Size = EditorStyle.Control.Height;
+    public float BorderRadius = EditorStyle.Control.BorderRadius;
+    public float BorderWidth = 1;
+    public Color BorderColor = Color.FromRgb(0x555555);
+    public Func<ColorButtonStyle, WidgetFlags, ColorButtonStyle>? Resolve;
+}
+
 internal static partial class EditorUI
 {
     private static partial class ElementId
@@ -198,4 +207,30 @@ internal static partial class EditorUI
 
     public static void ControlIcon(Sprite? icon) =>
         ControlIcon(EditorStyle.Control.IconContainer, icon);
+
+    // --- Color Button ---
+
+    public static bool ColorButton(WidgetId id, ref Color32 color, in ColorButtonStyle style)
+    {
+        ElementTree.BeginTree();
+        ElementTree.BeginWidget(id);
+
+        var flags = ElementTree.GetWidgetFlags();
+        var s = style.Resolve != null ? style.Resolve(style, flags) : style;
+
+        ElementTree.BeginSize(new Size2(s.Size, s.Size));
+        if (s.BorderWidth > 0)
+            ElementTree.BeginBorder(s.BorderWidth, s.BorderColor, s.BorderRadius);
+        ElementTree.BeginFill(color.ToColor(), s.BorderRadius);
+        ElementTree.EndTree();
+
+        if (flags.HasFlag(WidgetFlags.Pressed))
+            ColorPicker.Open(id, color);
+
+        var prev = color;
+        ColorPicker.Popup(id, ref color);
+        UI.SetLastElement(id);
+
+        return color != prev;
+    }
 }

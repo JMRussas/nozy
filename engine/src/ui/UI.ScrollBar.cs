@@ -64,8 +64,9 @@ public static partial class UI
         // Sync scroll offset → track value before Track processes input
         var t = canScroll ? MathEx.Clamp01(offset / maxScroll) : 0f;
 
-        ref var trackState = ref ElementTree.BeginTrack(id, thumbHeight, vertical: true);
-        trackState.Value = t;
+        ref var trackState = ref ElementTree.BeginWidget<TrackState>(id);
+        ElementTree.BeginTrack(ref trackState, id, 0, thumbHeight);
+        trackState.Y = t;
 
         ElementTree.BeginSize(new Size(s.Width), Size.Percent(1));
 
@@ -97,11 +98,12 @@ public static partial class UI
 
         ElementTree.EndSize();
         ElementTree.EndTrack();
+        ElementTree.EndWidget();
 
         // Write track value → scroll offset after Track processed input
         if (canScroll && ElementTree.IsWidgetValid(scrollableId))
         {
-            var newOffset = trackState.Value * maxScroll;
+            var newOffset = trackState.Y * maxScroll;
             newOffset = Math.Clamp(newOffset, 0, maxScroll);
             ref var scrollState = ref ElementTree.GetWidgetState<ScrollState>(scrollableId);
             scrollState.Offset = newOffset;

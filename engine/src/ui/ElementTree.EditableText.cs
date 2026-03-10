@@ -84,6 +84,7 @@ public static unsafe partial class ElementTree
         d.Font = AddObject(font);
         d.CursorIndex = state.CursorIndex;
         d.SelectionStart = state.SelectionStart;
+        d.BlinkTime = state.BlinkTime;
         d.Scope = scope;
 
         EndElement(ElementType.EditableText);
@@ -125,6 +126,7 @@ public static unsafe partial class ElementTree
             state.FocusClickIndex = clickIndex;
             state.SelectionStart = 0;
             state.CursorIndex = state.EditText.AsReadOnlySpan().Length;
+            state.BlinkTime = 0;
 
             d.Focused = true;
             d.Text = state.EditText;
@@ -135,7 +137,7 @@ public static unsafe partial class ElementTree
 
         if (!focused) return;
 
-        // Mouse drag-to-select
+        // Mouse click to place cursor / drag to select
         if (_inputMouseDown && mouseInside)
         {
             var charIndex = HitTestCharIndex(state.EditText.AsReadOnlySpan(), font, d.FontSize,
@@ -152,8 +154,16 @@ public static unsafe partial class ElementTree
                 }
                 // Otherwise keep select-all
             }
+            else if (_inputMousePressed)
+            {
+                // Fresh click while already focused — place cursor and clear selection
+                state.CursorIndex = charIndex;
+                state.SelectionStart = charIndex;
+                state.BlinkTime = 0;
+            }
             else
             {
+                // Dragging — extend selection
                 state.CursorIndex = charIndex;
             }
         }
@@ -162,13 +172,24 @@ public static unsafe partial class ElementTree
             state.JustFocused = 0;
         }
 
+        // Advance blink timer
+        state.BlinkTime += Time.DeltaTime;
+
         // Keyboard and text input
+        var prevCursor = state.CursorIndex;
+        var prevSelection = state.SelectionStart;
+        var prevHash = state.TextHash;
         HandleTextInput(ref state, font, d.FontSize, d.MultiLine, d.Scope, d.CommitOnEnter);
+
+        // Reset blink timer when cursor moves or text changes
+        if (state.CursorIndex != prevCursor || state.SelectionStart != prevSelection || state.TextHash != prevHash)
+            state.BlinkTime = 0;
 
         // Update element for draw
         d.Text = state.EditText;
         d.CursorIndex = state.CursorIndex;
         d.SelectionStart = state.SelectionStart;
+        d.BlinkTime = state.BlinkTime;
         d.Focused = state.Focused != 0;
     }
 
@@ -478,7 +499,7 @@ public static unsafe partial class ElementTree
         if (!focused) return;
 
         // cursor (only when no selection)
-        if (d.CursorIndex == d.SelectionStart && Time.TotalTime % 1.0f < 0.5f)
+        if (d.CursorIndex == d.SelectionStart && d.BlinkTime % 1.0f < 0.5f)
         {
             float cursorX, cursorY;
 

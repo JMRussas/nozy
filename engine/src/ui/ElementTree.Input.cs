@@ -247,27 +247,28 @@ public static unsafe partial class ElementTree
             return;
 
         var worldRect = GetWidgetWorldRect(widgetId);
-        if (d.Vertical)
-        {
-            var trackSize = worldRect.Height;
-            if (trackSize <= 0) return;
-            var thumbHalf = d.ThumbSize / 2;
-            var usable = trackSize - d.ThumbSize;
-            if (usable <= 0) return;
-            var norm = MathEx.Clamp01((MouseWorldPosition.Y - worldRect.Y - thumbHalf) / usable);
-            ref var state = ref GetWidgetState<TrackState>(widgetId);
-            state.Value = norm;
-        }
-        else
+        ref var state = ref *d.State;
+
+        if (d.ThumbSizeX > 0)
         {
             var trackSize = worldRect.Width;
-            if (trackSize <= 0) return;
-            var thumbHalf = d.ThumbSize / 2;
-            var usable = trackSize - d.ThumbSize;
-            if (usable <= 0) return;
-            var norm = MathEx.Clamp01((MouseWorldPosition.X - worldRect.X - thumbHalf) / usable);
-            ref var state = ref GetWidgetState<TrackState>(widgetId);
-            state.Value = norm;
+            if (trackSize > 0)
+            {
+                var usable = trackSize - d.ThumbSizeX;
+                if (usable > 0)
+                    state.X = MathEx.Clamp01((MouseWorldPosition.X - worldRect.X - d.ThumbSizeX / 2) / usable);
+            }
+        }
+
+        if (d.ThumbSizeY > 0)
+        {
+            var trackSize = worldRect.Height;
+            if (trackSize > 0)
+            {
+                var usable = trackSize - d.ThumbSizeY;
+                if (usable > 0)
+                    state.Y = MathEx.Clamp01((MouseWorldPosition.Y - worldRect.Y - d.ThumbSizeY / 2) / usable);
+            }
         }
     }
 
