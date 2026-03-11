@@ -35,15 +35,10 @@ public static partial class UI
             : style;
 
         ElementTree.BeginRow(s.Spacing);
-        ElementTree.BeginAlign(new Align2(Align.Min, Align.Center));
-
-        // Check box
-        ElementTree.BeginSize(new Size2(s.Size, s.Size));
+        ElementTree.BeginSize(s.Size);
         ElementTree.BeginFill(isChecked ? s.CheckedColor : s.Color, s.BorderRadius, s.BorderWidth, s.BorderColor);
 
         if (isChecked && checkIcon != null)
-        {
-            ElementTree.BeginAlign(Align.Center);
             ElementTree.Image(
                 checkIcon,
                 s.IconSize,
@@ -51,7 +46,6 @@ public static partial class UI
                 s.CheckColor,
                 1.0f,
                 Align.Center);
-        }
 
         ElementTree.EndFill();
         ElementTree.EndSize();

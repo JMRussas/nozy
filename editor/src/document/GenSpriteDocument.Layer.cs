@@ -11,6 +11,7 @@ public class GenSpriteLayer : IDisposable
     public string Prompt = "";
     public string NegativePrompt = "";
     public long Seed;
+    public bool CombineMasks;
     public int Index;
 
     public bool HasPrompt => !string.IsNullOrEmpty(Prompt);
@@ -28,6 +29,7 @@ public class GenSpriteLayer : IDisposable
             Prompt = Prompt,
             NegativePrompt = NegativePrompt,
             Seed = Seed,
+            CombineMasks = CombineMasks,
             Index = Index,
         };
         clone.Shape.CopyFrom(Shape);

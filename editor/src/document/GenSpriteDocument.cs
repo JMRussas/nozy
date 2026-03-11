@@ -175,6 +175,8 @@ public partial class GenSpriteDocument : Document, IShapeDocument
                 layer.NegativePrompt = tk.ExpectQuotedString() ?? "";
             else if (tk.ExpectIdentifier("seed"))
                 layer.Seed = tk.ExpectInt();
+            else if (tk.ExpectIdentifier("combine"))
+                layer.CombineMasks = tk.ExpectBool();
             // Backward compat: consume old fields
             else if (tk.ExpectIdentifier("strength"))
                 tk.ExpectFloat(out _);
@@ -203,6 +205,8 @@ public partial class GenSpriteDocument : Document, IShapeDocument
                 tk.ExpectInt(out _);
             else if (tk.ExpectIdentifier("guidance_scale"))
                 tk.ExpectFloat(out _);
+            else if (tk.ExpectIdentifier("combine"))
+                tk.ExpectBool();
             else
                 break;
         }
@@ -243,6 +247,8 @@ public partial class GenSpriteDocument : Document, IShapeDocument
         if (!string.IsNullOrEmpty(layer.NegativePrompt))
             writer.WriteLine($"prompt_neg \"{layer.NegativePrompt.Replace("\"", "\\\"")}\"");
         writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "seed {0}", layer.Seed));
+        if (layer.CombineMasks)
+            writer.WriteLine("combine true");
     }
 
     private static void SaveMaskPaths(Shape shape, StreamWriter writer)
@@ -407,7 +413,7 @@ public partial class GenSpriteDocument : Document, IShapeDocument
         }
     }
 
-    private byte[] RasterizeMaskToPng(int targetLayerIndex)
+    private byte[] RasterizeMaskToPng(int targetLayerIndex, bool combineMasks = false)
     {
         UpdateBounds();
         var dpi = EditorApplication.Config.PixelsPerUnit;
@@ -423,27 +429,30 @@ public partial class GenSpriteDocument : Document, IShapeDocument
         var sourceOffset = new Vector2Int(cs.X / 2, cs.Y / 2);
         var white = new Color32(255, 255, 255, 255);
 
-        var layer = _layers[targetLayerIndex];
-        var shape = layer.Shape;
-
         var positivePaths = new Clipper2Lib.PathsD();
         var negativePaths = new Clipper2Lib.PathsD();
 
-        for (ushort pi = 0; pi < shape.PathCount; pi++)
+        var startLayer = combineMasks ? 0 : targetLayerIndex;
+        var endLayer = combineMasks ? _layers.Count - 1 : targetLayerIndex;
+        for (int li = startLayer; li <= endLayer; li++)
         {
-            ref readonly var path = ref shape.GetPath(pi);
-            if (path.AnchorCount < 3) continue;
+            var shape = _layers[li].Shape;
+            for (ushort pi = 0; pi < shape.PathCount; pi++)
+            {
+                ref readonly var path = ref shape.GetPath(pi);
+                if (path.AnchorCount < 3) continue;
 
-            var pathShape = new Msdf.Shape();
-            Msdf.ShapeClipper.AppendContour(pathShape, shape, pi);
-            pathShape = Msdf.ShapeClipper.Union(pathShape);
-            var contours = Msdf.ShapeClipper.ShapeToPaths(pathShape, 8);
-            if (contours.Count == 0) continue;
+                var pathShape = new Msdf.Shape();
+                Msdf.ShapeClipper.AppendContour(pathShape, shape, pi);
+                pathShape = Msdf.ShapeClipper.Union(pathShape);
+                var contours = Msdf.ShapeClipper.ShapeToPaths(pathShape, 8);
+                if (contours.Count == 0) continue;
 
-            if (path.IsSubtract)
-                negativePaths.AddRange(contours);
-            else
-                positivePaths.AddRange(contours);
+                if (path.IsSubtract)
+                    negativePaths.AddRange(contours);
+                else
+                    positivePaths.AddRange(contours);
+            }
         }
 
         if (positivePaths.Count == 0)
@@ -518,7 +527,7 @@ public partial class GenSpriteDocument : Document, IShapeDocument
 
         foreach (var (layerIndex, layer) in genLayers)
         {
-            var maskBytes = RasterizeMaskToPng(layerIndex);
+            var maskBytes = RasterizeMaskToPng(layerIndex, layer.CombineMasks);
 
             var prompt = string.IsNullOrEmpty(globalPrompt) ? layer.Prompt : $"{layer.Prompt}, {globalPrompt}";
             var negPrompt = layer.NegativePrompt;
