@@ -5,7 +5,6 @@
 //  triangle meshes for real-time editing feedback.
 //
 
-using System.Runtime.InteropServices;
 using Clipper2Lib;
 using LibTessDotNet;
 using NoZ.Editor.Msdf;
@@ -22,6 +21,7 @@ public partial class SpriteEditor
 
     private readonly MeshVertex[] _meshVertices = new MeshVertex[MaxMeshVertices];
     private readonly ushort[] _meshIndices = new ushort[MaxMeshIndices];
+    private int _meshVersion = -1;
 
     private struct MeshSlotData
     {
@@ -34,142 +34,153 @@ public partial class SpriteEditor
 
     private readonly List<MeshSlotData> _meshSlots = new();
 
-    private void UpdateMeshSDF(Shape shape)
+    private void UpdateMesh()
     {
+        if (_meshVersion == Document.Version) return;
+
+        _meshVersion = Document.Version;
         _meshSlots.Clear();
 
-        var slots = Document.GetMeshSlots(_currentFrame);
+        var slots = Document.GetMeshSlots((ushort)_currentTimeSlot);
         if (slots.Count == 0) return;
 
         var vertexOffset = 0;
         var indexOffset = 0;
+        var layers = Document.Layers;
 
         for (int i = 0; i < slots.Count; i++)
         {
             var slot = slots[i];
-            if (slot.PathIndices.Count == 0) continue;
 
-            // Collect subtract paths with their indices — each only affects paths below it
-            List<(ushort PathIndex, PathsD Contours)>? subtractEntries = null;
-            foreach (var pi in slot.PathIndices)
+            // Collect all subtract paths across all visible layers in this slot
+            List<(int LayerIndex, ushort PathIndex, PathsD Contours)>? subtractEntries = null;
+            foreach (var (layerIdx, shape) in slot.LayerShapes)
             {
-                ref readonly var path = ref shape.GetPath(pi);
-                if (!path.IsSubtract || path.AnchorCount < 3) continue;
-
-                var subShape = new Msdf.Shape();
-                ShapeClipper.AppendContour(subShape, shape, pi);
-                var subContours = ShapeClipper.ShapeToPaths(subShape, 8);
-                if (subContours.Count > 0)
+                if (!layers[layerIdx].Visible) continue;
+                for (ushort pi = 0; pi < shape.PathCount; pi++)
                 {
-                    subtractEntries ??= new();
-                    subtractEntries.Add((pi, subContours));
+                    ref readonly var path = ref shape.GetPath(pi);
+                    if (!path.IsSubtract || path.AnchorCount < 3) continue;
+
+                    var subShape = new Msdf.Shape();
+                    ShapeClipper.AppendContour(subShape, shape, pi);
+                    var subContours = ShapeClipper.ShapeToPaths(subShape, 8);
+                    if (subContours.Count > 0)
+                    {
+                        subtractEntries ??= new();
+                        subtractEntries.Add((layerIdx, pi, subContours));
+                    }
                 }
             }
 
-            // Tessellate each non-subtract path individually (preserves per-path colors)
-            // Track accumulated geometry for clip operations
+            // Tessellate each layer's paths in order
+            // Track accumulated geometry for clip operations across all layers
             PathsD? accumulatedPaths = null;
 
-            foreach (var pi in slot.PathIndices)
+            foreach (var (layerIdx, shape) in slot.LayerShapes)
             {
-                ref readonly var path = ref shape.GetPath(pi);
-                if (path.IsSubtract || path.AnchorCount < 3) continue;
+                if (!layers[layerIdx].Visible) continue;
 
-                var pathShape = new Msdf.Shape();
-                ShapeClipper.AppendContour(pathShape, shape, pi);
-                pathShape = ShapeClipper.Union(pathShape);
-                var contours = ShapeClipper.ShapeToPaths(pathShape, 8);
-                if (contours.Count == 0) continue;
+                // Snapshot accumulated paths at layer start for clip (cross-layer only)
+                var lowerLayerPaths = accumulatedPaths;
 
-                if (path.IsClip)
+                for (ushort pi = 0; pi < shape.PathCount; pi++)
                 {
-                    // Clip: intersect with accumulated geometry below
-                    if (accumulatedPaths is not { Count: > 0 }) continue;
-                    contours = Clipper.BooleanOp(ClipType.Intersection,
-                        contours, accumulatedPaths, FillRule.NonZero, precision: 6);
+                    ref readonly var path = ref shape.GetPath(pi);
+                    if (path.IsSubtract || path.AnchorCount < 3) continue;
+
+                    var pathShape = new Msdf.Shape();
+                    ShapeClipper.AppendContour(pathShape, shape, pi);
+                    pathShape = ShapeClipper.Union(pathShape);
+                    var contours = ShapeClipper.ShapeToPaths(pathShape, 8);
                     if (contours.Count == 0) continue;
-                }
-                else
-                {
-                    // Normal path: add fill area to accumulated geometry for future clips
-                    // Use contracted contours (excluding stroke) so clip paths don't cover strokes
-                    var accContours = contours;
-                    if (path.StrokeColor.A > 0 && path.StrokeWidth > 0)
-                    {
-                        var halfStroke = path.StrokeWidth * Shape.StrokeScale;
-                        var contracted = Clipper.InflatePaths(contours, -halfStroke,
-                            JoinType.Round, EndType.Polygon, precision: 6);
-                        if (contracted.Count > 0)
-                            accContours = contracted;
-                    }
 
-                    if (accumulatedPaths == null)
-                        accumulatedPaths = new PathsD(accContours);
-                    else
-                        accumulatedPaths = Clipper.BooleanOp(ClipType.Union,
-                            accumulatedPaths, accContours, FillRule.NonZero, precision: 6);
-                }
-
-                // Apply subtract paths that are above this path (higher index = on top)
-                if (subtractEntries != null)
-                {
-                    PathsD? subtractPaths = null;
-                    foreach (var (subIdx, subContours) in subtractEntries)
+                    if (path.IsClip)
                     {
-                        if (subIdx <= pi) continue;
-                        subtractPaths ??= new PathsD();
-                        subtractPaths.AddRange(subContours);
-                    }
-
-                    if (subtractPaths is { Count: > 0 })
-                    {
-                        contours = Clipper.BooleanOp(ClipType.Difference,
-                            contours, subtractPaths, FillRule.NonZero, precision: 6);
+                        if (lowerLayerPaths is not { Count: > 0 }) continue;
+                        contours = Clipper.BooleanOp(ClipType.Intersection,
+                            contours, lowerLayerPaths, FillRule.NonZero, precision: 6);
                         if (contours.Count == 0) continue;
                     }
-                }
-
-                var hasStroke = path.StrokeColor.A > 0 && path.StrokeWidth > 0;
-                var fillColor = path.FillColor;
-                var hasFill = fillColor.A > 0;
-
-                if (hasStroke)
-                {
-                    var strokeColor = path.StrokeColor.ToColor();
-                    var halfStroke = path.StrokeWidth * Shape.StrokeScale;
-                    PathsD? contractedPaths = null;
-                    if (contours.Count > 0)
-                    {
-                        contractedPaths = Clipper.InflatePaths(contours, -halfStroke,
-                            JoinType.Round, EndType.Polygon, precision: 6);
-                    }
-
-                    if (hasFill)
-                    {
-                        // Tessellate full shape as stroke background, then overlay contracted fill
-                        TessellateClipper(contours, ref vertexOffset, ref indexOffset, strokeColor);
-                        if (contractedPaths is { Count: > 0 })
-                            TessellateClipper(contractedPaths, ref vertexOffset, ref indexOffset, fillColor.ToColor());
-                    }
                     else
                     {
-                        // Stroke only — tessellate the ring
-                        if (contractedPaths is { Count: > 0 })
+                        var accContours = contours;
+                        if (path.StrokeColor.A > 0 && path.StrokeWidth > 0)
                         {
-                            var strokeRing = Clipper.BooleanOp(ClipType.Difference,
-                                contours, contractedPaths, FillRule.NonZero, precision: 6);
-                            if (strokeRing.Count > 0)
-                                TessellateClipper(strokeRing, ref vertexOffset, ref indexOffset, strokeColor);
+                            var halfStroke = path.StrokeWidth * Shape.StrokeScale;
+                            var contracted = Clipper.InflatePaths(contours, -halfStroke,
+                                JoinType.Round, EndType.Polygon, precision: 6);
+                            if (contracted.Count > 0)
+                                accContours = contracted;
+                        }
+
+                        if (accumulatedPaths == null)
+                            accumulatedPaths = new PathsD(accContours);
+                        else
+                            accumulatedPaths = Clipper.BooleanOp(ClipType.Union,
+                                accumulatedPaths, accContours, FillRule.NonZero, precision: 6);
+                    }
+
+                    // Apply subtract paths from same layer only (higher path index subtracts from lower)
+                    if (subtractEntries != null)
+                    {
+                        PathsD? subtractPaths = null;
+                        foreach (var (subLayerIdx, subPi, subContours) in subtractEntries)
+                        {
+                            if (subLayerIdx != layerIdx) continue;
+                            if (subPi <= pi) continue;
+                            subtractPaths ??= new PathsD();
+                            subtractPaths.AddRange(subContours);
+                        }
+
+                        if (subtractPaths is { Count: > 0 })
+                        {
+                            contours = Clipper.BooleanOp(ClipType.Difference,
+                                contours, subtractPaths, FillRule.NonZero, precision: 6);
+                            if (contours.Count == 0) continue;
+                        }
+                    }
+
+                    var hasStroke = path.StrokeColor.A > 0 && path.StrokeWidth > 0;
+                    var fillColor = path.FillColor;
+                    var hasFill = fillColor.A > 0;
+
+                    if (hasStroke)
+                    {
+                        var strokeColor = path.StrokeColor.ToColor();
+                        var halfStroke = path.StrokeWidth * Shape.StrokeScale;
+                        PathsD? contractedPaths = null;
+                        if (contours.Count > 0)
+                        {
+                            contractedPaths = Clipper.InflatePaths(contours, -halfStroke,
+                                JoinType.Round, EndType.Polygon, precision: 6);
+                        }
+
+                        if (hasFill)
+                        {
+                            TessellateClipper(contours, ref vertexOffset, ref indexOffset, strokeColor);
+                            if (contractedPaths is { Count: > 0 })
+                                TessellateClipper(contractedPaths, ref vertexOffset, ref indexOffset, fillColor.ToColor());
                         }
                         else
                         {
-                            TessellateClipper(contours, ref vertexOffset, ref indexOffset, strokeColor);
+                            if (contractedPaths is { Count: > 0 })
+                            {
+                                var strokeRing = Clipper.BooleanOp(ClipType.Difference,
+                                    contours, contractedPaths, FillRule.NonZero, precision: 6);
+                                if (strokeRing.Count > 0)
+                                    TessellateClipper(strokeRing, ref vertexOffset, ref indexOffset, strokeColor);
+                            }
+                            else
+                            {
+                                TessellateClipper(contours, ref vertexOffset, ref indexOffset, strokeColor);
+                            }
                         }
                     }
-                }
-                else if (hasFill)
-                {
-                    TessellateClipper(contours, ref vertexOffset, ref indexOffset, fillColor.ToColor());
+                    else if (hasFill)
+                    {
+                        TessellateClipper(contours, ref vertexOffset, ref indexOffset, fillColor.ToColor());
+                    }
                 }
             }
         }
@@ -230,7 +241,7 @@ public partial class SpriteEditor
         return true;
     }
 
-    private void DrawMeshSDF()
+    private void DrawMesh()
     {
         if (_meshSlots.Count == 0) return;
 
@@ -252,4 +263,5 @@ public partial class SpriteEditor
             }
         }
     }
+
 }

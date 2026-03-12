@@ -128,93 +128,32 @@ Sort-based batched rendering. Key files: `Graphics.cs`, `Graphics.State.cs`, `Gr
 
 ### UI System (`engine/src/ui/`)
 
-Immediate-mode hierarchical UI. Key files: `UI.cs`, `UI.Layout.cs`, `UI.Draw.cs`, `UI.Input.cs`, `UI.Measure.cs`.
+Immediate-mode hierarchical UI built on `ElementTree`. Facade: `UI.cs`. Core: `ElementTree.cs` (partial class split across files).
 
-#### Element Types (16)
+**Key files:**
+| File | Contents |
+|------|----------|
+| `ElementTree.cs` | Enums, structs, fields, Init/Shutdown, Begin/End, element allocation |
+| `ElementTree.API.cs` | Public element creation (Size, Padding, Fill, Row, Column, Label, Image, Scene, etc.) |
+| `ElementTree.Widgets.cs` | Widget state, focus/capture, Button, Toggle, Slider |
+| `ElementTree.Layout.cs` | FitAxis, LayoutAxis, GetElementSize, UpdateTransforms |
+| `ElementTree.Input.cs` | HandleInput, popup auto-close, scrollable input, cursor |
+| `ElementTree.Draw.cs` | Draw, DrawElement, DrawLabel, DrawImage, DrawScene, DrawScrollbar, debug dump |
+| `ElementTree.EditableText.cs` | TextBox/TextArea editable text widgets |
+| `UI.cs` | Public facade — delegates to ElementTree, manages camera, text buffer |
+| `UI.Draw.cs` | `DrawTexturedRect` helper, mesh flush (used by ElementTree) |
 
-| Type | Purpose | Style Struct |
-|------|---------|-------------|
-| Container | Base layout, overlapping children via Align+Margin | `ContainerStyle` |
-| Column | Vertical sequential layout | `ContainerStyle` |
-| Row | Horizontal sequential layout | `ContainerStyle` |
-| Flex | Distributes remaining space in Row/Column (weight-based) | float weight |
-| Spacer | Fixed-size gap in Row/Column | float size |
-| Grid | Multi-column grid with virtualization | `GridStyle` |
-| Label | Text rendering with overflow modes | `LabelStyle` |
-| Image | Sprite/texture display with stretch modes | `ImageStyle` |
-| TextBox | Single-line text input | `TextBoxStyle` |
-| TextArea | Multi-line text input | `TextAreaStyle` |
-| Scrollable | Scrolling container with scrollbar | `ScrollableStyle` |
-| Popup | Floating overlay with anchor positioning | `PopupStyle` |
-| Scene | Embedded game viewport via RenderTexture | `SceneStyle` |
-| Transform | 2D affine transform wrapper (translate/rotate/scale) | `TransformStyle` |
-| Opacity | Opacity multiplier for subtree | float opacity |
-| Cursor | Context-sensitive cursor override | Sprite or SystemCursor |
-
-#### Layout
-
-- **Size modes**: `Default`, `Percent`, `Fixed`, `Fit`. `Default` resolves to Fit for the stacking axis of Row/Column, Percent(1.0) for everything else.
-- **Alignment**: `Align.Min` (0), `Align.Center` (0.5), `Align.Max` (1). `Align2` for independent X/Y.
-- **Building pattern**: `UI.BeginContainer(id, style)` ... `UI.EndContainer()`. Supports `using` auto-dispose.
-- **EdgeInsets constructor**: `EdgeInsets(top, left, bottom, right)` — TLBR order, **not** TRBL.
-- **Margin-based positioning**: In Container, children overlap via `Align + Margin`. In Row/Column, margin is consumed by sequential layout.
-- **Element positioning**: During build phase, current frame has uninitialized `WorldToLocal`. Use `UI.GetElementWorldRect(id)` for previous frame's rect. Use `UI.MouseWorldPosition` for mouse (not `UI.ScreenToUI()`).
-
-#### Style Struct Reference
-
-**ContainerStyle** (used by Container, Column, Row): Size, MinWidth, MinHeight, MaxWidth, MaxHeight, Align, Margin, Padding, Color, BorderRadius, BorderWidth, BorderColor, Spacing, Clip, Order. Shorthand: `Border` (get/set BorderStyle), `Width`/`Height`, `AlignX`/`AlignY`.
-
-**LabelStyle**: FontSize (default 16), Color, Align (default Min,Center), Font, Order (default 2), Overflow (`TextOverflow`: Overflow, Ellipsis, Scale, Wrap).
-
-**ImageStyle**: Size, Stretch (`ImageStretch`: None, Fill, Uniform — default Uniform), Align, Scale, Color, BorderRadius, Order (default 1).
-
-**GridStyle**: Spacing, Columns (default 3), CellWidth (default 100), CellHeight (default 100), CellMinWidth (0 = fixed columns, >0 = responsive), CellHeightOffset, VirtualCount (0 = no virtualization), StartIndex.
-
-**PopupStyle**: Anchor, PopupAlign, Spacing, ClampToScreen, AnchorRect, MinWidth, AutoClose (default true), Interactive (default true).
-
-**ScrollableStyle**: ScrollSpeed (default 30), Scrollbar (`ScrollbarVisibility`: Auto, Always, Never), ScrollbarWidth (default 8), ScrollbarMinThumbHeight (default 20), ScrollbarTrackColor, ScrollbarThumbColor, ScrollbarThumbHoverColor, ScrollbarPadding (default 2), ScrollbarBorderRadius (default 4).
-
-**TextBoxStyle**: Height, FontSize (default 16), Font, BackgroundColor, TextColor, PlaceholderColor, SelectionColor, BorderRadius, BorderWidth, BorderColor, FocusBorderRadius, FocusBorderWidth, FocusBorderColor, Padding, IsPassword, Scope (`InputScope`). Shorthand: `Border`, `FocusBorder`.
-
-**TextAreaStyle**: Same as TextBoxStyle except no IsPassword field. Multi-line with line wrapping.
-
-**SceneStyle**: Size, Color, SampleCount (MSAA, default 1).
-
-**TransformStyle**: Origin (pivot, default 0.5,0.5), Translate, Rotate (degrees), Scale.
-
-#### Input
-
-- `UI.IsHovered()`, `UI.WasPressed()`, `UI.HasFocus()`, `UI.SetFocus()`
-- **Input inside popups**: Use `UI.IsDown()` / `UI.WasPressed()` instead of `Input.IsButtonDown()`. Popups consume mouse buttons via `Input.ConsumeButton()`.
-
-#### Rendering
-
-- Custom `UIVertex` mesh with 7 attributes: Position (vec2), UV (vec2), Normal/RectSize (vec2), Color (vec4), BorderRatio (float), BorderColor (vec4), CornerRadii (vec4)
-- Renders on `UIConfig.UILayer` (default: **1000**). Popups use `Graphics.SetSortGroup(i+1)` for z-ordering.
-- SDF-based border radius and antialiased borders computed in `ui.wgsl` fragment shader
-- **Gradients and drop shadows are NOT implemented.** Plan exists at `docs/plan-gradient-fill.md`.
-
-#### Scaling
-
-- `UIScaleMode`: ConstantPixelSize, ScaleWithScreenSize
-- `ScreenMatchMode`: MatchWidthOrHeight (default, blend factor 0.5), Expand, Shrink
-- Reference resolution: `UIConfig.ReferenceResolution` (default 1920×1080)
-
-#### Limits
-
-| Resource | Limit | Source |
-|----------|-------|--------|
-| Elements per frame | 4096 | `UI.cs` MaxElements |
-| Element stack depth | 128 | `UI.cs` MaxElementStack |
-| Simultaneous popups | 4 | `UI.cs` MaxPopups |
-| Text buffer | 64 KB per frame | `UI.cs` MaxTextBuffer |
-| Unique element IDs | 32,767 | `UI.cs` MaxElementId |
-| UI vertices | 16,384 | `UI.Draw.cs` MaxUIVertices |
-| UI indices | 32,768 | `UI.Draw.cs` MaxUIIndices |
-
-Note: UI vertex/index limits are separate from Graphics limits (65,536 / 196,608).
-
-See `.claude/ui-layout-cookbook.md` for detailed usage patterns for each element type.
+- **Element types**: Widget, Size, Padding, Fill, Border, Margin, Row, Column, Flex, Align, Clip, Spacer, Opacity, Label, Image, EditableText, Popup, Cursor, Transform, Grid, Scene, Scrollable
+- **Layout**: Flexbox-inspired axis-independent layout. Size modes: Default, Percent, Fixed, Fit. Alignment: Min, Center, Max.
+- **Building pattern**: `ElementTree.BeginSize(...)` ... `ElementTree.EndSize()`. UI facade wraps with style structs.
+- **Input**: `UI.IsHovered()`, `UI.WasPressed()`, `UI.HasFocus()`, `UI.SetFocus()` — all delegate to ElementTree
+- **Input inside popups**: Use `UI.IsDown()` / `UI.WasPressed()` instead of `Input.IsButtonDown()`. When popups are open, the UI system consumes the mouse button via `Input.ConsumeButton()`, making raw `Input.IsButtonDown()` return false. `UI.IsDown()` checks the pre-consumption state.
+- **Element positioning**: During the UI build phase, the current frame's elements have uninitialized `WorldToLocal` matrices (lazy-computed on first access for input). Use `UI.GetElementWorldRect(id)` to get the previous frame's laid-out rect.
+- **EdgeInsets constructor**: `EdgeInsets(top, left, bottom, right)` — note the TLBR order, **not** TRBL. `L` is the 2nd parameter, `R` is the 4th.
+- **Rendering**: Custom `UIVertex` mesh, renders on layer 12. Commands with custom meshes need contiguous index merging.
+- **Memory**: 64KB element buffer (rebuilt each frame), 128KB double-buffered state pools (widget persistence), 375KB widget state array (32000 IDs)
+- **Limits**: 65535 bytes element tree, 64-depth stack, 4 popups, 32000 widget IDs
+- **Scaling**: `UIScaleMode` with reference resolution for responsive design
 
 ### Asset System (`engine/src/Asset.cs`, `AssetDef.cs`)
 

@@ -11,6 +11,7 @@ namespace NoZ;
 public static class Application
 {
     private static bool _running;
+    private static bool _focused = true;
     private static bool _assetTypesRegistered = false;
 
     private static IApplication _instance = null!;
@@ -106,6 +107,8 @@ public static class Application
         // Set resize callback after all subsystems are initialized to avoid early resize events
         Platform.SetResizeCallback(RenderFrame);
 
+        _instance.Init();
+
         _running = true;
     }
 
@@ -124,6 +127,7 @@ public static class Application
         Font.RegisterDef();
         Vfx.RegisterDef();
         Bin.RegisterDef();
+        AssetBundle.RegisterDef();
     }
 
     public static void Run()
@@ -131,6 +135,9 @@ public static class Application
         while (RunFrame())
         {
             Platform.SwapBuffers();
+
+            if (!_focused)
+                Thread.Sleep(100);
         }
     }
 
@@ -161,6 +168,13 @@ public static class Application
         BeginFrame = null;
         beginFrame?.Invoke();
 
+        // Fixed timestep physics loop
+        var savedDt = Time.DeltaTime;
+        Time.DeltaTime = Time.FixedDeltaTime;
+        while (Time.ConsumeFixedStep())
+            _instance.FixedUpdate();
+        Time.DeltaTime = savedDt;
+
         _instance.Update();
         UI.Begin();
         _instance.UpdateUI();
@@ -175,6 +189,7 @@ public static class Application
 
     public static void Shutdown()
     {
+        _instance.Shutdown();
         _instance.SaveConfig();
         _instance.UnloadAssets();
 
@@ -204,9 +219,15 @@ public static class Application
     private static void OnPlatformEvent(PlatformEvent evt)
     {
         if (evt.Type == PlatformEventType.WindowFocus)
+        {
+            _focused = true;
             FocusChanged?.Invoke(true);
+        }
         else if (evt.Type == PlatformEventType.WindowUnfocus)
+        {
+            _focused = false;
             FocusChanged?.Invoke(false);
+        }
     }
 
     public static void OpenURL(string url) => Platform.OpenURL(url);

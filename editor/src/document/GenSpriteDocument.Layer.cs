@@ -1,0 +1,36 @@
+//
+//  NoZ - Copyright(c) 2026 NoZ Games, LLC
+//
+
+namespace NoZ.Editor;
+
+public class GenSpriteLayer : IDisposable
+{
+    public string Name = "";
+    public readonly Shape Shape = new();
+    public string Prompt = "";
+    public string NegativePrompt = "";
+    public long Seed;
+    public int Index;
+
+    public bool HasPrompt => !string.IsNullOrEmpty(Prompt);
+
+    public void Dispose()
+    {
+        Shape.Dispose();
+    }
+
+    public GenSpriteLayer Clone()
+    {
+        var clone = new GenSpriteLayer
+        {
+            Name = Name,
+            Prompt = Prompt,
+            NegativePrompt = NegativePrompt,
+            Seed = Seed,
+            Index = Index,
+        };
+        clone.Shape.CopyFrom(Shape);
+        return clone;
+    }
+}
