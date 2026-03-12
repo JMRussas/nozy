@@ -29,6 +29,12 @@ public static unsafe partial class ElementTree
 
     public static void EndPadding() => EndElement(ElementType.Padding);
 
+    public static void Fill(Color color, BorderRadius radius = default, float borderWidth = 0, Color borderColor = default)
+    {
+        BeginFill(color, radius, borderWidth, borderColor);
+        EndFill();
+    }
+
     public static int BeginFill(Color color, BorderRadius radius = default, float borderWidth = 0, Color borderColor = default)
     {
         ref var e = ref BeginElement(ElementType.Fill);
@@ -49,6 +55,8 @@ public static unsafe partial class ElementTree
     }
 
     public static void EndMargin() => EndElement(ElementType.Margin);
+
+    public static int BeginAlign(Align alignX, Align alignY) => BeginAlign(new Align2(alignX, alignY));
 
     public static int BeginAlign(Align2 align)
     {

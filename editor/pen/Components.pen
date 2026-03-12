@@ -3539,7 +3539,7 @@
                       "id": "PdYLF",
                       "name": "Popup",
                       "width": 180,
-                      "fill": "#2D2D2D",
+                      "fill": "#252525",
                       "cornerRadius": 6,
                       "layout": "vertical",
                       "padding": [
@@ -3568,13 +3568,13 @@
                               "height": 14,
                               "iconFontName": "box",
                               "iconFontFamily": "lucide",
-                              "fill": "#AAAAAA"
+                              "fill": "#999999"
                             },
                             {
                               "type": "text",
                               "id": "Jgbzf",
                               "name": "pi1t",
-                              "fill": "#E0E0E0",
+                              "fill": "#E8E8E8",
                               "content": "Option A",
                               "fontFamily": "Inter",
                               "fontSize": 16,
@@ -3603,13 +3603,13 @@
                               "height": 14,
                               "iconFontName": "sliders-horizontal",
                               "iconFontFamily": "lucide",
-                              "fill": "#AAAAAA"
+                              "fill": "#999999"
                             },
                             {
                               "type": "text",
                               "id": "47zg2",
                               "name": "pi2t",
-                              "fill": "#E0E0E0",
+                              "fill": "#E8E8E8",
                               "content": "Option B",
                               "fontFamily": "Inter",
                               "fontSize": 16,
@@ -3672,7 +3672,7 @@
                       "id": "9DfCR",
                       "name": "Context Menu Default",
                       "width": 180,
-                      "fill": "#2D2D2D",
+                      "fill": "#252525",
                       "cornerRadius": 6,
                       "layout": "vertical",
                       "padding": [
@@ -3701,7 +3701,7 @@
                               "height": 14,
                               "iconFontName": "copy",
                               "iconFontFamily": "lucide",
-                              "fill": "#777777"
+                              "fill": "#999999"
                             },
                             {
                               "type": "text",
@@ -3724,7 +3724,7 @@
                               "type": "text",
                               "id": "WOgnx",
                               "name": "i1k",
-                              "fill": "#555555",
+                              "fill": "#777777",
                               "content": "Ctrl+D",
                               "fontFamily": "Inter",
                               "fontSize": 10,
@@ -3753,7 +3753,7 @@
                               "height": 14,
                               "iconFontName": "arrow-up",
                               "iconFontFamily": "lucide",
-                              "fill": "#777777"
+                              "fill": "#999999"
                             },
                             {
                               "type": "text",
@@ -3788,7 +3788,7 @@
                               "height": 14,
                               "iconFontName": "arrow-down",
                               "iconFontFamily": "lucide",
-                              "fill": "#777777"
+                              "fill": "#999999"
                             },
                             {
                               "type": "text",
@@ -3808,7 +3808,7 @@
                           "name": "separator",
                           "width": "fill_container",
                           "height": 1,
-                          "fill": "#3D3D3D"
+                          "fill": "#444444"
                         },
                         {
                           "type": "frame",
@@ -3871,7 +3871,7 @@
                       "id": "8FwO5",
                       "name": "Context Menu States",
                       "width": 180,
-                      "fill": "#2D2D2D",
+                      "fill": "#252525",
                       "cornerRadius": 6,
                       "layout": "vertical",
                       "padding": [
@@ -3885,7 +3885,7 @@
                           "name": "h1",
                           "width": "fill_container",
                           "height": 40,
-                          "fill": "#3D3D3D",
+                          "fill": "#454545",
                           "gap": 8,
                           "padding": [
                             0,
@@ -3901,7 +3901,7 @@
                               "height": 14,
                               "iconFontName": "copy",
                               "iconFontFamily": "lucide",
-                              "fill": "#AAAAAA"
+                              "fill": "#BBBBBB"
                             },
                             {
                               "type": "text",
@@ -3953,13 +3953,13 @@
                               "height": 14,
                               "iconFontName": "arrow-up",
                               "iconFontFamily": "lucide",
-                              "fill": "#666666"
+                              "fill": "#888888"
                             },
                             {
                               "type": "text",
                               "id": "hIo8Q",
                               "name": "n1t",
-                              "fill": "#666666",
+                              "fill": "#888888",
                               "content": "Move Up",
                               "fontFamily": "Inter",
                               "fontSize": 16,
@@ -3988,7 +3988,7 @@
                               "height": 14,
                               "iconFontName": "arrow-down",
                               "iconFontFamily": "lucide",
-                              "fill": "#777777"
+                              "fill": "#999999"
                             },
                             {
                               "type": "text",
@@ -4008,7 +4008,7 @@
                           "name": "separator",
                           "width": "fill_container",
                           "height": 1,
-                          "fill": "#3D3D3D"
+                          "fill": "#444444"
                         },
                         {
                           "type": "frame",
@@ -4762,7 +4762,7 @@
                       "name": "Asset Browser Popup",
                       "clip": true,
                       "width": 260,
-                      "fill": "#2D2D2D",
+                      "fill": "#252525",
                       "cornerRadius": 6,
                       "layout": "vertical",
                       "padding": [
@@ -4811,7 +4811,7 @@
                           "name": "Separator",
                           "width": "fill_container",
                           "height": 1,
-                          "fill": "#3D3D3D"
+                          "fill": "#444444"
                         },
                         {
                           "type": "frame",
@@ -4845,7 +4845,7 @@
                                   "height": 14,
                                   "iconFontName": "image",
                                   "iconFontFamily": "lucide",
-                                  "fill": "#777777"
+                                  "fill": "#999999"
                                 },
                                 {
                                   "type": "text",
@@ -4865,7 +4865,7 @@
                               "name": "Item Hover",
                               "width": "fill_container",
                               "height": 36,
-                              "fill": "#3D3D3D",
+                              "fill": "#454545",
                               "cornerRadius": 2,
                               "gap": 8,
                               "padding": [
@@ -4882,7 +4882,7 @@
                                   "height": 14,
                                   "iconFontName": "image",
                                   "iconFontFamily": "lucide",
-                                  "fill": "#AAAAAA"
+                                  "fill": "#BBBBBB"
                                 },
                                 {
                                   "type": "text",
@@ -4917,7 +4917,7 @@
                                   "height": 14,
                                   "iconFontName": "image",
                                   "iconFontFamily": "lucide",
-                                  "fill": "#777777"
+                                  "fill": "#999999"
                                 },
                                 {
                                   "type": "text",
@@ -4952,7 +4952,7 @@
                                   "height": 14,
                                   "iconFontName": "image",
                                   "iconFontFamily": "lucide",
-                                  "fill": "#777777"
+                                  "fill": "#999999"
                                 },
                                 {
                                   "type": "text",
@@ -4987,7 +4987,7 @@
                                   "height": 14,
                                   "iconFontName": "image",
                                   "iconFontFamily": "lucide",
-                                  "fill": "#777777"
+                                  "fill": "#999999"
                                 },
                                 {
                                   "type": "text",
@@ -5030,7 +5030,7 @@
                       "name": "Asset Browser Filtered",
                       "clip": true,
                       "width": 260,
-                      "fill": "#2D2D2D",
+                      "fill": "#252525",
                       "cornerRadius": 6,
                       "layout": "vertical",
                       "padding": [

@@ -235,11 +235,11 @@ public static partial class Workspace
             items.Add(PopupMenuItem.Separator());
         }
 
-        //items.Add(PopupMenuItem.FromCommand(editCommand, enabled: () => SelectedCount == 1));
-        //items.Add(PopupMenuItem.FromCommand(duplicateCommand));
-        //items.Add(PopupMenuItem.FromCommand(renameCommand));
-        //items.Add(PopupMenuItem.FromCommand(deleteCommand));
-        //items.Add(PopupMenuItem.FromCommand(moveCommand));
+        items.Add(editCommand.ToPopupMenuItem(enabled: () => SelectedCount == 1));
+        items.Add(duplicateCommand.ToPopupMenuItem());
+        items.Add(renameCommand.ToPopupMenuItem());
+        items.Add(deleteCommand.ToPopupMenuItem());
+        items.Add(moveCommand.ToPopupMenuItem());
         _workspacePopupItems = [.. items];
     }
 

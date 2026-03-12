@@ -11,23 +11,23 @@ public static class EditorStyle
     {
         // Surface Backgrounds
         public static readonly Color Canvas = Color.FromRgb(0x353535);
-        public static readonly Color PageBG = Color.FromRgb(0x1A1A1A);
+        public static readonly Color Control = Color.FromRgb(0x1A1A1A);
         public static readonly Color Body = Color.FromRgb(0x212121);
         public static readonly Color Grid = Color.FromRgb(0x3E3E3E);
-        public static readonly Color Header = Color.FromRgb(0x2D2D2D);
+        public static readonly Color Header = Color.FromRgb(0x252525);
         public static readonly Color Secondary = Color.FromRgb(0x333333);
-        public static readonly Color Active = Color.FromRgb(0x3D3D3D);
+        public static readonly Color Active = Color.FromRgb(0x454545);
         public static readonly Color Panel = Color.FromRgb(0x252526);
         public static readonly Color Primary = Color.FromRgb(0xE83A3A);
         public static readonly Color PrimaryHover = Color.FromRgb(0xF04848);
 
         // Text & Icon
-        public static readonly Color Content = Color.FromRgb(0xDDDDDD);
+        public static readonly Color Content = Color.FromRgb(0xE8E8E8);
         public static readonly Color HeaderText = Color.FromRgb(0xAAAAAA);
         public static readonly Color SecondaryText = Color.FromRgb(0x999999);
-        public static readonly Color Label = Color.FromRgb(0x777777);
+        public static readonly Color Label = Color.FromRgb(0x999999);
         public static readonly Color Disabled = Color.FromRgb(0x666666);
-        public static readonly Color Placeholder = Color.FromRgb(0x555555);
+        public static readonly Color Placeholder = Color.FromRgb(0x777777);
         public static readonly Color DisabledLight = Color.FromRgb(0x333333);
 
         // State
@@ -145,7 +145,7 @@ public static class EditorStyle
 
         public static readonly ContainerStyle Fill = new()
         {
-            Color = Palette.PageBG,
+            Color = Palette.Control,
             BorderRadius = BorderRadius,
             Resolve = (s, f) =>
             {
@@ -459,7 +459,7 @@ public static class EditorStyle
     {
         Width = Size.Default,
         Height = Control.Height,
-        Color = Palette.PageBG,
+        Color = Palette.Control,
         ContentColor = Palette.Content,
         IconColor = Palette.Label,
         FontSize = Control.TextSize,
@@ -473,7 +473,7 @@ public static class EditorStyle
         {
             if ((f & WidgetFlags.Disabled) != 0) return s with
             {
-                Color = Palette.PageBG,
+                Color = Palette.Control,
                 ContentColor = Palette.DisabledLight
             };
             if ((f & WidgetFlags.Checked) != 0) return s with { Color = Palette.Active, IconColor = Palette.HeaderText };
@@ -496,10 +496,10 @@ public static class EditorStyle
         TextColor = Palette.Content,
         PlaceholderColor = Palette.Placeholder,
         SelectionColor = Palette.TextSelection,
-        BackgroundColor = Palette.PageBG,
+        BackgroundColor = Palette.Control,
         BorderRadius = Control.BorderRadius,
         BorderWidth = 1.25f,
-        BorderColor = Palette.PageBG,
+        BorderColor = Palette.Control,
         Padding = EdgeInsets.Symmetric(6, 8),
         IconSize = Control.IconSize,
         IconColor = Palette.Label,
@@ -766,7 +766,7 @@ public static class EditorStyle
     {
         public static readonly ContainerStyle Root = new()
         {
-            Color = Palette.PageBG,
+            Color = Palette.Control,
             AlignY = Align.Max,
             Height = Size.Fit
         };
@@ -847,8 +847,6 @@ public static class EditorStyle
             Spacing = BodyGap
         };
 
-        public static readonly ColorButtonStyle ColorButton = new();
-
         public static readonly TextInputStyle TextBox = EditorStyle.TextInput;
         public static readonly TextInputStyle TextArea = EditorStyle.TextArea;
 
@@ -860,7 +858,7 @@ public static class EditorStyle
             FontSize = Control.TextSize,
             BorderRadius = 4,
             BorderWidth = 0,
-            Color = Palette.PageBG,
+            Color = Palette.Control,
             CheckedColor = Palette.Active,
             BorderColor = Color.Transparent,
             ContentColor = Palette.Content,
@@ -903,7 +901,7 @@ public static class EditorStyle
 
         public static readonly ContainerStyle EmitterTabFill = new()
         {
-            Color = Palette.PageBG,
+            Color = Palette.Control,
             BorderRadius = BorderRadius
         };
 
@@ -937,7 +935,7 @@ public static class EditorStyle
             Height = Control.Height,
             TrackHeight = TrackHeight,
             ThumbSize = ThumbSize,
-            TrackColor = Palette.PageBG,
+            TrackColor = Palette.Control,
             FillColor = Palette.Primary,
             ThumbColor = Palette.Content,
             Step = 0.05f,

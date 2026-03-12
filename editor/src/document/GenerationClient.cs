@@ -14,11 +14,21 @@ public class GenerationRequest
     public string Server { get; set; } = "";
 
     public string Workflow { get; set; } = "sprite";
-    public List<GenerationShape> Layers { get; set; } = [];
+    public string? Image { get; set; }
+    public string? Mask { get; set; }
+    public string Prompt { get; set; } = "";
+    public string? NegativePrompt { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public float Strength { get; set; } = 0.85f;
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public int Steps { get; set; } = 20;
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public float GuidanceScale { get; set; } = 6.0f;
+    public long? Seed { get; set; }
+    public float StyleStrength { get; set; }
     public GenerationRefine? Refine { get; set; }
     public GenerationStyleBlock? Style { get; set; }
-    public List<GenerationLora>? Loras { get; set; }
-    public float Detail { get; set; } = 1.0f;
+    public GenerationLora? Lora { get; set; }
 }
 
 public class GenerationStyleBlock
@@ -40,22 +50,6 @@ public class GenerationLora
     public string Name { get; set; } = "";
     [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     public float Strength { get; set; } = 0.8f;
-}
-
-public class GenerationShape
-{
-    public string? Image { get; set; }
-    public string? Mask { get; set; }
-    public string Prompt { get; set; } = "";
-    public string? NegativePrompt { get; set; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
-    public float Strength { get; set; } = 0.8f;
-    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
-    public int Steps { get; set; } = 10;
-    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
-    public float GuidanceScale { get; set; } = 6.0f;
-    public long? Seed { get; set; }
-    public float Style { get; set; } = 0.5f;
 }
 
 public class LoraInfo

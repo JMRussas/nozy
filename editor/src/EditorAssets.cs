@@ -65,6 +65,7 @@ public static class EditorAssets
         public const string IconSeed = "icon_seed";
         public const string IconSort = "icon_sort";
         public const string IconStroke = "icon_stroke";
+        public const string IconStrokeSize = "icon_stroke_size";
         public const string IconSubmenu = "icon_submenu";
         public const string IconSubtract = "icon_subtract";
         public const string IconTiling = "icon_tiling";
@@ -188,6 +189,7 @@ public static class EditorAssets
         public static Sprite IconSeed { get; private set; } = null!;
         public static Sprite IconSort { get; private set; } = null!;
         public static Sprite IconStroke { get; private set; } = null!;
+        public static Sprite IconStrokeSize { get; private set; } = null!;
         public static Sprite IconSubmenu { get; private set; } = null!;
         public static Sprite IconSubtract { get; private set; } = null!;
         public static Sprite IconTiling { get; private set; } = null!;
@@ -248,6 +250,7 @@ public static class EditorAssets
             IconSeed = (Sprite)Asset.Load(AssetType.Sprite, Names.IconSeed)!;
             IconSort = (Sprite)Asset.Load(AssetType.Sprite, Names.IconSort)!;
             IconStroke = (Sprite)Asset.Load(AssetType.Sprite, Names.IconStroke)!;
+            IconStrokeSize = (Sprite)Asset.Load(AssetType.Sprite, Names.IconStrokeSize)!;
             IconSubmenu = (Sprite)Asset.Load(AssetType.Sprite, Names.IconSubmenu)!;
             IconSubtract = (Sprite)Asset.Load(AssetType.Sprite, Names.IconSubtract)!;
             IconTiling = (Sprite)Asset.Load(AssetType.Sprite, Names.IconTiling)!;
@@ -309,6 +312,7 @@ public static class EditorAssets
             IconSeed?.Dispose();
             IconSort?.Dispose();
             IconStroke?.Dispose();
+            IconStrokeSize?.Dispose();
             IconSubmenu?.Dispose();
             IconSubtract?.Dispose();
             IconTiling?.Dispose();

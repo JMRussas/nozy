@@ -1,4 +1,4 @@
-﻿//
+//
 //  NoZ - Copyright(c) 2026 NoZ Games, LLC
 //
 
@@ -15,19 +15,8 @@ public class SpriteFrame : IDisposable
     }
 }
 
-public class SpriteLayer
+public partial class SpriteDocument
 {
-    public string Name = "";
-    public bool Visible = true;
-    public bool Locked;
-    public float Opacity = 1.0f;
-    public byte SortOrder;
-    public StringId Bone;
-    public int Index;
-
-    public readonly SpriteFrame[] Frames = new SpriteFrame[Sprite.MaxFrames];
-    public ushort FrameCount = 1;
-
     public int TotalTimeSlots
     {
         get
@@ -39,11 +28,21 @@ public class SpriteLayer
         }
     }
 
-    public SpriteLayer()
+    public static int GetFrameAtTimeSlot(SpriteFrame[] frames, ushort frameCount, int globalTimeSlot)
     {
-        for (var i = 0; i < Frames.Length; i++)
-            Frames[i] = new SpriteFrame();
+        var accumulated = 0;
+        for (var f = 0; f < frameCount; f++)
+        {
+            var slots = 1 + frames[f].Hold;
+            if (accumulated + slots > globalTimeSlot)
+                return f;
+            accumulated += slots;
+        }
+        return frameCount - 1;
     }
+
+    public int GetFrameAtTimeSlot(int globalTimeSlot) =>
+        GetFrameAtTimeSlot(Frames, FrameCount, globalTimeSlot);
 
     public int InsertFrame(int insertAt)
     {
@@ -81,83 +80,5 @@ public class SpriteLayer
         Frames[FrameCount - 1].Hold = 0;
         FrameCount--;
         return Math.Min(frameIndex, FrameCount - 1);
-    }
-
-    public SpriteLayer Clone()
-    {
-        var clone = new SpriteLayer
-        {
-            Name = Name,
-            Visible = Visible,
-            Locked = Locked,
-            Opacity = Opacity,
-            SortOrder = SortOrder,
-            Index = Index,
-            Bone = Bone,
-            FrameCount = FrameCount,
-        };
-        for (var i = 0; i < FrameCount; i++)
-        {
-            clone.Frames[i].Shape.CopyFrom(Frames[i].Shape);
-            clone.Frames[i].Hold = Frames[i].Hold;
-        }
-        return clone;
-    }
-}
-
-public partial class SpriteDocument
-{
-    public bool IsLayerActive(SpriteLayer layer) => ActiveLayerIndex == layer.Index;
-
-    public int AddLayer()
-    {
-        if (_layers.Count >= MaxDocumentLayers)
-            return -1;
-
-        var name = $"Layer {_layers.Count + 1}";
-
-        _layers.Add(new SpriteLayer { Name = name, Index = _layers.Count });
-        ActiveLayerIndex = _layers.Count - 1;
-        return ActiveLayerIndex;
-    }
-
-    public void RemoveLayer(int index)
-    {
-        if (index < 0 || index >= _layers.Count || _layers.Count <= 1)
-            return;
-
-        _layers.RemoveAt(index);
-
-        for (var i=index; i < _layers.Count; i++)
-            _layers[i].Index = i;
-
-        if (ActiveLayerIndex >= _layers.Count)
-            ActiveLayerIndex = _layers.Count - 1;
-
-        UpdateBounds();
-    }
-
-    public void MoveLayer(int fromIndex, int toIndex)
-    {
-        if (fromIndex < 0 || fromIndex >= _layers.Count ||
-            toIndex < 0 || toIndex >= _layers.Count ||
-            fromIndex == toIndex)
-            return;
-
-        var layer = _layers[fromIndex];
-        _layers.RemoveAt(fromIndex);
-        _layers.Insert(toIndex, layer);
-
-        for (var i = 0; i < _layers.Count; i++)
-            _layers[i].Index = i;
-
-        if (ActiveLayerIndex == fromIndex)
-            ActiveLayerIndex = toIndex;
-        else if (fromIndex < toIndex && ActiveLayerIndex > fromIndex && ActiveLayerIndex <= toIndex)
-            ActiveLayerIndex--;
-        else if (fromIndex > toIndex && ActiveLayerIndex >= toIndex && ActiveLayerIndex < fromIndex)
-            ActiveLayerIndex++;
-
-        UpdateBounds();
     }
 }

@@ -12,7 +12,6 @@ public partial class GenSpriteEditor : DocumentEditor, IShapeEditorHost
     private static partial class WidgetIds
     {
         public static partial WidgetId Root { get; }
-        public static partial WidgetId LayerItem { get; }
         public static partial WidgetId GenerateButton { get; }
         public static partial WidgetId ConstraintDropDown { get; }
         public static partial WidgetId StyleDropDown { get; }
@@ -20,16 +19,11 @@ public partial class GenSpriteEditor : DocumentEditor, IShapeEditorHost
         public static partial WidgetId LayerNegativePrompt { get; }
         public static partial WidgetId LayerSeed { get; }
         public static partial WidgetId LayerSeedDice { get; }
-        public static partial WidgetId LayerDeleteButton { get; }
-        public static partial WidgetId LayerMoveUp { get; }
-        public static partial WidgetId LayerMoveDown { get; }
         public static partial WidgetId PathNormal { get; }
         public static partial WidgetId PathSubtract { get; }
         public static partial WidgetId PathClip { get; }
         public static partial WidgetId FillColor { get; }
         public static partial WidgetId StrokeColor { get; }
-        public static partial WidgetId AddComponentButton { get; }
-        public static partial WidgetId AddComponentPopup { get; }
         public static partial WidgetId CancelButton { get; }
     }
 
@@ -41,7 +35,7 @@ public partial class GenSpriteEditor : DocumentEditor, IShapeEditorHost
 
     public override bool ShowInspector => true;
 
-    private Shape CurrentShape => Document.ActiveLayer.Shape;
+    private Shape CurrentShape => Document.Shape;
 
     public GenSpriteEditor(GenSpriteDocument doc) : base(doc)
     {
@@ -71,7 +65,7 @@ public partial class GenSpriteEditor : DocumentEditor, IShapeEditorHost
             Graphics.SetSortGroup(6);
             Document.DrawOrigin();
             Graphics.SetSortGroup(5);
-            DrawAllLayerWireframes();
+            DrawWireframe();
         }
 
         UpdateMesh();
@@ -97,9 +91,7 @@ public partial class GenSpriteEditor : DocumentEditor, IShapeEditorHost
         else
             GenSpriteInspectorUI();
 
-        LayersInspectorUI();
-
-        AddComponentUI();
+        PromptInspectorUI();
 
         UI.Flex();
 
@@ -187,19 +179,30 @@ public partial class GenSpriteEditor : DocumentEditor, IShapeEditorHost
         Document.IncrementVersion();
     }
 
-    private void AddComponentUI()
+    private void PromptInspectorUI()
     {
-        using (UI.BeginContainer(new ContainerStyle { Padding = EdgeInsets.Symmetric(10, 16), AlignX = Align.Center }))
+        using (Inspector.BeginSection("GENERATION"))
         {
-            if (UI.Button(WidgetIds.AddComponentButton, () =>
+            if (!Inspector.IsSectionCollapsed)
             {
-                UI.Text("+ Add Layer", EditorStyle.Control.Text);
-            }, EditorStyle.Button.Secondary))
-            {
-                Undo.Record(Document);
-                Document.AddLayer();
-                _shapeEditor.ClearSelection();
-                Document.IncrementVersion();
+                using (Inspector.BeginRow())
+                using (UI.BeginFlex())
+                    Document.Prompt = UI.TextInput(WidgetIds.LayerPrompt, Document.Prompt, EditorStyle.TextArea, "Prompt", Document, multiLine: true);
+
+                using (Inspector.BeginRow())
+                using (UI.BeginFlex())
+                    Document.NegativePrompt = UI.TextInput(WidgetIds.LayerNegativePrompt, Document.NegativePrompt, EditorStyle.TextArea, "Negative Prompt", Document, multiLine: true);
+
+                using (Inspector.BeginRow())
+                {
+                    using (UI.BeginFlex())
+                        Document.Seed = UI.TextInput(WidgetIds.LayerSeed, Document.Seed, EditorStyle.TextInput, "Seed", Document, icon: EditorAssets.Sprites.IconSeed);
+                    if (UI.Button(WidgetIds.LayerSeedDice, EditorAssets.Sprites.IconRandom, EditorStyle.Button.IconOnly))
+                    {
+                        Undo.Record(Document);
+                        Document.Seed = GenerateRandomSeed();
+                    }
+                }
             }
         }
     }
@@ -263,103 +266,6 @@ public partial class GenSpriteEditor : DocumentEditor, IShapeEditorHost
         }
     }
 
-    private void LayersInspectorUI()
-    {
-        for (int i = Document.Layers.Count - 1; i >= 0; i--)
-        {
-            var layer = Document.Layers[i];
-            var isActive = Document.ActiveLayerIndex == i;
-            var layerIndex = i;
-
-            var prompt = layer.Prompt;
-            var title = string.IsNullOrEmpty(prompt) ? layer.Name
-                : prompt.Length > 28 ? prompt[..28] + "..."
-                : prompt;
-
-            void LayerHeaderContent()
-            {
-                if (layerIndex < Document.Layers.Count - 1)
-                {
-                    if (UI.Button(WidgetIds.LayerMoveUp + layerIndex, EditorAssets.Sprites.IconExpandUp, EditorStyle.Button.SmallIconOnly))
-                    {
-                        Undo.Record(Document);
-                        Document.MoveLayer(layerIndex, layerIndex + 1);
-                        Document.ActiveLayerIndex = layerIndex + 1;
-                        Document.IncrementVersion();
-                    }
-                }
-
-                if (layerIndex > 0)
-                {
-                    if (UI.Button(WidgetIds.LayerMoveDown + layerIndex, EditorAssets.Sprites.IconExpandDown, EditorStyle.Button.SmallIconOnly))
-                    {
-                        Undo.Record(Document);
-                        Document.MoveLayer(layerIndex, layerIndex - 1);
-                        Document.ActiveLayerIndex = layerIndex - 1;
-                        Document.IncrementVersion();
-                    }
-                }
-
-                if (Document.Layers.Count > 1)
-                {
-                    if (UI.Button(WidgetIds.LayerDeleteButton + layerIndex, EditorAssets.Sprites.IconDelete, EditorStyle.Button.SmallIconOnly))
-                    {
-                        Undo.Record(Document);
-                        Document.RemoveLayer(layerIndex);
-                        _shapeEditor.ClearSelection();
-                        Document.IncrementVersion();
-                    }
-                }
-            }
-
-            using (Inspector.BeginSection(title, icon: EditorAssets.Sprites.IconLayer, isActive: isActive, content: LayerHeaderContent))
-            {
-                if (Inspector.WasHeaderPressed)
-                {
-                    _shapeEditor.ClearSelection();
-                    Document.ActiveLayerIndex = layerIndex;
-
-                    var allSelected = layer.Shape.AnchorCount > 0;
-                    for (ushort a = 0; a < layer.Shape.AnchorCount; a++)
-                    {
-                        if (!layer.Shape.GetAnchor(a).IsSelected) { allSelected = false; break; }
-                    }
-
-                    if (!allSelected && layer.Shape.AnchorCount > 0)
-                        layer.Shape.SelectAll();
-                    else
-                        layer.Shape.ClearSelection();
-
-                    _shapeEditor.UpdateSelection();
-                }
-
-                if (!Inspector.IsSectionCollapsed)
-                {
-                    using (Inspector.BeginRow())
-                    using (UI.BeginFlex())
-                        layer.Prompt = UI.TextInput(WidgetIds.LayerPrompt + i, layer.Prompt, EditorStyle.TextArea, "Prompt", Document, multiLine: true);
-
-                    using (Inspector.BeginRow())
-                    using (UI.BeginFlex())
-                        layer.NegativePrompt = UI.TextInput(WidgetIds.LayerNegativePrompt + i, layer.NegativePrompt, EditorStyle.TextArea, "Negative Prompt", Document, multiLine: true);
-
-                    using (Inspector.BeginRow())
-                    {
-                        using (UI.BeginFlex())
-                            layer.Seed = UI.TextInput(WidgetIds.LayerSeed + i, layer.Seed, EditorStyle.TextInput, "Seed", Document, icon: EditorAssets.Sprites.IconSeed);
-                        if (UI.Button(WidgetIds.LayerSeedDice + i, EditorAssets.Sprites.IconRandom, EditorStyle.Button.IconOnly))
-                        {
-                            Undo.Record(Document);
-                            layer.Seed = GenerateRandomSeed();
-                        }
-                    }
-
-
-                }
-            }
-        }
-    }
-
     private void PathInspectorUI()
     {
         using (Inspector.BeginSection("PATH"))
@@ -386,7 +292,7 @@ public partial class GenSpriteEditor : DocumentEditor, IShapeEditorHost
                 {
                     using var __ = UI.BeginFlex();
                     var fillColor = Document.CurrentFillColor;
-                    if (EditorUI.ColorButton(WidgetIds.FillColor, ref fillColor, EditorStyle.Inspector.ColorButton))
+                    if (EditorUI.ColorButton(WidgetIds.FillColor, ref fillColor))
                     {
                         UI.HandleChange(Document);
                         SetFillColor(fillColor);
@@ -403,7 +309,7 @@ public partial class GenSpriteEditor : DocumentEditor, IShapeEditorHost
                 {
                     using var __ = UI.BeginFlex();
                     var strokeColor = Document.CurrentStrokeColor;
-                    if (EditorUI.ColorButton(WidgetIds.StrokeColor, ref strokeColor, EditorStyle.Inspector.ColorButton))
+                    if (EditorUI.ColorButton(WidgetIds.StrokeColor, ref strokeColor))
                     {
                         UI.HandleChange(Document);
                         SetStrokeColor(strokeColor);
@@ -503,39 +409,28 @@ public partial class GenSpriteEditor : DocumentEditor, IShapeEditorHost
         var localMousePos = Vector2.Transform(Workspace.MouseWorldPosition, invTransform);
         var shift = Input.IsShiftDown(InputScope.All);
 
-        // First pass: check all layers for anchor/segment hits (priority over path containment)
-        for (int layerIdx = Document.Layers.Count - 1; layerIdx >= 0; layerIdx--)
+        var shape = Document.Shape;
+
+        // Check for anchor/segment hits
+        var result = shape.HitTest(localMousePos);
+
+        if (result.AnchorIndex != ushort.MaxValue)
         {
-            var layer = Document.Layers[layerIdx];
-            var shape = layer.Shape;
-            var result = shape.HitTest(localMousePos);
-
-            if (result.AnchorIndex != ushort.MaxValue)
-            {
-                _shapeEditor.SelectAnchor(shape, result.AnchorIndex, shift);
-                return;
-            }
-
-            if (result.SegmentIndex != ushort.MaxValue)
-            {
-                _shapeEditor.SelectSegment(shape, result.SegmentIndex, shift);
-                return;
-            }
+            _shapeEditor.SelectAnchor(shape, result.AnchorIndex, shift);
+            return;
         }
 
-        // Second pass: check for path containment (selects layer)
-        for (int layerIdx = Document.Layers.Count - 1; layerIdx >= 0; layerIdx--)
+        if (result.SegmentIndex != ushort.MaxValue)
         {
-            var layer = Document.Layers[layerIdx];
-            var shape = layer.Shape;
-            var result = shape.HitTest(localMousePos);
+            _shapeEditor.SelectSegment(shape, result.SegmentIndex, shift);
+            return;
+        }
 
-            if (result.PathIndex != ushort.MaxValue)
-            {
-                Document.ActiveLayerIndex = layerIdx;
-                _shapeEditor.SelectPath(shape, result.PathIndex, shift);
-                return;
-            }
+        // Check for path containment
+        if (result.PathIndex != ushort.MaxValue)
+        {
+            _shapeEditor.SelectPath(shape, result.PathIndex, shift);
+            return;
         }
 
         if (!shift)
@@ -546,23 +441,11 @@ public partial class GenSpriteEditor : DocumentEditor, IShapeEditorHost
 
     #region Drawing
 
-    private void DrawAllLayerWireframes()
+    private void DrawWireframe()
     {
-        var layers = Document.Layers;
-
-        // Draw non-active layers (dimmed segments + selected anchors only)
-        for (int layerIdx = 0; layerIdx < layers.Count; layerIdx++)
-        {
-            if (layerIdx == Document.ActiveLayerIndex) continue;
-            var shape = layers[layerIdx].Shape;
-            ShapeEditor.DrawSegments(shape, dimmed: true);
-            ShapeEditor.DrawAnchors(shape, selectedOnly: true);
-        }
-
-        // Draw active layer on top (full brightness + all anchors)
-        var activeShape = CurrentShape;
-        ShapeEditor.DrawSegments(activeShape, dimmed: false);
-        ShapeEditor.DrawAnchors(activeShape);
+        var shape = CurrentShape;
+        ShapeEditor.DrawSegments(shape, dimmed: false);
+        ShapeEditor.DrawAnchors(shape);
     }
 
     #endregion
@@ -577,25 +460,21 @@ public partial class GenSpriteEditor : DocumentEditor, IShapeEditorHost
 
     void IShapeEditorHost.OnSelectionChanged(bool hasSelection)
     {
-        foreach (var layer in Document.Layers)
+        var shape = Document.Shape;
+        for (ushort p = (ushort)(shape.PathCount - 1); p < shape.PathCount; p--)
         {
-            var shape = layer.Shape;
-            for (ushort p = (ushort)(shape.PathCount - 1); p < shape.PathCount; p--)
-            {
-                ref readonly var path = ref shape.GetPath(p);
-                if (!path.IsSelected) continue;
+            ref readonly var path = ref shape.GetPath(p);
+            if (!path.IsSelected) continue;
 
-                Document.CurrentFillColor = path.FillColor;
-                Document.CurrentStrokeColor = path.StrokeColor;
-                return;
-            }
+            Document.CurrentFillColor = path.FillColor;
+            Document.CurrentStrokeColor = path.StrokeColor;
+            return;
         }
     }
 
     void IShapeEditorHost.ClearAllSelections()
     {
-        foreach (var layer in Document.Layers)
-            layer.Shape.ClearSelection();
+        Document.Shape.ClearSelection();
     }
 
     void IShapeEditorHost.InvalidateMesh() => _meshVersion = -1;
@@ -609,15 +488,13 @@ public partial class GenSpriteEditor : DocumentEditor, IShapeEditorHost
 
     Shape? IShapeEditorHost.GetShapeWithSelection()
     {
-        foreach (var layer in Document.Layers)
-            if (layer.Shape.HasSelection()) return layer.Shape;
+        if (Document.Shape.HasSelection()) return Document.Shape;
         return null;
     }
 
     void IShapeEditorHost.ForEachEditableShape(Action<Shape> action)
     {
-        foreach (var layer in Document.Layers)
-            action(layer.Shape);
+        action(Document.Shape);
     }
 
     #endregion

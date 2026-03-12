@@ -17,23 +17,21 @@ public partial class GenSpriteDocument : Document, IShapeDocument
 
     public override bool CanSave => true;
 
-    public const int MaxDocumentLayers = 32;
-
-    private readonly List<GenSpriteLayer> _layers = new();
+    public readonly Shape Shape = new();
+    public string Prompt = "";
+    public string NegativePrompt = "";
+    public string Seed = "";
 
     public Vector2Int ConstrainedSize { get; set; } = new(256, 256);
     public GenerationImage Generation { get; } = new();
     public string? StyleName;
     public GenStyleDocument? Style;
-    public int ActiveLayerIndex;
     public Color32 CurrentFillColor = Color32.White;
     public Color32 CurrentStrokeColor = new(0, 0, 0, 0);
 
-    public IReadOnlyList<GenSpriteLayer> Layers => _layers;
-    public GenSpriteLayer ActiveLayer => _layers[ActiveLayerIndex];
-    public bool IsActiveLayerLocked => false; // GenSprite layers are never locked
+    public bool IsActiveLayerLocked => false;
 
-    public bool HasGeneration => _layers.Any(l => l.HasPrompt);
+    public bool HasGeneration => !string.IsNullOrEmpty(Prompt);
     public bool IsGenerating => Generation.IsGenerating;
 
     private static long HashSeed(string seed)
@@ -63,12 +61,10 @@ public partial class GenSpriteDocument : Document, IShapeDocument
     public GenSpriteDocument()
     {
         IsEditorOnly = true;
-        _layers.Add(new GenSpriteLayer { Name = "Layer 1", Index = 0 });
     }
 
     private static void NewFile(StreamWriter writer)
     {
-        writer.WriteLine("layer \"Layer 1\"");
         writer.WriteLine("generate");
         writer.WriteLine("prompt \"\"");
     }
@@ -94,13 +90,29 @@ public partial class GenSpriteDocument : Document, IShapeDocument
 
     private void Parse(ref Tokenizer tk)
     {
-        _layers.Clear();
+        Shape.Clear();
+        Prompt = "";
+        NegativePrompt = "";
+        Seed = "";
 
         while (!tk.IsEOF)
         {
             if (tk.ExpectIdentifier("layer"))
             {
-                ParseLayer(ref tk);
+                // Backward compat: skip layer name, parse contents into our single shape
+                tk.ExpectQuotedString();
+                if (tk.ExpectIdentifier("generate"))
+                    ParseGenerationConfig(ref tk);
+                while (!tk.IsEOF && tk.ExpectIdentifier("path"))
+                    ParsePath(Shape, ref tk);
+            }
+            else if (tk.ExpectIdentifier("generate"))
+            {
+                ParseGenerationConfig(ref tk);
+            }
+            else if (tk.ExpectIdentifier("path"))
+            {
+                ParsePath(Shape, ref tk);
             }
             else if (tk.ExpectIdentifier("gen_image"))
             {
@@ -113,7 +125,6 @@ public partial class GenSpriteDocument : Document, IShapeDocument
                 tk.ExpectQuotedString();
             else if (tk.ExpectIdentifier("lora_strength"))
                 tk.ExpectFloat(out _);
-            // Backward compat: consume old refine block
             else if (tk.ExpectIdentifier("refine"))
                 ConsumeGenerationConfig(ref tk);
             else
@@ -123,27 +134,6 @@ public partial class GenSpriteDocument : Document, IShapeDocument
                 break;
             }
         }
-
-        if (_layers.Count == 0)
-            _layers.Add(new GenSpriteLayer { Name = "Layer 1", Index = 0 });
-    }
-
-    private void ParseLayer(ref Tokenizer tk)
-    {
-        var layer = new GenSpriteLayer
-        {
-            Name = tk.ExpectQuotedString() ?? $"Layer {_layers.Count + 1}",
-            Index = _layers.Count,
-        };
-        _layers.Add(layer);
-
-        // Parse generation config (mandatory for gensprite layers)
-        if (tk.ExpectIdentifier("generate"))
-            ParseGenerationConfig(ref tk, layer);
-
-        // Parse mask paths
-        while (!tk.IsEOF && tk.ExpectIdentifier("path"))
-            ParsePath(layer.Shape, ref tk);
     }
 
     private static void ParsePath(Shape shape, ref Tokenizer tk)
@@ -195,20 +185,20 @@ public partial class GenSpriteDocument : Document, IShapeDocument
             shape.SetPathOperation(pathIndex, operation);
     }
 
-    private static void ParseGenerationConfig(ref Tokenizer tk, GenSpriteLayer layer)
+    private void ParseGenerationConfig(ref Tokenizer tk)
     {
         while (!tk.IsEOF)
         {
             if (tk.ExpectIdentifier("prompt"))
-                layer.Prompt = tk.ExpectQuotedString() ?? "";
+                Prompt = tk.ExpectQuotedString() ?? "";
             else if (tk.ExpectIdentifier("prompt_neg"))
-                layer.NegativePrompt = tk.ExpectQuotedString() ?? "";
+                NegativePrompt = tk.ExpectQuotedString() ?? "";
             else if (tk.ExpectIdentifier("seed"))
             {
                 if (tk.ExpectQuotedString(out var seedStr))
-                    layer.Seed = seedStr;
+                    Seed = seedStr;
                 else
-                    layer.Seed = tk.ExpectInt().ToString();
+                    Seed = tk.ExpectInt().ToString();
             }
             // Backward compat: consume old fields
             else if (tk.ExpectIdentifier("combine"))
@@ -249,22 +239,17 @@ public partial class GenSpriteDocument : Document, IShapeDocument
 
     public override void Save(StreamWriter writer)
     {
-        for (var layerIndex = 0; layerIndex < _layers.Count; layerIndex++)
-        {
-            var layer = _layers[layerIndex];
+        // Generation config
+        writer.WriteLine("generate");
+        if (!string.IsNullOrEmpty(Prompt))
+            writer.WriteLine($"prompt \"{Prompt.Replace("\"", "\\\"")}\"");
+        if (!string.IsNullOrEmpty(NegativePrompt))
+            writer.WriteLine($"prompt_neg \"{NegativePrompt.Replace("\"", "\\\"")}\"");
+        if (!string.IsNullOrEmpty(Seed))
+            writer.WriteLine($"seed \"{Seed}\"");
 
-            writer.WriteLine($"layer \"{layer.Name}\"");
-
-            // Generation config (always present)
-            writer.WriteLine("generate");
-            WriteGenerationConfig(writer, layer);
-
-            // Mask paths
-            SaveMaskPaths(layer.Shape, writer);
-
-            if (layerIndex < _layers.Count - 1)
-                writer.WriteLine();
-        }
+        // Mask paths
+        SaveMaskPaths(Shape, writer);
 
         // Document-level generation image
         if (Generation.HasImageData)
@@ -272,17 +257,6 @@ public partial class GenSpriteDocument : Document, IShapeDocument
             writer.WriteLine();
             writer.WriteLine($"gen_image \"{Convert.ToBase64String(Generation.ImageData!)}\"");
         }
-
-    }
-
-    private static void WriteGenerationConfig(StreamWriter writer, GenSpriteLayer layer)
-    {
-        if (!string.IsNullOrEmpty(layer.Prompt))
-            writer.WriteLine($"prompt \"{layer.Prompt.Replace("\"", "\\\"")}\"");
-        if (!string.IsNullOrEmpty(layer.NegativePrompt))
-            writer.WriteLine($"prompt_neg \"{layer.NegativePrompt.Replace("\"", "\\\"")}\"");
-        if (!string.IsNullOrEmpty(layer.Seed))
-            writer.WriteLine($"seed \"{layer.Seed}\"");
     }
 
     private static void SaveMaskPaths(Shape shape, StreamWriter writer)
@@ -362,68 +336,8 @@ public partial class GenSpriteDocument : Document, IShapeDocument
             cs.X * ppu,
             cs.Y * ppu);
 
-        // Update all layer shape samples
-        foreach (var layer in _layers)
-        {
-            layer.Shape.UpdateSamples();
-            layer.Shape.UpdateBounds();
-        }
-    }
-
-    #endregion
-
-    #region Layers
-
-    public int AddLayer()
-    {
-        if (_layers.Count >= MaxDocumentLayers)
-            return -1;
-
-        var name = $"Layer {_layers.Count + 1}";
-        _layers.Add(new GenSpriteLayer { Name = name, Index = _layers.Count });
-        ActiveLayerIndex = _layers.Count - 1;
-        return ActiveLayerIndex;
-    }
-
-    public void RemoveLayer(int index)
-    {
-        if (index < 0 || index >= _layers.Count || _layers.Count <= 1)
-            return;
-
-        _layers[index].Dispose();
-        _layers.RemoveAt(index);
-
-        for (var i = index; i < _layers.Count; i++)
-            _layers[i].Index = i;
-
-        if (ActiveLayerIndex >= _layers.Count)
-            ActiveLayerIndex = _layers.Count - 1;
-
-        UpdateBounds();
-    }
-
-    public void MoveLayer(int fromIndex, int toIndex)
-    {
-        if (fromIndex < 0 || fromIndex >= _layers.Count ||
-            toIndex < 0 || toIndex >= _layers.Count ||
-            fromIndex == toIndex)
-            return;
-
-        var layer = _layers[fromIndex];
-        _layers.RemoveAt(fromIndex);
-        _layers.Insert(toIndex, layer);
-
-        for (var i = 0; i < _layers.Count; i++)
-            _layers[i].Index = i;
-
-        if (ActiveLayerIndex == fromIndex)
-            ActiveLayerIndex = toIndex;
-        else if (fromIndex < toIndex && ActiveLayerIndex > fromIndex && ActiveLayerIndex <= toIndex)
-            ActiveLayerIndex--;
-        else if (fromIndex > toIndex && ActiveLayerIndex >= toIndex && ActiveLayerIndex < fromIndex)
-            ActiveLayerIndex++;
-
-        UpdateBounds();
+        Shape.UpdateSamples();
+        Shape.UpdateBounds();
     }
 
     #endregion
@@ -459,7 +373,7 @@ public partial class GenSpriteDocument : Document, IShapeDocument
 
     private const int RasterizeSize = 1024;
 
-    private byte[] RasterizeMaskToPng(int targetLayerIndex)
+    private byte[] RasterizeMaskToPng()
     {
         UpdateBounds();
         var cs = ConstrainedSize;
@@ -479,14 +393,13 @@ public partial class GenSpriteDocument : Document, IShapeDocument
         var positivePaths = new Clipper2Lib.PathsD();
         var negativePaths = new Clipper2Lib.PathsD();
 
-        var shape = _layers[targetLayerIndex].Shape;
-        for (ushort pi = 0; pi < shape.PathCount; pi++)
+        for (ushort pi = 0; pi < Shape.PathCount; pi++)
         {
-            ref readonly var path = ref shape.GetPath(pi);
+            ref readonly var path = ref Shape.GetPath(pi);
             if (path.AnchorCount < 3) continue;
 
             var pathShape = new Msdf.Shape();
-            Msdf.ShapeClipper.AppendContour(pathShape, shape, pi);
+            Msdf.ShapeClipper.AppendContour(pathShape, Shape, pi);
             pathShape = Msdf.ShapeClipper.Union(pathShape);
             var contours = Msdf.ShapeClipper.ShapeToPaths(pathShape, 8);
             if (contours.Count == 0) continue;
@@ -532,97 +445,14 @@ public partial class GenSpriteDocument : Document, IShapeDocument
         {
             var tmpDir = System.IO.Path.Combine(EditorApplication.ProjectPath, "tmp");
             Directory.CreateDirectory(tmpDir);
-            File.WriteAllBytes(System.IO.Path.Combine(tmpDir, $"{Name}_mask_L{targetLayerIndex}.png"), pngBytes);
+            File.WriteAllBytes(System.IO.Path.Combine(tmpDir, $"{Name}_mask.png"), pngBytes);
         }
         catch { }
 
         return pngBytes;
     }
 
-    private byte[] RasterizeAllPathsMaskToPng()
-    {
-        UpdateBounds();
-        var cs = ConstrainedSize;
-        if (cs.X <= 0 || cs.Y <= 0)
-            return [];
-
-        var w = RasterizeSize;
-        var h = RasterizeSize;
-        var dpi = (int)(EditorApplication.Config.PixelsPerUnit * ((float)RasterizeSize / cs.X));
-
-        using var pixels = new PixelData<Color32>(w, h);
-        pixels.Clear(new Color32(0, 0, 0, 255));
-        var targetRect = new RectInt(0, 0, w, h);
-        var sourceOffset = new Vector2Int(w / 2, h / 2);
-        var white = new Color32(255, 255, 255, 255);
-
-        var positivePaths = new Clipper2Lib.PathsD();
-        var negativePaths = new Clipper2Lib.PathsD();
-
-        for (int li = 0; li < _layers.Count; li++)
-        {
-            var shape = _layers[li].Shape;
-            for (ushort pi = 0; pi < shape.PathCount; pi++)
-            {
-                ref readonly var path = ref shape.GetPath(pi);
-                if (path.AnchorCount < 3) continue;
-
-                var pathShape = new Msdf.Shape();
-                Msdf.ShapeClipper.AppendContour(pathShape, shape, pi);
-                pathShape = Msdf.ShapeClipper.Union(pathShape);
-                var contours = Msdf.ShapeClipper.ShapeToPaths(pathShape, 8);
-                if (contours.Count == 0) continue;
-
-                if (path.IsSubtract)
-                    negativePaths.AddRange(contours);
-                else
-                    positivePaths.AddRange(contours);
-            }
-        }
-
-        if (positivePaths.Count == 0)
-            return [];
-
-        Clipper2Lib.PathsD maskPaths;
-        if (negativePaths.Count > 0)
-        {
-            maskPaths = Clipper2Lib.Clipper.BooleanOp(Clipper2Lib.ClipType.Difference,
-                positivePaths, negativePaths, Clipper2Lib.FillRule.NonZero, precision: 6);
-        }
-        else
-        {
-            maskPaths = positivePaths;
-        }
-
-        if (maskPaths.Count > 0)
-            Rasterizer.Fill(maskPaths, pixels, targetRect, sourceOffset, dpi, white);
-
-        using var img = new Image<Rgba32>(w, h);
-        for (int y = 0; y < h; y++)
-        {
-            for (int x = 0; x < w; x++)
-            {
-                var c = pixels[x, y];
-                img[x, y] = new Rgba32(c.R, c.G, c.B, 255);
-            }
-        }
-
-        using var ms = new MemoryStream();
-        img.SaveAsPng(ms);
-        var pngBytes = ms.ToArray();
-
-        try
-        {
-            var tmpDir = System.IO.Path.Combine(EditorApplication.ProjectPath, "tmp");
-            Directory.CreateDirectory(tmpDir);
-            File.WriteAllBytes(System.IO.Path.Combine(tmpDir, $"{Name}_mask_all.png"), pngBytes);
-        }
-        catch { }
-
-        return pngBytes;
-    }
-
-    private byte[] RasterizeColorLayerToPng(int targetLayerIndex)
+    private byte[] RasterizeColorToPng()
     {
         UpdateBounds();
         var cs = ConstrainedSize;
@@ -638,17 +468,15 @@ public partial class GenSpriteDocument : Document, IShapeDocument
         var targetRect = new RectInt(0, 0, w, h);
         var sourceOffset = new Vector2Int(w / 2, h / 2);
 
-        var shape = _layers[targetLayerIndex].Shape;
-
-        // Collect subtract paths for this layer
+        // Collect subtract paths
         var negativePaths = new Clipper2Lib.PathsD();
-        for (ushort pi = 0; pi < shape.PathCount; pi++)
+        for (ushort pi = 0; pi < Shape.PathCount; pi++)
         {
-            ref readonly var path = ref shape.GetPath(pi);
+            ref readonly var path = ref Shape.GetPath(pi);
             if (!path.IsSubtract || path.AnchorCount < 3) continue;
 
             var subShape = new Msdf.Shape();
-            Msdf.ShapeClipper.AppendContour(subShape, shape, pi);
+            Msdf.ShapeClipper.AppendContour(subShape, Shape, pi);
             subShape = Msdf.ShapeClipper.Union(subShape);
             var contours = Msdf.ShapeClipper.ShapeToPaths(subShape, 8);
             if (contours.Count > 0)
@@ -656,13 +484,13 @@ public partial class GenSpriteDocument : Document, IShapeDocument
         }
 
         // Render each normal/clip path with its fill and stroke colors
-        for (ushort pi = 0; pi < shape.PathCount; pi++)
+        for (ushort pi = 0; pi < Shape.PathCount; pi++)
         {
-            ref readonly var path = ref shape.GetPath(pi);
+            ref readonly var path = ref Shape.GetPath(pi);
             if (path.IsSubtract || path.AnchorCount < 3) continue;
 
             var pathShape = new Msdf.Shape();
-            Msdf.ShapeClipper.AppendContour(pathShape, shape, pi);
+            Msdf.ShapeClipper.AppendContour(pathShape, Shape, pi);
             pathShape = Msdf.ShapeClipper.Union(pathShape);
             var contours = Msdf.ShapeClipper.ShapeToPaths(pathShape, 8);
             if (contours.Count == 0) continue;
@@ -691,14 +519,12 @@ public partial class GenSpriteDocument : Document, IShapeDocument
 
                 if (hasFill)
                 {
-                    // Stroke as outer ring, fill as inner
                     Rasterizer.Fill(contours, pixels, targetRect, sourceOffset, dpi, path.StrokeColor);
                     if (contractedPaths is { Count: > 0 })
                         Rasterizer.Fill(contractedPaths, pixels, targetRect, sourceOffset, dpi, fillColor);
                 }
                 else
                 {
-                    // Stroke ring only
                     if (contractedPaths is { Count: > 0 })
                     {
                         var strokeRing = Clipper2Lib.Clipper.BooleanOp(Clipper2Lib.ClipType.Difference,
@@ -736,7 +562,7 @@ public partial class GenSpriteDocument : Document, IShapeDocument
         {
             var tmpDir = System.IO.Path.Combine(EditorApplication.ProjectPath, "tmp");
             Directory.CreateDirectory(tmpDir);
-            File.WriteAllBytes(System.IO.Path.Combine(tmpDir, $"{Name}_color_L{targetLayerIndex}.png"), pngBytes);
+            File.WriteAllBytes(System.IO.Path.Combine(tmpDir, $"{Name}_color.png"), pngBytes);
         }
         catch { }
 
@@ -745,16 +571,9 @@ public partial class GenSpriteDocument : Document, IShapeDocument
 
     public void GenerateAsync()
     {
-        var genLayers = new List<(int Index, GenSpriteLayer Layer)>();
-        for (int i = 0; i < _layers.Count; i++)
+        if (string.IsNullOrEmpty(Prompt))
         {
-            if (_layers[i].HasPrompt)
-                genLayers.Add((i, _layers[i]));
-        }
-
-        if (genLayers.Count == 0)
-        {
-            Log.Error($"No generated layers with prompts found for '{Name}'");
+            Log.Error($"No prompt set for '{Name}'");
             return;
         }
 
@@ -763,68 +582,38 @@ public partial class GenSpriteDocument : Document, IShapeDocument
 
         var globalPrompt = Style?.Prompt ?? "";
         var globalNegPrompt = Style?.NegativePrompt ?? "";
-        var layerSteps = Style?.DefaultSteps ?? 30;
-        var layerStrength = Style?.DefaultStrength ?? 0.8f;
-        var layerStyle = Style?.StyleInpaintStrength ?? 0.5f;
-        var layerGuidance = Style?.DefaultGuidanceScale ?? 6.0f;
-
-        var shapes = new List<GenerationShape>();
-        var layerPrompts = new List<string>();
-        var layerNegPrompts = new List<string>();
+        var steps = Style?.DefaultSteps ?? 30;
+        var strength = Style?.DefaultStrength ?? 0.8f;
+        var styleStrength = Style?.StyleInpaintStrength ?? 0.5f;
+        var guidance = Style?.DefaultGuidanceScale ?? 6.0f;
 
         var workflow = Style?.Workflow ?? GenerationWorkflow.Sprite;
 
-        // Rasterize combined mask of all paths (white on black)
-        var allPathsMask = RasterizeAllPathsMaskToPng();
-        var allPathsMaskUri = allPathsMask.Length > 0
-            ? $"data:image/png;base64,{Convert.ToBase64String(allPathsMask)}"
-            : null;
+        // Rasterize image (color or mask depending on workflow)
+        var imageBytes = workflow == GenerationWorkflow.SpriteV2
+            ? RasterizeColorToPng()
+            : RasterizeMaskToPng();
 
-        foreach (var (layerIndex, layer) in genLayers)
-        {
-            var maskBytes = workflow == GenerationWorkflow.SpriteV2
-                ? RasterizeColorLayerToPng(layerIndex)
-                : RasterizeMaskToPng(layerIndex);
+        // Rasterize mask (white on black)
+        var maskBytes = RasterizeMaskToPng();
 
-            var prompt = string.IsNullOrEmpty(globalPrompt) ? layer.Prompt : $"{layer.Prompt}, {globalPrompt}";
-            var negPrompt = layer.NegativePrompt;
-            if (!string.IsNullOrEmpty(globalNegPrompt))
-                negPrompt = string.IsNullOrEmpty(negPrompt) ? globalNegPrompt : $"{negPrompt}, {globalNegPrompt}";
+        var prompt = string.IsNullOrEmpty(globalPrompt) ? Prompt : $"{Prompt}, {globalPrompt}";
+        var negPrompt = NegativePrompt;
+        if (!string.IsNullOrEmpty(globalNegPrompt))
+            negPrompt = string.IsNullOrEmpty(negPrompt) ? globalNegPrompt : $"{negPrompt}, {globalNegPrompt}";
 
-            var hashedSeed = HashSeed(layer.Seed);
-            var seed = hashedSeed == 0 ? Random.Shared.NextInt64(1, long.MaxValue) : hashedSeed;
+        var hashedSeed = HashSeed(Seed);
+        var seed = hashedSeed == 0 ? Random.Shared.NextInt64(1, long.MaxValue) : hashedSeed;
 
-            shapes.Add(new GenerationShape
-            {
-                Image = maskBytes.Length > 0 ? $"data:image/png;base64,{Convert.ToBase64String(maskBytes)}" : null,
-                Mask = allPathsMaskUri,
-                Prompt = prompt,
-                NegativePrompt = string.IsNullOrEmpty(negPrompt) ? null : negPrompt,
-                Strength = layerStrength,
-                Steps = layerSteps,
-                Style = layerStyle,
-                GuidanceScale = layerGuidance,
-                Seed = seed,
-            });
-
-            if (layer.HasPrompt)
-                layerPrompts.Add(layer.Prompt);
-            if (!string.IsNullOrEmpty(layer.NegativePrompt))
-                layerNegPrompts.Add(layer.NegativePrompt);
-        }
-
-        // Compute a stable refine seed from the sum of all shape seeds
-        long refineSeed = 0;
-        foreach (var s in shapes)
-            refineSeed += s.Seed ?? 0;
-
-        // Auto-build refine: concatenate layer prompts + style refine prompt
-        var refinePromptParts = new List<string>(layerPrompts);
+        // Build refine prompt
+        var refinePromptParts = new List<string> { Prompt };
         if (!string.IsNullOrEmpty(Style?.RefinePrompt))
             refinePromptParts.Add(Style.RefinePrompt);
         var refinePrompt = string.Join(", ", refinePromptParts.Where(p => !string.IsNullOrEmpty(p)));
 
-        var refineNegParts = new List<string>(layerNegPrompts);
+        var refineNegParts = new List<string>();
+        if (!string.IsNullOrEmpty(NegativePrompt))
+            refineNegParts.Add(NegativePrompt);
         if (!string.IsNullOrEmpty(Style?.RefineNegativePrompt))
             refineNegParts.Add(Style.RefineNegativePrompt);
         var refineNegPrompt = string.Join(", ", refineNegParts.Where(p => !string.IsNullOrEmpty(p)));
@@ -847,17 +636,24 @@ public partial class GenSpriteDocument : Document, IShapeDocument
             }
         }
 
-        // Build loras from style
-        List<GenerationLora>? loras = null;
+        // Build lora from style
+        GenerationLora? lora = null;
         if (!string.IsNullOrEmpty(Style?.LoraName))
-            loras = [new GenerationLora { Name = Style.LoraName, Strength = Style.LoraStrength }];
+            lora = new GenerationLora { Name = Style.LoraName, Strength = Style.LoraStrength };
 
         var request = new GenerationRequest
         {
             Server = server,
             Workflow = (Style?.Workflow ?? GenerationWorkflow.Sprite).ToString().ToLowerInvariant(),
-            Layers = shapes,
-            Detail = Style?.Detail ?? 1f,
+            Image = imageBytes.Length > 0 ? $"data:image/png;base64,{Convert.ToBase64String(imageBytes)}" : null,
+            Mask = maskBytes.Length > 0 ? $"data:image/png;base64,{Convert.ToBase64String(maskBytes)}" : null,
+            Prompt = prompt,
+            NegativePrompt = string.IsNullOrEmpty(negPrompt) ? null : negPrompt,
+            Strength = strength,
+            Steps = steps,
+            GuidanceScale = guidance,
+            Seed = seed,
+            StyleStrength = styleStrength,
             Refine = new GenerationRefine
             {
                 Prompt = refinePrompt,
@@ -865,13 +661,13 @@ public partial class GenSpriteDocument : Document, IShapeDocument
                 Strength = Style?.RefineStrength ?? 0.64f,
                 Steps = Style?.RefineSteps ?? 10,
                 GuidanceScale = Style?.RefineGuidanceScale ?? 6.0f,
-                Seed = refineSeed != 0 ? refineSeed : null,
+                Seed = seed,
             },
             Style = styleBlock,
-            Loras = loras,
+            Lora = lora,
         };
 
-        Log.Info($"Starting generation for '{Name}' ({shapes.Count} shapes) on {server}...");
+        Log.Info($"Starting generation for '{Name}' on {server}...");
 
         var genImage = Generation;
         genImage.IsGenerating = true;
@@ -913,9 +709,9 @@ public partial class GenSpriteDocument : Document, IShapeDocument
 
                     try
                     {
-                        var imageBytes = Convert.FromBase64String(status.Result.Image);
+                        var imageResultBytes = Convert.FromBase64String(status.Result.Image);
 
-                        using var ms = new MemoryStream(imageBytes);
+                        using var ms = new MemoryStream(imageResultBytes);
                         using var srcImage = SixLabors.ImageSharp.Image.Load<Rgba32>(ms);
 
                         var cs = ConstrainedSize;
@@ -941,15 +737,9 @@ public partial class GenSpriteDocument : Document, IShapeDocument
                         }
                         catch { }
 
-                        // Update layer seeds from server response
-                        if (status.Result.Seed != 0)
-                        {
-                            foreach (var (_, layer) in genLayers)
-                            {
-                                if (string.IsNullOrEmpty(layer.Seed))
-                                    layer.Seed = status.Result.Seed.ToString();
-                            }
-                        }
+                        // Update seed from server response
+                        if (status.Result.Seed != 0 && string.IsNullOrEmpty(Seed))
+                            Seed = status.Result.Seed.ToString();
 
                         Log.Info($"Generation complete for '{Name}' ({status.Result.Width}x{status.Result.Height}, seed={status.Result.Seed})");
                         IncrementVersion();
@@ -1026,8 +816,7 @@ public partial class GenSpriteDocument : Document, IShapeDocument
     public override void Dispose()
     {
         Generation.Dispose();
-        foreach (var layer in _layers)
-            layer.Dispose();
+        Shape.Dispose();
         base.Dispose();
     }
 
@@ -1035,11 +824,10 @@ public partial class GenSpriteDocument : Document, IShapeDocument
     {
         if (source is not GenSpriteDocument src) return;
 
-        _layers.Clear();
-        foreach (var layer in src._layers)
-            _layers.Add(layer.Clone());
-
-        ActiveLayerIndex = src.ActiveLayerIndex;
+        Shape.CopyFrom(src.Shape);
+        Prompt = src.Prompt;
+        NegativePrompt = src.NegativePrompt;
+        Seed = src.Seed;
         ConstrainedSize = src.ConstrainedSize;
         CurrentFillColor = src.CurrentFillColor;
         CurrentStrokeColor = src.CurrentStrokeColor;
