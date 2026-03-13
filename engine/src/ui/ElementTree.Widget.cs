@@ -48,9 +48,8 @@ public static unsafe partial class ElementTree
 
     internal static void SetWidgetFlag(WidgetFlags flag, bool value)
     {
-        //ref var e = ref CurrentWidget;
-        //if (value) e.Data.Widget.Flags |= flag;
-        //else e.Data.Widget.Flags &= ~flag;
+        if (value) _pendingWidgetFlags |= flag;
+        else _pendingWidgetFlags &= ~flag;
     }
 
     public static bool IsHovered() => GetWidgetFlags().HasFlag(WidgetFlags.Hovered);
@@ -159,6 +158,8 @@ public static unsafe partial class ElementTree
         e.Data.Widget.IsInteractive = interactive;
 
         state.Ptr->Index = e.Index;
+        state.Ptr->Flags |= _pendingWidgetFlags;
+        _pendingWidgetFlags = WidgetFlags.None;
 
         _widgets[id] = state;
         _currentWidget = id;

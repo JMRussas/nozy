@@ -1115,23 +1115,34 @@ public partial class SpriteDocument : Document, ISpriteSource, IShapeDocument
         var sourceOffset = new Vector2Int(w / 2, h / 2);
         var white = new Color32(255, 255, 255, 255);
 
-        var positivePaths = new Clipper2Lib.PathsD();
+        // Collect subtract paths
         var negativePaths = new Clipper2Lib.PathsD();
+        for (ushort pi = 0; pi < shape.PathCount; pi++)
+        {
+            ref readonly var path = ref shape.GetPath(pi);
+            if (!path.IsSubtract || path.AnchorCount < 3) continue;
+
+            var subShape = new Msdf.Shape();
+            Msdf.ShapeClipper.AppendContour(subShape, shape, pi);
+            subShape = Msdf.ShapeClipper.Union(subShape);
+            var contours = Msdf.ShapeClipper.ShapeToPaths(subShape, 8);
+            if (contours.Count > 0)
+                negativePaths.AddRange(contours);
+        }
+
+        // Collect normal paths (clip paths are always within normal bounds, skip for mask)
+        var positivePaths = new Clipper2Lib.PathsD();
 
         for (ushort pi = 0; pi < shape.PathCount; pi++)
         {
             ref readonly var path = ref shape.GetPath(pi);
-            if (path.AnchorCount < 3) continue;
+            if (path.IsSubtract || path.IsClip || path.AnchorCount < 3) continue;
 
             var pathShape = new Msdf.Shape();
             Msdf.ShapeClipper.AppendContour(pathShape, shape, pi);
             pathShape = Msdf.ShapeClipper.Union(pathShape);
             var contours = Msdf.ShapeClipper.ShapeToPaths(pathShape, 8);
-            if (contours.Count == 0) continue;
-
-            if (path.IsSubtract)
-                negativePaths.AddRange(contours);
-            else
+            if (contours.Count > 0)
                 positivePaths.AddRange(contours);
         }
 
@@ -1210,6 +1221,8 @@ public partial class SpriteDocument : Document, ISpriteSource, IShapeDocument
         }
 
         // Render each normal/clip path with its fill and stroke colors
+        Clipper2Lib.PathsD? accumulatedPaths = null;
+
         for (ushort pi = 0; pi < shape.PathCount; pi++)
         {
             ref readonly var path = ref shape.GetPath(pi);
@@ -1220,6 +1233,32 @@ public partial class SpriteDocument : Document, ISpriteSource, IShapeDocument
             pathShape = Msdf.ShapeClipper.Union(pathShape);
             var contours = Msdf.ShapeClipper.ShapeToPaths(pathShape, 8);
             if (contours.Count == 0) continue;
+
+            if (path.IsClip)
+            {
+                if (accumulatedPaths is not { Count: > 0 }) continue;
+                contours = Clipper2Lib.Clipper.BooleanOp(Clipper2Lib.ClipType.Intersection,
+                    contours, accumulatedPaths, Clipper2Lib.FillRule.NonZero, precision: 6);
+                if (contours.Count == 0) continue;
+            }
+            else
+            {
+                var accContours = contours;
+                if (path.StrokeColor.A > 0 && path.StrokeWidth > 0)
+                {
+                    var halfStroke = path.StrokeWidth * Shape.StrokeScale;
+                    var contracted = Clipper2Lib.Clipper.InflatePaths(contours, -halfStroke,
+                        Clipper2Lib.JoinType.Round, Clipper2Lib.EndType.Polygon, precision: 6);
+                    if (contracted.Count > 0)
+                        accContours = contracted;
+                }
+
+                if (accumulatedPaths == null)
+                    accumulatedPaths = new Clipper2Lib.PathsD(accContours);
+                else
+                    accumulatedPaths = Clipper2Lib.Clipper.BooleanOp(Clipper2Lib.ClipType.Union,
+                        accumulatedPaths, accContours, Clipper2Lib.FillRule.NonZero, precision: 6);
+            }
 
             // Apply subtract paths
             if (negativePaths.Count > 0)
@@ -1352,7 +1391,7 @@ public partial class SpriteDocument : Document, ISpriteSource, IShapeDocument
                 styleBlock = new GenerationStyleBlock
                 {
                     Strength = Style.StyleStrength,
-                    InpaintStrength = Style.StyleInpaintStrength,
+                    InpaintStrength = 0.5f,
                     References = refs,
                 };
             }

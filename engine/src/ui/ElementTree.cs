@@ -36,6 +36,7 @@ public static unsafe partial class ElementTree
     private static ushort _frame;
     private static ushort _nextSibling;
     private static WidgetId _currentWidget;
+    private static WidgetFlags _pendingWidgetFlags;
 
     private static readonly object?[] _assets = new object?[MaxAssets];
     private static int _assetCount;

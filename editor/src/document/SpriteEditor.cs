@@ -306,27 +306,11 @@ public partial class SpriteEditor : DocumentEditor, IShapeEditorHost
 
     private void StrokeWidthButtonUI()
     {
-        if (UI.Button(WidgetIds.StrokeWidth, text: Strings.Number(Document.CurrentStrokeWidth), icon: EditorAssets.Sprites.IconStrokeSize, EditorStyle.Button.Secondary))
-            EditorUI.TogglePopup(WidgetIds.StrokeWidth);
-
-        StrokeWidthPopupUI();
-    }
-
-    private void StrokeWidthPopupUI()
-    {
-        void Content()
-        {
-            for (var i = 1; i <= 8; i++)
-            {
-                if (EditorUI.PopupItem($"{i}px", selected: Document.CurrentStrokeWidth == i))
-                {
-                    SetStrokeWidth((byte)i);
-                    EditorUI.ClosePopup();
-                }
-            }
-        }
-
-        EditorUI.Popup(WidgetIds.StrokeWidth, Content);
+        UI.DropDown(WidgetIds.StrokeWidth, () => [
+            ..Enumerable.Range(1, 8).Select(i =>
+                new PopupMenuItem { Label = Strings.Number(i), Handler = () => SetStrokeWidth((byte)i) }
+            )
+        ], Strings.Number(Document.CurrentStrokeWidth), EditorAssets.Sprites.IconStrokeSize);
     }
 
     public void SetCurrentTimeSlot(int timeSlot)
