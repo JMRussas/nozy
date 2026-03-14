@@ -48,9 +48,9 @@ public static unsafe partial class ElementTree
         e.Data.Fill.GradientColor = background.GradientColor;
         e.Data.Fill.GradientAngle = background.GradientAngle;
         e.Data.Fill.HasGradient = background.HasGradient;
-        e.Data.Fill.HasSprite = background.HasImage;
-        e.Data.Fill.SpriteColor = background.ImageColor;
-        e.Data.Fill.SpriteAsset = background.HasImage ? AddObject(background.Image!) : (ushort)0;
+        e.Data.Fill.HasImage = background.HasImage;
+        e.Data.Fill.ImageColor = background.ImageColor;
+        e.Data.Fill.ImageAsset = background.HasImage ? AddObject(background.Image!) : (ushort)0;
         e.Data.Fill.Radius = radius;
         e.Data.Fill.BorderWidth = borderWidth;
         e.Data.Fill.BorderColor = borderColor;
@@ -290,7 +290,7 @@ public static unsafe partial class ElementTree
     }
 
     public static int Image(
-        Sprite sprite,
+        IImage image,
         Size2 size = default,
         ImageStretch stretch = ImageStretch.Uniform,
         Color color = default,
@@ -304,31 +304,9 @@ public static unsafe partial class ElementTree
         d.Align = align;
         d.Scale = scale;
         d.Color = color.IsTransparent ? Color.White : color;
-        d.Width = sprite.Bounds.Width;
-        d.Height = sprite.Bounds.Height;
-        d.Asset = AddObject(sprite);
-        EndElement(ElementType.Image);
-        return e.Index;
-    }
-
-    public static int Image(
-        Texture texture,
-        Size2 size = default,
-        ImageStretch stretch = ImageStretch.Uniform,
-        Color color = default,
-        float scale = 1.0f,
-        Align2 align = default)
-    {
-        ref var e = ref BeginElement(ElementType.Image);
-        ref var d = ref e.Data.Image;
-        d.Size = size;
-        d.Stretch = stretch;
-        d.Align = align;
-        d.Scale = scale;
-        d.Color = color.IsTransparent ? Color.White : color;
-        d.Width = texture.Width;
-        d.Height = texture.Height;
-        d.Asset = AddObject(texture);
+        d.Width = image.ImageWidth;
+        d.Height = image.ImageHeight;
+        d.Asset = AddObject(image);
         EndElement(ElementType.Image);
         return e.Index;
     }

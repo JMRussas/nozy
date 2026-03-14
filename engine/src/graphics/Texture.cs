@@ -4,8 +4,11 @@
 
 namespace NoZ;
 
-public class Texture : Asset
+public class Texture : Asset, IImage
 {
+    float IImage.ImageWidth => Width;
+    float IImage.ImageHeight => Height;
+
     internal const ushort Version = 1;
 
     public int Width { get; private init; }

@@ -69,8 +69,8 @@ public static partial class ElementTree
                     DrawTexturedRect(e.Rect, t, null, ApplyOpacity(d.Color), d.Radius, d.BorderWidth, ApplyOpacity(d.BorderColor), order: d.Order);
                 }
 
-                if (d.HasSprite)
-                    DrawFillSprite(ref e);
+                if (d.HasImage)
+                    DrawFillImage(ref e);
 
                 break;
             }
@@ -283,29 +283,36 @@ public static partial class ElementTree
         Graphics.DrawElements(6, indexOffset, order: order);
     }
 
-    private static void DrawFillSprite(ref Element e)
+    private static void DrawFillImage(ref Element e)
     {
         ref var d = ref e.Data.Fill;
         ref var t = ref e.Transform;
-        var sprite = (Sprite?)_assets[d.SpriteAsset];
-        if (sprite == null) return;
+        var asset = _assets[d.ImageAsset];
+        if (asset == null) return;
 
-        using var _ = Graphics.PushState();
-        Graphics.SetColor(ApplyOpacity(d.SpriteColor));
-        Graphics.SetTextureFilter(sprite.TextureFilter);
-
-        if (sprite.IsSliced)
+        if (asset is Sprite sprite)
         {
-            Graphics.SetTransform(t);
-            Graphics.DrawSliced(sprite, e.Rect, order: d.Order);
+            using var _ = Graphics.PushState();
+            Graphics.SetColor(ApplyOpacity(d.ImageColor));
+            Graphics.SetTextureFilter(sprite.TextureFilter);
+
+            if (sprite.IsSliced)
+            {
+                Graphics.SetTransform(t);
+                Graphics.DrawSliced(sprite, e.Rect, order: d.Order);
+            }
+            else
+            {
+                var scale = new Vector2(e.Rect.Width / sprite.Bounds.Width, e.Rect.Height / sprite.Bounds.Height);
+                var offset = e.Rect.Position - new Vector2(sprite.Bounds.X, sprite.Bounds.Y) * scale;
+                var transform = Matrix3x2.CreateScale(scale * sprite.PixelsPerUnit) * Matrix3x2.CreateTranslation(offset) * t;
+                Graphics.SetTransform(transform);
+                Graphics.DrawFlat(sprite, order: d.Order, bone: -1);
+            }
         }
-        else
+        else if (asset is Texture texture)
         {
-            var scale = new Vector2(e.Rect.Width / sprite.Bounds.Width, e.Rect.Height / sprite.Bounds.Height);
-            var offset = e.Rect.Position - new Vector2(sprite.Bounds.X, sprite.Bounds.Y) * scale;
-            var transform = Matrix3x2.CreateScale(scale * sprite.PixelsPerUnit) * Matrix3x2.CreateTranslation(offset) * t;
-            Graphics.SetTransform(transform);
-            Graphics.DrawFlat(sprite, order: d.Order, bone: -1);
+            DrawTexturedRect(e.Rect, t, texture, ApplyOpacity(d.ImageColor), order: d.Order);
         }
     }
 

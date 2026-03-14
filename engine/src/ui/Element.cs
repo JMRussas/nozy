@@ -87,10 +87,10 @@ internal struct FillElement
     public BorderRadius Radius;
     public float BorderWidth;
     public Color BorderColor;
-    public Color SpriteColor;
-    public ushort SpriteAsset;
+    public Color ImageColor;
+    public ushort ImageAsset;
     public bool HasGradient;
-    public bool HasSprite;
+    public bool HasImage;
     public ushort Order;
 }
 

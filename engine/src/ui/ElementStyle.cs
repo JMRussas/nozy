@@ -11,7 +11,7 @@ public struct BackgroundStyle()
     public Color Color = Color.Transparent;
     public Color GradientColor = Color.Transparent;
     public float GradientAngle = 0;
-    public Sprite? Image = null;
+    public IImage? Image = null;
     public Color ImageColor = Color.White;
 
     public readonly bool HasGradient => !GradientColor.IsTransparent;
@@ -19,6 +19,8 @@ public struct BackgroundStyle()
     public readonly bool IsTransparent => Color.IsTransparent && !HasGradient && !HasImage;
 
     public static implicit operator BackgroundStyle(Color color) => new() { Color = color };
+    public static implicit operator BackgroundStyle(Sprite sprite) => new() { Image = sprite };
+    public static implicit operator BackgroundStyle(Texture texture) => new() { Image = texture };
 }
 
 public struct ContainerStyle()

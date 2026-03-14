@@ -26,8 +26,11 @@ public readonly struct SpriteFrameInfo(ushort meshStart, ushort meshCount)
     public readonly ushort MeshCount = meshCount;
 }
 
-public class Sprite : Asset
+public class Sprite : Asset, IImage
 {
+    float IImage.ImageWidth => Bounds.Width;
+    float IImage.ImageHeight => Bounds.Height;
+
     public const ushort Version = 10;
     public const int MaxFrames = 64;
 

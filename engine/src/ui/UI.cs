@@ -482,22 +482,19 @@ public static partial class UI
     // :image
     #region Image
 
-    public static void Image(Sprite? sprite) => Image(sprite, new ImageStyle());
+    public static void Image(IImage? image) => Image(image, new ImageStyle());
 
-    public static void Image(Sprite? sprite, in ImageStyle style)
+    public static void Image(IImage? image, in ImageStyle style)
     {
-        if (sprite == null) return;
+        if (image == null) return;
         var resolved = style.Resolve != null ? style.Resolve(style, ElementTree.GetWidgetFlags()) : style;
-        ElementTree.Image(sprite, resolved.Size, resolved.Stretch, resolved.Color, resolved.Scale, resolved.Align);
+        ElementTree.Image(image, resolved.Size, resolved.Stretch, resolved.Color, resolved.Scale, resolved.Align);
     }
 
-    public static void Image(Texture texture) => Image(texture, new ImageStyle());
-
-    public static void Image(Texture texture, in ImageStyle style)
-    {
-        var resolved = style.Resolve != null ? style.Resolve(style, ElementTree.GetWidgetFlags()) : style;
-        ElementTree.Image(texture, resolved.Size, resolved.Stretch, resolved.Color, resolved.Scale, resolved.Align);
-    }
+    public static void Image(Sprite? sprite) => Image((IImage?)sprite);
+    public static void Image(Sprite? sprite, in ImageStyle style) => Image((IImage?)sprite, in style);
+    public static void Image(Texture texture) => Image((IImage)texture);
+    public static void Image(Texture texture, in ImageStyle style) => Image((IImage)texture, in style);
 
     #endregion
 
