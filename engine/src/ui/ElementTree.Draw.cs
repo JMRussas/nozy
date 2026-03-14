@@ -62,11 +62,11 @@ public static partial class ElementTree
                 {
                     ComputeGradientColors(d.Color, d.GradientColor, d.GradientAngle, out var c0, out var c1, out var c2, out var c3);
                     DrawGradientRect(e.Rect, t, ApplyOpacity(c0), ApplyOpacity(c1), ApplyOpacity(c2), ApplyOpacity(c3),
-                        d.Radius, d.BorderWidth, ApplyOpacity(d.BorderColor));
+                        d.Radius, d.BorderWidth, ApplyOpacity(d.BorderColor), order: d.Order);
                 }
                 else if (!d.Color.IsTransparent || d.BorderWidth > 0)
                 {
-                    DrawTexturedRect(e.Rect, t, null, ApplyOpacity(d.Color), d.Radius, d.BorderWidth, ApplyOpacity(d.BorderColor));
+                    DrawTexturedRect(e.Rect, t, null, ApplyOpacity(d.Color), d.Radius, d.BorderWidth, ApplyOpacity(d.BorderColor), order: d.Order);
                 }
 
                 if (d.HasSprite)
@@ -297,7 +297,7 @@ public static partial class ElementTree
         if (sprite.IsSliced)
         {
             Graphics.SetTransform(t);
-            Graphics.DrawSliced(sprite, e.Rect);
+            Graphics.DrawSliced(sprite, e.Rect, order: d.Order);
         }
         else
         {
@@ -305,7 +305,7 @@ public static partial class ElementTree
             var offset = e.Rect.Position - new Vector2(sprite.Bounds.X, sprite.Bounds.Y) * scale;
             var transform = Matrix3x2.CreateScale(scale * sprite.PixelsPerUnit) * Matrix3x2.CreateTranslation(offset) * t;
             Graphics.SetTransform(transform);
-            Graphics.DrawFlat(sprite, bone: -1);
+            Graphics.DrawFlat(sprite, order: d.Order, bone: -1);
         }
     }
 

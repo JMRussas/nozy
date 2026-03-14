@@ -91,6 +91,7 @@ internal struct FillElement
     public ushort SpriteAsset;
     public bool HasGradient;
     public bool HasSprite;
+    public ushort Order;
 }
 
 internal struct FlexElement

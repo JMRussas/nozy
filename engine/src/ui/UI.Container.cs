@@ -28,7 +28,7 @@ public static partial class UI
         ElementTree.BeginSize(style.Size);
 
         if (!resolved.Background.IsTransparent || resolved.BorderWidth > 0)
-            ElementTree.BeginFill(resolved.Background, style.BorderRadius, resolved.BorderWidth, resolved.BorderColor);
+            ElementTree.BeginFill(resolved.Background, style.BorderRadius, resolved.BorderWidth, resolved.BorderColor, style.Order);
 
         if (style.Clip)
             ElementTree.BeginClip(style.BorderRadius);
