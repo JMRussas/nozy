@@ -14,10 +14,10 @@
     <ProjectReference Include="..\..\src\YesZ.Core\YesZ.Core.csproj" />
     <ProjectReference Include="..\..\src\YesZ.Rendering\YesZ.Rendering.csproj" />
     <ProjectReference Include="..\..\src\YesZ.Desktop\YesZ.Desktop.csproj" />
-    <ProjectReference Include="..\..\engine\noz\engine\NoZ.csproj" />
-    <ProjectReference Include="..\..\engine\noz\platform\desktop\NoZ.Desktop.csproj" />
-    <ProjectReference Include="..\..\engine\noz\platform\webgpu\NoZ.WebGPU.csproj" />
-    <ProjectReference Include="..\..\engine\noz\generators\NoZ.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\engine\NoZ.csproj" />
+    <ProjectReference Include="..\..\platform\desktop\NoZ.Desktop.csproj" />
+    <ProjectReference Include="..\..\platform\webgpu\NoZ.WebGPU.csproj" />
+    <ProjectReference Include="..\..\generators\NoZ.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <ItemGroup>

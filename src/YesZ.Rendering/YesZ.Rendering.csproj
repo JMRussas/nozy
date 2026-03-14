@@ -9,6 +9,10 @@
     <RootNamespace>YesZ.Rendering</RootNamespace>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+  </PropertyGroup>
+
   <ItemGroup>
     <InternalsVisibleTo Include="YesZ.Rendering.Tests" />
   </ItemGroup>
@@ -23,7 +27,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\YesZ.Core\YesZ.Core.csproj" />
-    <ProjectReference Include="..\..\engine\noz\engine\NoZ.csproj" />
+    <ProjectReference Include="..\..\engine\NoZ.csproj" />
   </ItemGroup>
 
 </Project>

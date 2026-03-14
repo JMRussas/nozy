@@ -1,18 +1,16 @@
 <Solution>
-  <Folder Name="/engine/" />
-  <Folder Name="/engine/noz/" />
-  <Folder Name="/engine/noz/engine/">
-    <Project Path="engine/noz/engine/NoZ.csproj" />
+  <Folder Name="/engine/">
+    <Project Path="engine/NoZ.csproj" />
   </Folder>
-  <Folder Name="/engine/noz/generators/">
-    <Project Path="engine/noz/generators/NoZ.Generators.csproj" />
+  <Folder Name="/generators/">
+    <Project Path="generators/NoZ.Generators.csproj" />
   </Folder>
-  <Folder Name="/engine/noz/platform/" />
-  <Folder Name="/engine/noz/platform/desktop/">
-    <Project Path="engine/noz/platform/desktop/NoZ.Desktop.csproj" />
+  <Folder Name="/platform/" />
+  <Folder Name="/platform/desktop/">
+    <Project Path="platform/desktop/NoZ.Desktop.csproj" />
   </Folder>
-  <Folder Name="/engine/noz/platform/webgpu/">
-    <Project Path="engine/noz/platform/webgpu/NoZ.WebGPU.csproj" />
+  <Folder Name="/platform/webgpu/">
+    <Project Path="platform/webgpu/NoZ.WebGPU.csproj" />
   </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/HelloCube/HelloCube.csproj" />

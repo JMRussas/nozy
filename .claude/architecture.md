@@ -13,11 +13,12 @@
 │   text, particles) │   3D camera, transforms)    │
 ├────────────────────┴────────────────────────────┤
 │              NoZ Engine Core (forked)            │
-│  IGraphicsDriver + IVertex + Shader + Asset     │
-│  + depth buffer + cull mode (additive changes)  │
+│  IGraphicsDriver + IGraphicsDriver3D + Shader   │
+│  + IVertex + Asset + depth buffer (additive)    │
 ├─────────────────────────────────────────────────┤
 │           WebGPU Backend (NoZ fork)             │
-│  + depth texture + 3D pipeline states           │
+│  + depth texture arrays + 3D scene pass         │
+│  + depth-only layer pass + comparison sampler   │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -50,38 +51,41 @@ See [roadmap.md](roadmap.md) for the full phase plan, milestones, and open desig
 | `IApplication` | engine/src/ApplicationConfig.cs | Game interface: Update(), UpdateUI(), LoadAssets() |
 | `Application` | engine/src/Application.cs | Init/Run/Shutdown lifecycle |
 | `Graphics` | engine/src/graphics/Graphics.cs | 2D draw calls, state stack, batching |
-| `IGraphicsDriver` | engine/src/platform/IGraphicsDriver.cs | GPU abstraction (our extension point) |
+| `IGraphicsDriver` | engine/src/platform/IGraphicsDriver.cs | GPU abstraction (2D rendering) |
+| `IGraphicsDriver3D` | engine/src/platform/IGraphicsDriver3D.cs | 3D GPU abstraction (depth textures, 3D passes) |
 | `IVertex` | engine/src/graphics/MeshVertex.cs | Vertex format descriptor interface |
 | `Camera` | engine/src/graphics/Camera.cs | 2D camera (Matrix3x2) |
 | `SDLPlatform` | platform/desktop/ | SDL3 windowing |
-| `WebGPUGraphicsDriver` | platform/webgpu/ | WebGPU rendering |
+| `WebGPUGraphicsDriver` | platform/webgpu/ | WebGPU rendering (implements both IGraphicsDriver + IGraphicsDriver3D) |
+| `UI` | engine/src/ui/UI.cs | Immediate-mode UI (Text, Container, Button, etc.) |
 
-## Render Flow (Current — Phase 1b)
+## Render Flow (Current — Phase 6c)
 
 ```
 Frame Start
 ├── Graphics3D.Begin(camera3D)
-│   ├── Save current 2D pass projection
-│   └── Store camera reference for MVP computation
-├── Graphics3D.DrawMesh(mesh, worldMatrix)    ← per object
-│   ├── Compute MVP = worldMatrix × camera.ViewProjectionMatrix
-│   ├── SetPassProjection(MVP) → creates globals snapshot
-│   ├── SetShader(unlit3d) + SetMesh(mesh)
-│   └── DrawElements() → records batch command
+│   └── Store camera, reset light/shadow state
+├── Graphics3D.SetDirectionalLight / AddPointLight
+├── Graphics3D.RenderShadowPass()          ← enables shadow collection
+├── Graphics3D.DrawModel(model, world)     ← per object
+│   ├── Compute MVP, normal matrix
+│   ├── Upload uniforms via direct driver.SetUniform()
+│   └── Collect shadow casters
 ├── Graphics3D.End()
-│   └── Restore 2D pass projection
-├── [Game draws 2D UI via NoZ Graphics/UI]
+│   ├── Execute shadow depth passes (per cascade)
+│   │   └── BeginDepthOnlyPassLayer → draw casters → EndDepthOnlyPass
+│   ├── BeginScenePass3D (with prepass flag)
+│   ├── Draw lit meshes with shadow sampling
+│   └── EndScenePass3D → preserves depth for 2D overlay
+├── [Game draws 2D UI via NoZ UI.Text/UI.BeginContainer]
 └── Frame End
-    ├── Sort + batch all draw commands
-    ├── 3D draws: depth test (Less), depth write → back faces hidden
-    └── 2D draws: depth test (Always), no depth write → renders on top
 ```
 
-### Key Design: MVP in Globals
+### Key Design: Direct Driver Calls (Post-Refactor)
 
-3D uses MVP (model × view × projection) stored in the globals system as the "projection"
-matrix. Each DrawMesh creates a unique globals snapshot, producing a unique batch state.
-This integrates with NoZ's batch system without per-draw uniform buffer tracking.
+Graphics3D bypasses NoZ's 2D batch system entirely. All 3D rendering uses direct
+`IGraphicsDriver` / `IGraphicsDriver3D` calls. Matrices are uploaded via `driver.SetUniform()`
+with NO transpose (C# row-major bytes map naturally to WGSL column-major).
 
-Limitation: max 64 unique transforms per frame (globals buffer limit). Phase 2+ will
-revisit when lighting needs separate world-space positions.
+Globals snapshots are still used for per-transform data (max 64 per frame).
+Shadow maps use `IGraphicsDriver3D.CreateDepthTextureArray` for cascaded shadows.

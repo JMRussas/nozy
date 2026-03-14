@@ -12,8 +12,8 @@
   <ItemGroup>
     <ProjectReference Include="..\YesZ.Core\YesZ.Core.csproj" />
     <ProjectReference Include="..\YesZ.Rendering\YesZ.Rendering.csproj" />
-    <ProjectReference Include="..\..\engine\noz\platform\desktop\NoZ.Desktop.csproj" />
-    <ProjectReference Include="..\..\engine\noz\platform\webgpu\NoZ.WebGPU.csproj" />
+    <ProjectReference Include="..\..\platform\desktop\NoZ.Desktop.csproj" />
+    <ProjectReference Include="..\..\platform\webgpu\NoZ.WebGPU.csproj" />
   </ItemGroup>
 
 </Project>

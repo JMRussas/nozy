@@ -1,0 +1,151 @@
+{
+  "schemaVersion": 1,
+  "projectType": "game-engine",
+  "defaultRole": "general",
+
+  "analysis": {
+    "callGraphDepth": 10,
+    "similarityThreshold": 0.3,
+    "maxAnalogs": 10
+  },
+
+  "pathRules": [
+    { "pattern": "src/YesZ.Core/**", "role": "core" },
+    { "pattern": "src/YesZ.Rendering/**", "role": "rendering" },
+    { "pattern": "src/YesZ.Desktop/**", "role": "platform" },
+    { "pattern": "samples/**", "role": "general" },
+    { "pattern": "tests/**", "role": "general" },
+    { "pattern": "engine/noz/**", "role": "noz-fork" },
+    { "pattern": "**", "role": "general" }
+  ],
+
+  "roles": {
+    "core": {
+      "name": "core",
+      "entryPoints": [],
+      "constraints": ["no-rendering-deps"],
+      "antiPatterns": [],
+      "detectPatterns": [],
+      "trustRules": [
+        { "condition": "default", "level": "L3", "label": "foundational math/camera/transform — breaking changes break everything" }
+      ]
+    },
+    "rendering": {
+      "name": "rendering",
+      "entryPoints": ["Begin", "End", "DrawMesh", "Render", "BeginScenePass3D", "BeginDepthOnlyPassLayer"],
+      "constraints": ["zero-alloc", "no-n-plus-one-uploads"],
+      "antiPatterns": ["managed-collections-in-hot-path", "linq-in-hot-path", "gpu-alloc-in-draw"],
+      "detectPatterns": ["globals-snapshot", "depth-texture-array", "cascade-shadow-map", "batch-uniform-upload"],
+      "trustRules": [
+        { "condition": "isHotPath", "level": "L3", "label": "render hot path, zero allocations after warmup" },
+        { "condition": "hasAllocation", "level": "L2", "label": "has allocations, verify not on hot path" },
+        { "condition": "default", "level": "L2", "label": "render pipeline, visual regression risk" }
+      ]
+    },
+    "platform": {
+      "name": "platform",
+      "entryPoints": [],
+      "constraints": ["thread-safe"],
+      "antiPatterns": [],
+      "detectPatterns": [],
+      "trustRules": [
+        { "condition": "default", "level": "L1", "label": "platform driver, thread safety required" }
+      ]
+    },
+    "noz-fork": {
+      "name": "noz-fork",
+      "entryPoints": [],
+      "constraints": ["additive-only"],
+      "antiPatterns": ["breaking-noz-change"],
+      "detectPatterns": [],
+      "trustRules": [
+        { "condition": "default", "level": "L3", "label": "fork of upstream NoZ — additive changes only, must log in maintenance.md" }
+      ]
+    },
+    "general": {
+      "name": "general",
+      "entryPoints": [],
+      "constraints": [],
+      "antiPatterns": [],
+      "detectPatterns": [],
+      "trustRules": [
+        { "condition": "default", "level": "L1", "label": "standard" }
+      ]
+    }
+  },
+
+  "constraintDefs": {
+    "zero-alloc": {
+      "rule": "Zero GPU/heap allocations on render hot path after warmup",
+      "reason": "16ms frame budget (60 FPS). Any CreateMesh, CreateTexture, CreateDepthTexture, or heap allocation in Update/Draw risks frame drops.",
+      "scope": "per-frame-reachable",
+      "when": "isHotPath"
+    },
+    "no-n-plus-one-uploads": {
+      "rule": "No per-object uniform uploads in a loop",
+      "reason": "Uploading uniforms one object at a time in a draw loop causes N+1 GPU calls. Use globals snapshot system or batch into a single buffer update.",
+      "scope": "per-frame-reachable",
+      "when": "isHotPath"
+    },
+    "no-rendering-deps": {
+      "rule": "YesZ.Core must not reference YesZ.Rendering or any GPU/graphics types",
+      "reason": "Core is the foundational math layer — it must remain pure and testable without GPU.",
+      "scope": "project"
+    },
+    "thread-safe": {
+      "rule": "Thread safety required",
+      "reason": "Platform/driver layer may be called from multiple threads. Shared state must be synchronized.",
+      "scope": "file"
+    },
+    "additive-only": {
+      "rule": "Only additive changes to NoZ fork",
+      "reason": "Modifying existing NoZ behavior breaks upstream merge compatibility. Extend, don't modify.",
+      "scope": "file"
+    }
+  },
+
+  "antiPatternDefs": {
+    "managed-collections-in-hot-path": {
+      "bad": "Dictionary<K,V>, List<T>, or any managed collection in per-frame render code",
+      "good": "Flat array with const capacity + index-based access, or pre-allocated pools",
+      "why": "Managed collections allocate on the heap and trigger GC in per-frame code paths.",
+      "when": "isHotPath"
+    },
+    "linq-in-hot-path": {
+      "bad": "LINQ queries (.Select, .Where, .ToArray, etc.) in per-frame render code",
+      "good": "Manual loops with pre-allocated arrays",
+      "why": "Every LINQ call allocates an iterator and closure on the heap.",
+      "when": "isHotPath"
+    },
+    "gpu-alloc-in-draw": {
+      "bad": "CreateMesh, CreateTexture, CreateDepthTexture, new buffer allocations inside Update/Draw/Render",
+      "good": "Pre-allocate all GPU resources at scene load or warmup; reuse via pools",
+      "why": "GPU allocations during rendering cause frame stalls and exceed the 16ms budget.",
+      "when": "isHotPath"
+    },
+    "breaking-noz-change": {
+      "bad": "Modifying existing NoZ method signatures, removing methods, changing behavior",
+      "good": "Add new methods/overloads, extend via partial classes or new types",
+      "why": "Breaking changes to the NoZ fork make upstream merges painful or impossible."
+    }
+  },
+
+  "patternDefs": {
+    "globals-snapshot": {
+      "name": "Globals snapshot",
+      "description": "Per-transform data uploaded via NoZ globals snapshot system (max 64 per frame). Avoids per-object uniform upload loops."
+    },
+    "depth-texture-array": {
+      "name": "Depth texture array",
+      "description": "Shadow map cascades stored in a texture array, indexed by cascade level in the shader."
+    },
+    "cascade-shadow-map": {
+      "name": "Cascaded shadow map",
+      "description": "Multiple shadow map cascades at different resolutions/ranges for directional lights."
+    },
+    "batch-uniform-upload": {
+      "name": "Batch uniform upload",
+      "description": "Material or per-object uniforms batched into a single buffer update instead of N individual uploads."
+    }
+  }
+}

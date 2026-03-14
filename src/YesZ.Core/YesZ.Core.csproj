@@ -10,7 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\engine\noz\engine\NoZ.csproj" />
+    <ProjectReference Include="..\..\engine\NoZ.csproj" />
   </ItemGroup>
 
 </Project>

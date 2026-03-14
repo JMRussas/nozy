@@ -41,7 +41,7 @@ public class HelloCubeApp : IApplication
         Color = Color.FromRgba(0x16A34A, 0.85f),
         Padding = EdgeInsets.Symmetric(12, 24),
         Margin = new EdgeInsets(0, 0, 32, 0),
-        Border = new BorderStyle { Radius = 8 },
+        BorderRadius = 8,
     };
 
     private static readonly LabelStyle TitleStyle = new()
@@ -170,8 +170,8 @@ public class HelloCubeApp : IApplication
         {
             using (UI.BeginColumn(BoxStyle))
             {
-                UI.Label("YesZ", TitleStyle);
-                UI.Label("Phase 6c - Cascaded Shadows", SubtitleStyle);
+                UI.Text("YesZ", TitleStyle);
+                UI.Text("Phase 6c - Cascaded Shadows", SubtitleStyle);
             }
         }
     }
