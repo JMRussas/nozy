@@ -82,9 +82,15 @@ internal struct WidgetElement
 internal struct FillElement
 {
     public Color Color;
+    public Color GradientColor;
+    public float GradientAngle;
     public BorderRadius Radius;
     public float BorderWidth;
     public Color BorderColor;
+    public Color SpriteColor;
+    public ushort SpriteAsset;
+    public bool HasGradient;
+    public bool HasSprite;
 }
 
 internal struct FlexElement

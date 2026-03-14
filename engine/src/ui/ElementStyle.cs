@@ -16,7 +16,7 @@ public struct ContainerStyle()
     public Align2 Align = NoZ.Align.Min;
     public EdgeInsets Margin = EdgeInsets.Zero;
     public EdgeInsets Padding = EdgeInsets.Zero;
-    public Color Color = NoZ.Color.Transparent;
+    public BackgroundStyle Background = NoZ.Color.Transparent;
     public BorderRadius BorderRadius = BorderRadius.Zero;
     public float BorderWidth;
     public Color BorderColor = NoZ.Color.Transparent;
@@ -181,9 +181,15 @@ public struct SceneRenderInfo
 
 public static class ElementStyle
 {
+    public static ContainerStyle WithBackground(this ContainerStyle style, BackgroundStyle background)
+    {
+        style.Background = background;
+        return style;
+    }
+
     public static ContainerStyle WithColor(this ContainerStyle style, Color color)
     {
-        style.Color = color;
+        style.Background = color;
         return style;
     }
 

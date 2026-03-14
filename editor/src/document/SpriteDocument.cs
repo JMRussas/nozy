@@ -75,7 +75,7 @@ public partial class SpriteDocument : Document, ISpriteSource, IShapeDocument
     public string? StyleName;
     public GenStyleDocument? Style;
 
-    public bool HasGeneration => !string.IsNullOrEmpty(Prompt);
+    public bool HasGeneration { get; set; }
     public bool IsGenerating => Generation.IsGenerating;
 
     public bool IsActiveLayerLocked => false;
@@ -224,6 +224,7 @@ public partial class SpriteDocument : Document, ISpriteSource, IShapeDocument
 
     private void ParseGeneration(ref Tokenizer tk)
     {
+        HasGeneration = true;
         while (!tk.IsEOF)
         {
             if (tk.ExpectIdentifier("prompt"))
