@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>NoZ.Editor</AssemblyName>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefaultItemExcludes>$(DefaultItemExcludes);library\**;program\**</DefaultItemExcludes>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Clipper2" Version="2.0.0" />
+    <PackageReference Include="LibTessDotNet" Version="1.1.15" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
+    <PackageReference Include="CrypticWizard.RandomWordGenerator" Version="0.9.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\engine\NoZ.csproj" />
+    <ProjectReference Include="..\platform\desktop\NoZ.Desktop.csproj" />
+    <ProjectReference Include="..\platform\webgpu\NoZ.WebGPU.csproj" />
+    <ProjectReference Include="..\generators\NoZ.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="assets\**\*" />
+    <Content Remove="assets\**\*" />
+    <None Remove="assets\**\*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="src\TTF\UnicodeNames.txt" LogicalName="UnicodeNames.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="src\ProjectTemplates\*.template" LogicalName="ProjectTemplates.%(Filename)%(Extension)" />
+  </ItemGroup>
+
+</Project>

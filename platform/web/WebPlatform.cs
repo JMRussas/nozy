@@ -1,0 +1,372 @@
+//
+//  NoZ - Copyright(c) 2026 NoZ Games, LLC
+//
+
+using System.Numerics;
+using System.Runtime.InteropServices.JavaScript;
+using Microsoft.JSInterop;
+using NoZ;
+using NoZ.Platform;
+
+namespace NoZ.Platform.Web;
+
+public class WebPlatform : IPlatform
+
+{
+    private readonly IJSRuntime _js;
+    private IJSObjectReference? _module;
+    private Vector2 _windowSize;
+    private float _displayScale = 1.0f;
+    private bool _shouldQuit;
+    private DotNetObjectReference<WebPlatform>? _dotNetRef;
+    private readonly Queue<PlatformEvent> _eventQueue = new();
+    private bool _isMouseInWindow;
+    private Func<bool>? _wantsToQuit;
+
+    public bool IsMouseInWindow => _isMouseInWindow;
+    public bool IsMouseCaptured => false;
+    Vector2Int IPlatform.WindowSize => new((int)_windowSize.X, (int)_windowSize.Y);
+    public Vector2Int WindowPosition => Vector2Int.Zero; // Not applicable for web
+    public float DisplayScale => _displayScale;
+    public bool IsTextboxVisible => false; // TODO: Implement
+    public nint WindowHandle => nint.Zero; // Not applicable for web
+    public event Action<PlatformEvent>? OnEvent;
+
+    public void SetWindowSize(int width, int height) { } // Not applicable for web
+    public void SetWindowPosition(int x, int y) { } // Not applicable for web
+    public void SetMouseCapture(bool enabled) { }
+       
+    public nint GetGraphicsProcAddress(string name) => nint.Zero; // Not applicable for web
+
+    public WebPlatform(IJSRuntime js)
+    {
+        _js = js;
+    }
+
+    public void Init(PlatformConfig config)
+    {
+        // Don't overwrite _windowSize if InitAsync already set it to actual window size
+        if (!_initialized)
+            _windowSize = new Vector2(config.Width, config.Height);
+
+        // WantsToQuit comes from Application.Init (via IApplication.WantsToQuit),
+        // which is called after InitAsync, so we must pick it up here.
+        _wantsToQuit = config.WantsToQuit;
+    }
+
+    private bool _initialized;
+
+    public async Task InitAsync(PlatformConfig config)
+    {
+        _windowSize = new Vector2(config.Width, config.Height);
+        _dotNetRef = DotNetObjectReference.Create(this);
+        _wantsToQuit = config.WantsToQuit;
+
+        var baseUri = await _js.InvokeAsync<string>("eval", "new URL('./', document.baseURI).href");
+        _module = await _js.InvokeAsync<IJSObjectReference>("import", baseUri + "js/noz/noz-platform.js");
+        var result = await _module.InvokeAsync<InitResult>("init", _dotNetRef, config.Width, config.Height);
+        _windowSize = new Vector2(result.Width, result.Height);
+        _displayScale = result.Dpr;
+        IsMobile = result.IsMobile;
+        _initialized = true;
+
+        // _isMouseInWindow defaults to false so custom cursor is hidden until real mouse events arrive
+    }
+
+    public bool IsMobile { get; private set; }
+
+    private record InitResult(int Width, int Height, float Dpr, bool IsMobile);
+
+    public void Shutdown()
+    {
+        _module?.InvokeVoidAsync("shutdown");
+        _dotNetRef?.Dispose();
+    }
+
+    public bool PollEvents()
+    {
+        // Drain buffered events so they are processed after Input.BeginFrame()
+        while (_eventQueue.Count > 0)
+            OnEvent?.Invoke(_eventQueue.Dequeue());
+
+        return !_shouldQuit;
+    }
+
+    public void SwapBuffers()
+    {
+        // WebGPU automatically presents after draw calls
+        // Nothing to do here
+    }
+
+    public void RequestQuit()
+    {
+        _shouldQuit = true;
+    }
+
+    [JSInvokable]
+    public bool ShouldPreventUnload()
+    {
+        return _wantsToQuit != null && !_wantsToQuit();
+    }
+
+    [JSInvokable]
+    public void OnVisibilityChanged(bool visible)
+    {
+        _eventQueue.Enqueue(visible ? PlatformEvent.Focus() : PlatformEvent.Unfocus());
+    }
+
+    public void SetResizeCallback(Action? callback)
+    {
+        // TODO: Implement resize callback for web
+    }
+
+    public void ShowTextbox(Rect rect, string text, NativeTextboxStyle style)
+    {
+        // TODO: Implement native textbox for web
+    }
+
+    public void HideTextbox()
+    {
+        // TODO: Implement native textbox for web
+    }
+
+    public void UpdateTextboxRect(Rect rect, int fontSize)
+    {
+        // TODO: Implement native textbox for web
+    }
+
+    public bool UpdateTextboxText(ref string text)
+    {
+        // TODO: Implement native textbox for web
+        return false;
+    }
+
+    public void SetClipboardText(string text)
+    {
+        // TODO: Implement clipboard for web
+    }
+
+    public string? GetClipboardText()
+    {
+        // TODO: Implement clipboard for web
+        return null;
+    }
+
+    public bool IsFullscreen => false;
+    public void SetFullscreen(bool fullscreen) { }
+    public void SetVSync(bool vsync) { }
+    public void SetHighRefreshRate(bool enabled)
+    {
+        _module?.InvokeVoidAsync(enabled ? "enableHighRefreshRate" : "disableHighRefreshRate");
+    }
+
+    public void SetCursor(SystemCursor cursor)
+    {
+        var cursorStyle = cursor switch
+        {
+            SystemCursor.None => "none",
+            SystemCursor.Default => "default",
+            SystemCursor.Move => "move",
+            SystemCursor.Crosshair => "crosshair",
+            SystemCursor.Wait => "wait",
+            _ => "default"
+        };
+        _module?.InvokeVoidAsync("setCursor", cursorStyle);
+    }
+
+    // Called from JavaScript
+
+    [JSInvokable]
+    public void OnKeyDown(string key)
+    {
+        var code = KeyToInputCode(key);
+        if (code != InputCode.None)
+            _eventQueue.Enqueue(PlatformEvent.KeyDown(code));
+    }
+
+    [JSInvokable]
+    public void OnKeyUp(string key)
+    {
+        var code = KeyToInputCode(key);
+        if (code != InputCode.None)
+            _eventQueue.Enqueue(PlatformEvent.KeyUp(code));
+    }
+
+    [JSInvokable]
+    public void OnTextInput(string text)
+    {
+        _eventQueue.Enqueue(PlatformEvent.TextInputEvent(text));
+    }
+
+    [JSInvokable]
+    public void OnMouseDown(int button, int clickCount)
+    {
+        var code = MouseButtonToInputCode(button);
+        if (code != InputCode.None)
+            _eventQueue.Enqueue(PlatformEvent.MouseDown(code, clickCount));
+    }
+
+    [JSInvokable]
+    public void OnMouseUp(int button)
+    {
+        var code = MouseButtonToInputCode(button);
+        if (code != InputCode.None)
+            _eventQueue.Enqueue(PlatformEvent.MouseUp(code));
+    }
+
+    [JSInvokable]
+    public void OnMouseMove(float x, float y)
+    {
+        _eventQueue.Enqueue(PlatformEvent.MouseMove(new Vector2(x, y)));
+    }
+
+    [JSInvokable]
+    public void OnMouseWheel(float deltaX, float deltaY)
+    {
+        _eventQueue.Enqueue(PlatformEvent.MouseScroll(deltaX, deltaY));
+    }
+
+    [JSInvokable]
+    public void OnMouseEnter()
+    {
+        _isMouseInWindow = true;
+    }
+
+    [JSInvokable]
+    public void OnMouseLeave()
+    {
+        _isMouseInWindow = false;
+    }
+
+    [JSInvokable]
+    public void OnResize(int width, int height)
+    {
+        _windowSize = new Vector2(width, height);
+        _eventQueue.Enqueue(PlatformEvent.Resize(width, height));
+    }
+
+    private static InputCode KeyToInputCode(string key)
+    {
+        return key.ToLowerInvariant() switch
+        {
+            "a" => InputCode.KeyA,
+            "b" => InputCode.KeyB,
+            "c" => InputCode.KeyC,
+            "d" => InputCode.KeyD,
+            "e" => InputCode.KeyE,
+            "f" => InputCode.KeyF,
+            "g" => InputCode.KeyG,
+            "h" => InputCode.KeyH,
+            "i" => InputCode.KeyI,
+            "j" => InputCode.KeyJ,
+            "k" => InputCode.KeyK,
+            "l" => InputCode.KeyL,
+            "m" => InputCode.KeyM,
+            "n" => InputCode.KeyN,
+            "o" => InputCode.KeyO,
+            "p" => InputCode.KeyP,
+            "q" => InputCode.KeyQ,
+            "r" => InputCode.KeyR,
+            "s" => InputCode.KeyS,
+            "t" => InputCode.KeyT,
+            "u" => InputCode.KeyU,
+            "v" => InputCode.KeyV,
+            "w" => InputCode.KeyW,
+            "x" => InputCode.KeyX,
+            "y" => InputCode.KeyY,
+            "z" => InputCode.KeyZ,
+
+            "1" => InputCode.Key1,
+            "2" => InputCode.Key2,
+            "3" => InputCode.Key3,
+            "4" => InputCode.Key4,
+            "5" => InputCode.Key5,
+            "6" => InputCode.Key6,
+            "7" => InputCode.Key7,
+            "8" => InputCode.Key8,
+            "9" => InputCode.Key9,
+            "0" => InputCode.Key0,
+
+            "enter" => InputCode.KeyEnter,
+            "escape" => InputCode.KeyEscape,
+            "backspace" => InputCode.KeyBackspace,
+            "tab" => InputCode.KeyTab,
+            " " => InputCode.KeySpace,
+
+            "-" => InputCode.KeyMinus,
+            "=" => InputCode.KeyEquals,
+            "[" => InputCode.KeyLeftBracket,
+            "]" => InputCode.KeyRightBracket,
+            ";" => InputCode.KeySemicolon,
+            "'" => InputCode.KeyQuote,
+            "`" => InputCode.KeyTilde,
+            "," => InputCode.KeyComma,
+            "." => InputCode.KeyPeriod,
+
+            "f1" => InputCode.KeyF1,
+            "f2" => InputCode.KeyF2,
+            "f3" => InputCode.KeyF3,
+            "f4" => InputCode.KeyF4,
+            "f5" => InputCode.KeyF5,
+            "f6" => InputCode.KeyF6,
+            "f7" => InputCode.KeyF7,
+            "f8" => InputCode.KeyF8,
+            "f9" => InputCode.KeyF9,
+            "f10" => InputCode.KeyF10,
+            "f11" => InputCode.KeyF11,
+            "f12" => InputCode.KeyF12,
+
+            "arrowright" => InputCode.KeyRight,
+            "arrowleft" => InputCode.KeyLeft,
+            "arrowdown" => InputCode.KeyDown,
+            "arrowup" => InputCode.KeyUp,
+
+            "control" => InputCode.KeyLeftCtrl,
+            "shift" => InputCode.KeyLeftShift,
+            "alt" => InputCode.KeyLeftAlt,
+            "meta" => InputCode.KeyLeftSuper,
+
+            _ => InputCode.None
+        };
+    }
+
+    private static InputCode MouseButtonToInputCode(int button)
+    {
+        return button switch
+        {
+            0 => InputCode.MouseLeft,
+            1 => InputCode.MouseMiddle,
+            2 => InputCode.MouseRight,
+            3 => InputCode.MouseButton4,
+            4 => InputCode.MouseButton5,
+            _ => InputCode.None
+        };
+    }
+
+    public Stream? OpenAssetStream(AssetType type, string name, string extension) => null;
+
+    public Stream? LoadPersistentData(string name, string? appName = null)
+    {
+        var key = $"noz:{appName ?? "default"}:{name}";
+        var value = WebStorageInterop.GetItem(key);
+        if (value == null)
+            return null;
+
+        return new MemoryStream(System.Text.Encoding.UTF8.GetBytes(value));
+    }
+
+    public void SavePersistentData(string name, Stream data, string? appName = null)
+    {
+        var key = $"noz:{appName ?? "default"}:{name}";
+        using var reader = new StreamReader(data);
+        var value = reader.ReadToEnd();
+        WebStorageInterop.SetItem(key, value);
+    }
+
+    public void Log(string message) => Console.WriteLine(message);
+
+    public void OpenURL(string url)
+    {
+        _module?.InvokeVoidAsync("openURL", url);
+    }
+}

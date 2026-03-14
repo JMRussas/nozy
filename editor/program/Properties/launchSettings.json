@@ -1,0 +1,17 @@
+{
+  "profiles": {
+    "NoZ.Editor.Program": {
+      "commandName": "Project",
+      "commandLineArgs": "Editor"
+    },
+    "Game": {
+      "commandName": "Project",
+      "commandLineArgs": "--project .",
+      "workingDirectory": "$(ProjectDir)../../../"
+    },
+    "WSL": {
+      "commandName": "WSL2",
+      "distributionName": ""
+    }
+  }
+}

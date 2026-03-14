@@ -1,0 +1,527 @@
+//
+//  NoZ - Copyright(c) 2026 NoZ Games, LLC
+//
+
+namespace NoZ.Editor;
+
+public class FontDocument : Document
+{
+    private const string DefaultCharacters = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+
+    private const float PixelsPerUnit = 256.0f;
+
+    public int FontSize { get; set; } = 48;
+    public string Characters { get; set; } = DefaultCharacters;
+    public string Ranges { get; set; } = "";
+    public float SdfRange { get; set; } = 4f;
+    public int Padding { get; set; } = 1;
+    public bool Symbol { get; set; }
+
+    private Font? _font;
+    private double _monoSize;
+
+    public static void RegisterDef()
+    {
+        DocumentManager.RegisterDef(new DocumentDef
+        {
+            Type = AssetType.Font,
+            Name = "Font",
+            Extension = ".ttf",
+            Factory = () => new FontDocument()
+        });
+    }
+
+    public override void LoadMetadata(PropertySet meta)
+    {
+        FontSize = meta.GetInt("font", "size", 48);
+        Characters = meta.GetString("font", "characters", DefaultCharacters);
+        SdfRange = meta.GetFloat("sdf", "range", 4f);
+        Padding = meta.GetInt("font", "padding", 1);
+        Symbol = meta.GetBool("font", "symbol", false);
+
+        Ranges = meta.GetString("font", "ranges", "");
+        if (!string.IsNullOrEmpty(Ranges))
+            Characters = MergeCharacterRanges(Ranges, Characters);
+    }
+
+    public override void SaveMetadata(PropertySet meta)
+    {
+        if (FontSize != 48) meta.SetInt("font", "size", FontSize);
+        if (!string.IsNullOrEmpty(Ranges))
+            meta.SetString("font", "ranges", Ranges);
+        else if (Characters != DefaultCharacters)
+            meta.SetString("font", "characters", Characters);
+        if (Math.Abs(SdfRange - 4f) > 0.001f) meta.SetFloat("sdf", "range", SdfRange);
+        if (Padding != 1) meta.SetInt("font", "padding", Padding);
+        if (Symbol) meta.SetBool("font", "symbol", Symbol);
+    }
+
+    private bool ImportAll => Characters == "*";
+
+    public override void Import(string outputPath, PropertySet meta)
+    {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+
+        var ttf = TrueTypeFont.Load(Path, FontSize, ImportAll ? null : Characters);
+        if (ttf == null)
+            throw new ImportException($"Failed to load TTF file: {Path}");
+
+        var glyphs = BuildGlyphList(ttf);
+        if (glyphs.Count == 0)
+            throw new ImportException("No glyphs to import");
+
+        var (atlasSize, atlasUsage) = PackGlyphs(glyphs);
+        using var atlas = new PixelData<Color32>(atlasSize.X, atlasSize.Y);
+
+        RenderGlyphs(glyphs, atlas);
+
+        Directory.CreateDirectory(System.IO.Path.GetDirectoryName(outputPath) ?? "");
+        WriteFontData(outputPath, ttf, glyphs, atlas, atlasSize);
+
+        sw.Stop();
+        var monoInfo = Symbol ? $", symbol {_monoSize:F1}px" : "";
+        Log.Info($"[Font] {System.IO.Path.GetFileName(Path)}: {glyphs.Count} glyphs, {atlasSize.X}x{atlasSize.Y} atlas ({atlasUsage:P0} used), size {FontSize}{monoInfo}, {sw.ElapsedMilliseconds}ms");
+    }
+
+    private struct ImportGlyph
+    {
+        public TrueTypeFont.Glyph Ttf;
+        public Vector2Double Size;
+        public Vector2Double Bearing;
+        public double Advance;
+        public double Scale;
+        public Vector2Int PackedSize;
+        public RectInt PackedRect;
+        public char Codepoint;
+    }
+
+    private List<ImportGlyph> BuildGlyphList(TrueTypeFont ttf)
+    {
+        var glyphs = new List<ImportGlyph>();
+
+        // When importing all, iterate every glyph the TTF reader loaded.
+        // Otherwise, iterate the Characters filter string.
+        var source = ImportAll
+            ? ttf.Glyphs
+            : Characters.Select(c => ttf.GetGlyph(c)).Where(g => g != null)!;
+
+        // For symbol mode, use FontSize as the cell dimension (the em square)
+        _monoSize = Symbol ? FontSize : 0;
+
+        foreach (var ttfGlyph in source)
+        {
+            if (ttfGlyph == null) continue;
+
+            // Skip empty glyphs (space, etc.) for symbol fonts
+            if (Symbol && ttfGlyph!.contours is not { Length: > 0 })
+                continue;
+
+            if (Symbol)
+            {
+                // Scale glyph to fill the mono square while maintaining aspect ratio
+                var maxDim = Math.Max(ttfGlyph.size.x, ttfGlyph.size.y);
+                var scale = maxDim > 0 ? _monoSize / maxDim : 1.0;
+
+                var monoDim = (int)Math.Ceiling(_monoSize + SdfRange * 2) + Padding * 2;
+                glyphs.Add(new ImportGlyph
+                {
+                    Codepoint = ttfGlyph.codepoint,
+                    Ttf = ttfGlyph,
+                    Scale = scale,
+                    Size = new Vector2Double(_monoSize + SdfRange * 2, _monoSize + SdfRange * 2),
+                    Bearing = new Vector2Double(-SdfRange, SdfRange),
+                    Advance = _monoSize,
+                    PackedSize = new Vector2Int(monoDim, monoDim)
+                });
+            }
+            else
+            {
+                glyphs.Add(new ImportGlyph
+                {
+                    Codepoint = ttfGlyph!.codepoint,
+                    Ttf = ttfGlyph,
+                    Scale = 1.0,
+                    Size = ttfGlyph.size + new Vector2Double(SdfRange * 2, SdfRange * 2),
+                    Bearing = new Vector2Double(
+                        ttfGlyph.bearing.x - SdfRange,
+                        ttfGlyph.size.y - ttfGlyph.bearing.y),
+                    Advance = ttfGlyph.advance,
+                    PackedSize = new Vector2Int(
+                        (int)Math.Ceiling(ttfGlyph.size.x + SdfRange * 2 + Padding * 2),
+                        (int)Math.Ceiling(ttfGlyph.size.y + SdfRange * 2 + Padding * 2)
+                    )
+                });
+            }
+        }
+
+        return glyphs;
+    }
+
+    private (Vector2Int size, float usage) PackGlyphs(List<ImportGlyph> glyphs)
+    {
+        if (Symbol)
+            return PackGlyphsGrid(glyphs);
+
+        var minHeight = (int)NextPowerOf2((uint)(FontSize + 2 + SdfRange * 2 + Padding * 2));
+        var packer = new RectPacker(minHeight, minHeight);
+
+        while (packer.IsEmpty)
+        {
+            for (var i = 0; i < glyphs.Count; i++)
+            {
+                var glyph = glyphs[i];
+
+                // Skip glyphs with no contours (spaces, etc.)
+                if (glyph.Ttf.contours == null || glyph.Ttf.contours.Length == 0)
+                    continue;
+
+                if (packer.Insert(glyph.PackedSize, out var packedRect) == -1)
+                {
+                    // Need to resize
+                    var size = packer.Size;
+                    if (size.X <= size.Y)
+                        packer.Resize(size.X * 2, size.Y);
+                    else
+                        packer.Resize(size.X, size.Y * 2);
+                    break;
+                }
+
+                glyph.PackedRect = packedRect;
+                glyphs[i] = glyph;
+            }
+        }
+
+        // Trim atlas to actual used bounds
+        var bounds = packer.UsedBounds;
+        var trimmedSize = new Vector2Int(
+            Math.Max(bounds.X, 1),
+            Math.Max(bounds.Y, 1));
+
+        long trimmedArea = (long)trimmedSize.X * trimmedSize.Y;
+        long usedArea = 0;
+        foreach (var glyph in glyphs)
+        {
+            if (glyph.Ttf.contours != null && glyph.Ttf.contours.Length > 0)
+                usedArea += (long)glyph.PackedSize.X * glyph.PackedSize.Y;
+        }
+        float usage = trimmedArea > 0 ? (float)usedArea / trimmedArea : 0f;
+
+        return (trimmedSize, usage);
+    }
+
+    /// <summary>
+    /// Optimal grid packing for mono mode where all cells are identical squares.
+    /// </summary>
+    private (Vector2Int size, float usage) PackGlyphsGrid(List<ImportGlyph> glyphs)
+    {
+        var glyphCount = glyphs.Count(g => g.Ttf.contours is { Length: > 0 });
+        if (glyphCount == 0)
+            return (new Vector2Int(1, 1), 0f);
+
+        var cellSize = glyphs.First(g => g.Ttf.contours is { Length: > 0 }).PackedSize;
+        var cols = (int)Math.Ceiling(Math.Sqrt(glyphCount));
+        var rows = (int)Math.Ceiling((double)glyphCount / cols);
+
+        int col = 0, row = 0;
+        for (var i = 0; i < glyphs.Count; i++)
+        {
+            var glyph = glyphs[i];
+            if (glyph.Ttf.contours == null || glyph.Ttf.contours.Length == 0)
+                continue;
+
+            glyph.PackedRect = new RectInt(
+                1 + col * cellSize.X,
+                1 + row * cellSize.Y,
+                cellSize.X,
+                cellSize.Y);
+            glyphs[i] = glyph;
+
+            col++;
+            if (col >= cols)
+            {
+                col = 0;
+                row++;
+            }
+        }
+
+        var atlasSize = new Vector2Int(
+            2 + cols * cellSize.X,
+            2 + rows * cellSize.Y);
+
+        long totalArea = (long)atlasSize.X * atlasSize.Y;
+        long usedArea = (long)glyphCount * cellSize.X * cellSize.Y;
+        float usage = totalArea > 0 ? (float)usedArea / totalArea : 0f;
+
+        return (atlasSize, usage);
+    }
+
+    private void RenderGlyphs(List<ImportGlyph> glyphs, PixelData<Color32> atlas)
+    {
+        // Create a float bitmap for the entire atlas, then convert to Color32
+        var msdfAtlas = new Msdf.MsdfBitmap(atlas.Width, atlas.Height);
+
+        foreach (var glyph in glyphs)
+        {
+            if (glyph.Ttf.contours == null || glyph.Ttf.contours.Length == 0)
+                continue;
+
+            var outputPosition = new Vector2Int(
+                glyph.PackedRect.X + Padding,
+                glyph.PackedRect.Y + Padding
+            );
+
+            var outputSize = new Vector2Int(
+                glyph.PackedRect.Width - Padding * 2,
+                glyph.PackedRect.Height - Padding * 2
+            );
+
+            var s = glyph.Scale;
+
+            // Center offset in pixels (non-zero only in mono mode)
+            double centerX = 0, centerY = 0;
+            if (Symbol)
+            {
+                centerX = (_monoSize - glyph.Ttf.size.x * s) / 2;
+                centerY = (_monoSize - glyph.Ttf.size.y * s) / 2;
+            }
+
+            var translate = new Vector2Double(
+                -glyph.Ttf.bearing.x + (SdfRange + centerX) / s,
+                -glyph.Ttf.bearing.y + glyph.Ttf.size.y + (SdfRange + centerY) / s
+            );
+
+            Msdf.MsdfFont.RenderGlyph(
+                glyph.Ttf,
+                msdfAtlas,
+                outputPosition,
+                outputSize,
+                SdfRange / (2.0 * s),
+                new Vector2Double(s, s),
+                translate
+            );
+        }
+
+        // Convert float MSDF bitmap to Color32 atlas
+        for (int y = 0; y < atlas.Height; y++)
+        {
+            for (int x = 0; x < atlas.Width; x++)
+            {
+                var px = msdfAtlas[x, y];
+                atlas[x, y] = new Color32(
+                    (byte)Math.Clamp(px[0] * 255f, 0f, 255f),
+                    (byte)Math.Clamp(px[1] * 255f, 0f, 255f),
+                    (byte)Math.Clamp(px[2] * 255f, 0f, 255f),
+                    255);
+            }
+        }
+    }
+
+    private void WriteFontData(
+        string outputPath,
+        TrueTypeFont ttf,
+        List<ImportGlyph> glyphs,
+        PixelData<Color32> atlas,
+        Vector2Int atlasSize)
+    {
+        var fontSizeInv = 1.0f / FontSize;
+
+        using var writer = new BinaryWriter(File.Create(outputPath));
+
+        writer.WriteAssetHeader(AssetType.Font, Font.Version);
+        writer.Write((uint)FontSize);
+        writer.Write((uint)atlasSize.X);
+        writer.Write((uint)atlasSize.Y);
+
+        if (Symbol)
+        {
+            // Symbol: metrics match the cell exactly, no extra space
+            writer.Write(1.0f);  // ascent
+            writer.Write(0.0f);  // descent
+            writer.Write(1.0f);  // lineHeight
+            writer.Write(1.0f);  // baseline
+            writer.Write(0.0f);  // internalLeading
+        }
+        else
+        {
+            writer.Write((float)(ttf.Ascent * fontSizeInv));
+            writer.Write((float)(ttf.Descent * fontSizeInv));
+            writer.Write((float)(ttf.Height * fontSizeInv));
+            writer.Write((float)(ttf.Ascent * fontSizeInv));
+            writer.Write((float)(ttf.InternalLeading * fontSizeInv));
+        }
+
+        // Font family name
+        writer.Write((ushort)ttf.FamilyName.Length);
+        if (ttf.FamilyName.Length > 0)
+            writer.Write(ttf.FamilyName.ToCharArray());
+
+        // Write glyph count and data
+        writer.Write((ushort)glyphs.Count);
+        foreach (var glyph in glyphs)
+        {
+            writer.Write((uint)glyph.Codepoint);
+
+            // Glyphs with no contours (space, etc.) have no atlas entry - write zero UVs
+            var hasContours = glyph.Ttf.contours != null && glyph.Ttf.contours.Length > 0;
+            if (hasContours)
+            {
+                // UV coordinates (offset by Padding to exclude padding from sampling)
+                writer.Write((float)(glyph.PackedRect.X + Padding) / atlasSize.X);
+                writer.Write((float)(glyph.PackedRect.Y + Padding) / atlasSize.Y);
+                writer.Write((float)(glyph.PackedRect.X + Padding + glyph.Size.x) / atlasSize.X);
+                writer.Write((float)(glyph.PackedRect.Y + Padding + glyph.Size.y) / atlasSize.Y);
+
+                // Size
+                writer.Write((float)(glyph.Size.x * fontSizeInv));
+                writer.Write((float)(glyph.Size.y * fontSizeInv));
+            }
+            else
+            {
+                // No visual representation - zero UVs and size
+                writer.Write(0f);
+                writer.Write(0f);
+                writer.Write(0f);
+                writer.Write(0f);
+                writer.Write(0f);
+                writer.Write(0f);
+            }
+
+            // Advance
+            writer.Write((float)(glyph.Advance * fontSizeInv));
+
+            // Bearing
+            writer.Write((float)(glyph.Bearing.x * fontSizeInv));
+            writer.Write((float)(glyph.Bearing.y * fontSizeInv));
+        }
+
+        // Write kerning data
+        var kerning = ttf._kerning;
+        var kerningCount = kerning?.Count ?? 0;
+        writer.Write((ushort)kerningCount);
+
+        if (kerning != null)
+        {
+            foreach (var (key, value) in kerning)
+            {
+                var left = (uint)(key >> 16);
+                var right = (uint)(key & 0xFFFF);
+                writer.Write(left);
+                writer.Write(right);
+                writer.Write(value * fontSizeInv);
+            }
+        }
+
+        // Write atlas as RGBA32
+        var atlasSpan = atlas.AsByteSpan();
+        writer.Write(atlasSpan);
+
+        // Build packed glyph name buffer using Unicode character names
+        var nameBuffer = new System.Text.StringBuilder();
+        var nameOffsets = new (ushort start, ushort length)[glyphs.Count];
+        for (int i = 0; i < glyphs.Count; i++)
+        {
+            var name = UnicodeNames.GetName(glyphs[i].Codepoint) ?? glyphs[i].Ttf.name;
+            if (!string.IsNullOrEmpty(name))
+            {
+                nameOffsets[i] = ((ushort)nameBuffer.Length, (ushort)name.Length);
+                nameBuffer.Append(name);
+            }
+        }
+
+        // Write glyph name section
+        var nameChars = nameBuffer.ToString();
+        writer.Write((ushort)nameChars.Length);
+        if (nameChars.Length > 0)
+            writer.Write(nameChars.ToCharArray());
+
+        for (int i = 0; i < glyphs.Count; i++)
+        {
+            writer.Write(nameOffsets[i].start);
+            writer.Write(nameOffsets[i].length);
+        }
+    }
+
+    private static string MergeCharacterRanges(string rangesStr, string existingChars)
+    {
+        var chars = new HashSet<char>(existingChars);
+        foreach (var range in rangesStr.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+        {
+            var parts = range.Split('-', 2);
+            if (parts.Length == 2)
+            {
+                var start = Convert.ToInt32(parts[0].Trim(), 16);
+                var end = Convert.ToInt32(parts[1].Trim(), 16);
+                for (int c = start; c <= end && c <= 0xFFFF; c++)
+                    chars.Add((char)c);
+            }
+            else if (parts.Length == 1)
+            {
+                var c = Convert.ToInt32(parts[0].Trim(), 16);
+                if (c <= 0xFFFF)
+                    chars.Add((char)c);
+            }
+        }
+        return new string(chars.OrderBy(c => c).ToArray());
+    }
+
+    private static uint NextPowerOf2(uint v)
+    {
+        v--;
+        v |= v >> 1;
+        v |= v >> 2;
+        v |= v >> 4;
+        v |= v >> 8;
+        v |= v >> 16;
+        v++;
+        return v;
+    }
+
+    public override void PostLoad()
+    {
+        _font = Asset.Load(
+            AssetType.Font,
+            Name,
+            useRegistry: false,
+            libraryPath: EditorApplication.OutputPath) as Font;
+
+        if (_font?.AtlasTexture != null)
+        {
+            var w = _font.AtlasWidth / PixelsPerUnit;
+            var h = _font.AtlasHeight / PixelsPerUnit;
+            Bounds = new Rect(-w * 0.5f, -h * 0.5f, w, h);
+        }
+    }
+
+    public override void Reload()
+    {
+        _font?.Dispose();
+        PostLoad();
+    }
+
+    public override void Draw()
+    {
+        if (_font?.AtlasTexture == null)
+        {
+            using (Graphics.PushState())
+            {
+                Graphics.SetLayer(EditorLayer.Document);
+                Graphics.SetColor(Color.White);
+                Graphics.Draw(EditorAssets.Sprites.AssetIconFont);
+            }
+            return;
+        }
+
+        using (Graphics.PushState())
+        {
+            Graphics.SetLayer(EditorLayer.Document);
+            Graphics.SetColor(Color.White);
+#if false
+            Graphics.SetShader(EditorAssets.Shaders.Texture);
+            Graphics.SetTexture(_font.AtlasTexture);
+            Graphics.Draw(Bounds);
+#else
+            TextRender.DrawAtlas(_font, Bounds);
+#endif
+        }
+    }
+}

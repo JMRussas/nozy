@@ -1,0 +1,11 @@
+@using noz
+
+<WebApplication Width="1280" Height="720" OnInitialize="@OnGameInitialize" />
+
+@code {
+    private Task OnGameInitialize()
+    {
+        // Initialize game-specific stuff here
+        return Task.CompletedTask;
+    }
+}

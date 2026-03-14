@@ -1,0 +1,115 @@
+//
+//  NoZ - Copyright(c) 2026 NoZ Games, LLC
+//
+
+namespace NoZ.Editor;
+
+public static partial class ConfirmDialog
+{
+    private static partial class WidgetIds 
+    {
+        public static partial WidgetId Yes { get; }
+        public static partial WidgetId No { get; }
+        public static partial WidgetId Close { get; }
+    }
+
+    private static bool _visible;
+    private static string _message = string.Empty;
+    private static Action? _onConfirm;
+    private static string _yesText = "Yes";
+    private static string _noText = "No";
+
+    public static bool IsVisible => _visible;
+
+    public static void Init()
+    {
+    }
+
+    public static void Shutdown()
+    {
+        _visible = false;
+        _message = string.Empty;
+        _onConfirm = null;
+    }
+
+    public static void Show(string message, Action onConfirm, string yes="Yes", string no="No")
+    {
+        _yesText = yes;
+        _noText = no; 
+        _message = message;
+        _onConfirm = onConfirm;
+        _visible = true;
+        UI.SetHot(WidgetIds.No);
+    }
+
+    public static void Close()
+    {
+        _visible = false;
+        _message = string.Empty;
+        _onConfirm = null;
+        UI.ClearHot();
+    }
+
+    public static void Update()
+    {
+        if (!_visible)
+            return;
+
+        if (Input.WasButtonPressed(InputCode.KeyEscape))
+        {
+            Input.ConsumeButton(InputCode.KeyEscape);
+            Close();
+            return;
+        }
+
+        if (Input.WasButtonPressed(InputCode.KeyEnter))
+        {
+            Input.ConsumeButton(InputCode.KeyEnter);
+            var callback = _onConfirm;
+            Close();
+            callback?.Invoke();
+            return;
+        }
+    }
+
+    public static void UpdateUI()
+    {
+        if (!_visible)
+            return;
+
+        Action? executed = null;
+
+        using (UI.BeginContainer(WidgetIds.Close, EditorStyle.Confirm.Backdrop))
+        {
+            using (UI.BeginColumn(EditorStyle.Confirm.Root))
+            {
+                UI.Text(_message, EditorStyle.Confirm.MessageLabel);
+
+                using (UI.BeginRow(EditorStyle.Confirm.ButtonContainer))
+                {
+                    if (UI.Button(WidgetIds.Yes, _yesText, EditorStyle.Button.Primary))
+                        executed = _onConfirm;
+
+                    if (UI.Button(WidgetIds.No, _noText, EditorStyle.Button.Secondary))
+                    {
+                        Input.ConsumeButton(InputCode.MouseLeft);
+                        Close();
+                    }
+                }
+            }
+
+            if (UI.WasPressed())
+            {
+                Input.ConsumeButton(InputCode.MouseLeft);
+                Close();
+            }
+        }
+
+        if (executed != null)
+        {
+            Input.ConsumeButton(InputCode.MouseLeft);
+            Close();
+            executed();
+        }
+    }
+}

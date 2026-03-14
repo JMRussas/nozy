@@ -1,0 +1,123 @@
+# 2/3/2026
+Fix the atlas editor
+Create new animation with skeleton selected should use that skeleton for animation
+Add animated sprites
+Atlas not always rebuilding when sprites change, sprite added i think
+toolbar button to add a bone in skeleton editor
+Make sure you cant add too many holds or frames to animation (hold + frames < MAxFrames)>)
+When anchor selected draw faded selection line along segment if other anchor isnt selected
+ to work, fix.
+Merge importer into document manager and make Export method to export a document.
+Animation editor onion skin
+New palette
+Stoke size popup in sprite editor
+
+# 2/2/2026
+- [X] Inital color when entering sprite editor is weird (first color in palette?)
+- [X] bone separation sort is wrong, switch rendering in wrong order
+- [X] Started renaming sprite document identifiers so its easier to read
+- [X] Removed root motion
+- [X] Fixed skeletons that had an altered root bone
+- [X] fixed asset manifest but with conflicting names cross types
+- [X] Per path bone binding.
+- [X] new StringId system
+- [X] fixed documentmanager bug causing name conflicts across types
+- [X] removed rotate tool from skeleton editor
+- [X] reworked scale tool in skeleton editor
+- [X] reworked move tool in skeleton editor
+- [X] Palettes are now more stable (work like layers)
+- [X] REnamed all SDL platform libraries to Desktop
+- [X] Show paelette name in the sprite editor
+
+# 2/1/2026
+- [X] Add stroke rendering
+- [X] New bone shape
+- [X] connected bone icon
+- [X] Redo bone icon
+- [X] Rework of editing bones in skeleton editor to be more like blender
+- [X] Added mirror button to animator toolbar
+- [X] Setting a color and then setting again seems to not work
+- [X] sprites losing bone on import after atlas rebuild?  This is because REsolveBinding is called too late for the - - - [X] added collection selector in workspace toolbar
+- [x] Add worksapce toolbar
+- [X] Fixed alpha compositing bug in shape rasterization
+- [X] fixed but in rename tool that was causing button presses to affect workspace.
+- [X] Added Xray button 
+
+# 1/31/2026
+- [X] Refactor selection within sprite editor
+- [X] Moved HitResult into Shape
+- [X] Add icons to color button
+- [X] Opacity in the color popup as a row
+- [X] Color button show color over grid with opacity
+- [X] Added BitMask256
+- [X] Sprite layers
+- [X] Add skeelton editor toolbar with button to hide / show the preview
+- [X] Added min width to popups
+- [X] pushing an input scope now inherits all of the previous buttons
+- [X] All tools now block other input while active
+- [X] Bone name in sprite editor has spacing.
+- [X] Reworked ContextMenu -> PopupMenu 
+- [X] Select bone should just make a context menu with skeletons and bones as sub menus
+- [X] Factored out the dopesheet and reused in sprite
+- [X] cant see holds in the animation editor
+- [X] Clear selection when exiting skeleton editor
+
+
+# 1/30/2026
+- [X] Animation editor toggle for hiding bones
+- [X] Add outline around workspace names and bone names
+- [X] Incrase bone selection radius
+- [X] Selected document names should be cyan
+- [X] Single click on name should select document
+- [X] Increased the size of the origin dot
+- [x] Fixed but where entering edit mode with multiple documents selected would lock up input
+- [X] Cancelling a rename seems to get you stuck so no input works
+- [X] adding bones, renaming bones, and deleting bones causes animations to crash
+- [X] Cleanup refactor of contextmenu to use popup ui
+- [X] Sort the new menu by name
+- [X] Move to collection menu should show current as selected
+- [X] New menu now shows document icons
+- [X] Context menus now support checked items and hiding icons
+- [X] Added workspace hide/unhide
+- [X] fixed bug causig reference textures to be overwritten if the document got makred ismoodified
+- [X] TextureDocument now uses image sharp to load
+- [X] Exclusive input while scale tool is active
+- [X] TextureEditor that allows scaling textures
+- [X] improved documentdef registration
+- [X] Added EditorUI.Popup interface to make popups easier
+- [X] Simplified subtraction to be opacity of float.MinValue
+- [X] Added EditorUI.ColorButton
+- [X] Added EditorUI.OpacityButton
+- [X] Replaced color selection with a color popup in sprite editor
+- [X] Simplified popup element rect logic
+- [X] Fixed popup's in rows/columns changing the row/column layout
+- [X] Stop Generating game assets on every load
+- [X] Improved performance of rasterization in sprite editor
+- [X] Switched to SixLabor.ImageSharp in editor
+- [X] Removed shader compiler
+- [X] Fixed bad performance in RectPacker
+- [X] Added sprite size clamping to prevent sprites > atlas size
+- [X] frame dot is too small
+- [X] Show animation origin
+
+# 1/29/2026
+- [X] fixed native array bug copying array in constructor with 0 length
+- [X] fix bone movement bug in skeleton editor
+- [X] increased max animation frames to 64
+- [X] Create new animation
+- [X] Select skeleton for animation
+- [X] Bone rename
+- [X] Fixed display of bone names so they are the right color and position
+- [X] Fixed bug where cancelling a bone extrude resulted in a broken skeleton
+- [X] Skeleton document load now ensures bone length is at least a minimum value
+- [X] Can now create a new skeleton document
+- [X] new documents are now named "new_<type>" instead of just "new"
+- [X] Update UI sizing and colors
+- [X] Finished sprite constraints feature
+- [X] Better snapping of documents during move with ctrl key
+- [X] Can no longer enter edit mode while moving a document
+- [X] Simplified hit testing in shapes and increased anchor hit size
+- [X] remove forced pixel grid snapping in sprite editor
+- [X] Refactored shape rasterization to support constrained sprites
+- [X] Refactor and cleanup of Importer to simplify and fix race conditions
+- [X] Fixed but where duplicating an asset would double it up in assets manifest

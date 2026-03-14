@@ -1,0 +1,64 @@
+w 1024
+h 1024
+d 128
+p 2
+
+r "asset_icon_animation" 1 1 68 68 0
+r "asset_icon_atlas" 69 1 118 118 0
+r "asset_icon_bin" 187 1 88 106 0
+r "asset_icon_event" 275 1 87 133 0
+r "asset_icon_font" 1 119 120 120 0
+r "asset_icon_genstyle" 121 119 114 117 0
+r "asset_icon_lua" 362 1 122 124 0
+r "asset_icon_shader" 484 1 116 116 0
+r "asset_icon_sound" 600 1 92 122 0
+r "asset_icon_sprite" 484 117 68 68 0
+r "asset_icon_vfx" 362 125 122 122 0
+r "icon_ai" 235 134 68 68 0
+r "icon_ai_2" 552 117 36 36 0
+r "icon_bone" 235 202 68 68 0
+r "icon_check" 121 236 68 68 0
+r "icon_circle" 692 1 126 126 0
+r "icon_clip" 588 123 68 68 0
+r "icon_close" 484 185 68 68 0
+r "icon_collection" 1 239 68 68 0
+r "icon_connected" 303 247 68 68 0
+r "icon_constraint" 371 247 68 68 0
+r "icon_delete" 189 270 68 68 0
+r "icon_dropdown" 69 304 68 68 0
+r "icon_duplicate" 1 307 68 68 0
+r "icon_edit" 818 1 68 68 0
+r "icon_empty" 886 1 68 68 0
+r "icon_expand_down" 818 69 126 34 0
+r "icon_expand_up" 818 103 126 34 0
+r "icon_fill" 954 1 68 68 0
+r "icon_foldout_closed" 552 153 36 36 0
+r "icon_foldout_open" 552 189 36 36 0
+r "icon_hidden" 944 69 68 68 0
+r "icon_keyframe" 656 127 68 68 0
+r "icon_layer" 588 191 68 68 0
+r "icon_lock" 552 225 36 36 0
+r "icon_loop" 724 127 68 68 0
+r "icon_mirror" 439 253 68 68 0
+r "icon_move" 257 315 68 68 0
+r "icon_nofill" 325 315 68 68 0
+r "icon_onion" 137 338 68 68 0
+r "icon_opacity" 69 372 68 68 0
+r "icon_opacity_overlay" 257 270 36 36 0
+r "icon_palette" 1 375 68 68 0
+r "icon_play" 792 137 68 68 0
+r "icon_preview" 656 195 68 68 0
+r "icon_publish" 507 261 108 126 0
+r "icon_random" 724 195 68 68 0
+r "icon_root_motion" 393 321 112 116 0
+r "icon_search" 860 137 68 68 0
+r "icon_seed" 928 137 68 68 0
+r "icon_sort" 205 383 68 68 0
+r "icon_stroke" 137 406 68 68 0
+r "icon_submenu" 69 440 68 68 0
+r "icon_subtract" 1 443 68 68 0
+r "icon_tiling" 273 383 68 68 0
+r "icon_unlock" 615 259 36 36 0
+r "icon_xray" 792 205 68 68 0
+r "" 656 123 4 4 0
+r "new_sprite" 651 263 68 68 0

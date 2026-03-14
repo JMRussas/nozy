@@ -40,3 +40,9 @@ desktop.ini
 ## Test results
 TestResults/
 coverage/
+
+## NoZ engine
+.noz/user.cfg
+editor/.noz/*
+tmpclaude-*
+*.pubxml.user
