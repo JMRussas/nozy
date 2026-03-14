@@ -74,8 +74,10 @@ public partial class SpriteDocument : Document, ISpriteSource, IShapeDocument
     public GenerationImage Generation { get; } = new();
     public string? StyleName;
     public GenStyleDocument? Style;
+    public string PromptHash = "";
 
     public bool HasGeneration { get; set; }
+    public bool NeedsGeneration => HasGeneration && (!Generation.HasImageData || PromptHash != ComputePromptHash());
     public bool IsGenerating => Generation.IsGenerating;
 
     public bool IsActiveLayerLocked => false;
@@ -148,6 +150,7 @@ public partial class SpriteDocument : Document, ISpriteSource, IShapeDocument
         Prompt = "";
         NegativePrompt = "";
         Seed = "";
+        PromptHash = "";
 
         for (var fi = 0; fi < FrameCount; fi++)
             Frames[fi].Shape.Clear();
@@ -240,6 +243,8 @@ public partial class SpriteDocument : Document, ISpriteSource, IShapeDocument
             }
             else if (tk.ExpectIdentifier("style"))
                 StyleName = tk.ExpectQuotedString();
+            else if (tk.ExpectIdentifier("prompt_hash"))
+                PromptHash = tk.ExpectQuotedString() ?? "";
             else if (tk.ExpectIdentifier("image"))
             {
                 var base64 = tk.ExpectQuotedString();
@@ -473,6 +478,8 @@ public partial class SpriteDocument : Document, ISpriteSource, IShapeDocument
                 writer.WriteLine($"seed \"{Seed}\"");
             if (!string.IsNullOrEmpty(StyleName))
                 writer.WriteLine($"style \"{StyleName}\"");
+            if (!string.IsNullOrEmpty(PromptHash))
+                writer.WriteLine($"prompt_hash \"{PromptHash}\"");
 
             if (Generation.HasImageData)
             {
@@ -688,6 +695,7 @@ public partial class SpriteDocument : Document, ISpriteSource, IShapeDocument
         Prompt = src.Prompt;
         NegativePrompt = src.NegativePrompt;
         Seed = src.Seed;
+        PromptHash = src.PromptHash;
         ConstrainedSize = src.ConstrainedSize;
         StyleName = src.StyleName;
         Style = src.Style;
@@ -1087,6 +1095,24 @@ public partial class SpriteDocument : Document, ISpriteSource, IShapeDocument
 
     #region Generation
 
+    public string ComputePromptHash()
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.Append(Prompt);
+        sb.Append('|');
+        sb.Append(NegativePrompt);
+        sb.Append('|');
+        sb.Append(Style?.PromptPrefix ?? "");
+        sb.Append('|');
+        sb.Append(Style?.Prompt ?? "");
+        sb.Append('|');
+        sb.Append(Style?.NegativePrompt ?? "");
+        sb.Append('|');
+        sb.Append(Style?.ModelName ?? "");
+        var bytes = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(sb.ToString()));
+        return Convert.ToHexString(bytes, 0, 8).ToLowerInvariant();
+    }
+
     private static long HashSeed(string seed)
     {
         if (string.IsNullOrEmpty(seed))
@@ -1363,24 +1389,12 @@ public partial class SpriteDocument : Document, ISpriteSource, IShapeDocument
         return pngBytes;
     }
 
-    public void GenerateAsync()
+    public GenerationRequest BuildGenerationRequest()
     {
-        if (string.IsNullOrEmpty(Prompt))
-        {
-            Log.Error($"No prompt set for '{Name}'");
-            return;
-        }
-
-        if (Generation.IsGenerating)
-            return;
-
         var globalPromptPrefix = Style?.PromptPrefix ?? "";
         var globalPrompt = Style?.Prompt ?? "";
         var globalNegPrompt = Style?.NegativePrompt ?? "";
 
-        var workflow = Style?.Workflow ?? GenerationWorkflow.Sprite;
-
-        // Rasterize image (color or mask depending on workflow)
         var imageBytes = RasterizeColorToPng();
         var maskBytes = RasterizeMaskToPng();
 
@@ -1398,7 +1412,7 @@ public partial class SpriteDocument : Document, ISpriteSource, IShapeDocument
 
         var server = EditorApplication.Config?.GenerationServer ?? "http://127.0.0.1:7860";
 
-        var request = new GenerationRequest
+        return new GenerationRequest
         {
             Server = server,
             Workflow = (Style?.Workflow ?? GenerationWorkflow.Sprite).ToString().ToLowerInvariant(),
@@ -1409,8 +1423,78 @@ public partial class SpriteDocument : Document, ISpriteSource, IShapeDocument
             NegativePrompt = string.IsNullOrEmpty(negPrompt) ? null : negPrompt,
             Seed = seed,
         };
+    }
 
-        Log.Info($"Starting generation for '{Name}' on {server}...");
+    public void ApplyGenerationResult(GenerationStatus status, bool createTexture = true)
+    {
+        var cs = ConstrainedSize ?? new Vector2Int(256, 256);
+
+        if (status.Result == null)
+        {
+            Log.Error($"Generation completed but no result for '{Name}'");
+            return;
+        }
+
+        try
+        {
+            var imageResultBytes = Convert.FromBase64String(status.Result.Image);
+
+            using var ms = new MemoryStream(imageResultBytes);
+            using var srcImage = SixLabors.ImageSharp.Image.Load<Rgba32>(ms);
+
+            if (srcImage.Width != cs.X || srcImage.Height != cs.Y)
+                srcImage.Mutate(x => x.Resize(cs.X, cs.Y));
+
+            using var outMs = new MemoryStream();
+            srcImage.SaveAsPng(outMs);
+            Generation.ImageData = outMs.ToArray();
+
+            if (createTexture)
+            {
+                Generation.Dispose();
+                var rw = srcImage.Width;
+                var rh = srcImage.Height;
+                var px = new byte[rw * rh * 4];
+                srcImage.CopyPixelDataTo(px);
+                Generation.Texture = Texture.Create(rw, rh, px, TextureFormat.RGBA8, TextureFilter.Linear, $"{Name}_gen");
+            }
+
+            try
+            {
+                var tmpDir = System.IO.Path.Combine(EditorApplication.ProjectPath, "tmp");
+                Directory.CreateDirectory(tmpDir);
+                File.WriteAllBytes(System.IO.Path.Combine(tmpDir, $"{Name}_gen.png"), Generation.ImageData);
+            }
+            catch { }
+
+            if (status.Result.Seed != 0 && string.IsNullOrEmpty(Seed))
+                Seed = status.Result.Seed.ToString();
+
+            PromptHash = ComputePromptHash();
+
+            Log.Info($"Generation complete for '{Name}' ({status.Result.Width}x{status.Result.Height}, seed={status.Result.Seed})");
+            IncrementVersion();
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"Failed to process generated image for '{Name}': {ex.Message}");
+        }
+    }
+
+    public void GenerateAsync()
+    {
+        if (string.IsNullOrEmpty(Prompt))
+        {
+            Log.Error($"No prompt set for '{Name}'");
+            return;
+        }
+
+        if (Generation.IsGenerating)
+            return;
+
+        var request = BuildGenerationRequest();
+
+        Log.Info($"Starting generation for '{Name}' on {request.Server}...");
 
         var genImage = Generation;
         genImage.IsGenerating = true;
@@ -1418,8 +1502,6 @@ public partial class SpriteDocument : Document, ISpriteSource, IShapeDocument
 
         var cts = new System.Threading.CancellationTokenSource();
         genImage.CancellationSource = cts;
-
-        var cs = ConstrainedSize ?? new Vector2Int(256, 256);
 
         GenerationClient.Generate(request, status =>
         {
@@ -1445,53 +1527,7 @@ public partial class SpriteDocument : Document, ISpriteSource, IShapeDocument
                     genImage.CancellationSource = null;
                     genImage.GenerationState = GenerationState.Completed;
                     genImage.GenerationProgress = 1f;
-
-                    if (status.Result == null)
-                    {
-                        Log.Error($"Generation completed but no result for '{Name}'");
-                        return;
-                    }
-
-                    try
-                    {
-                        var imageResultBytes = Convert.FromBase64String(status.Result.Image);
-
-                        using var ms = new MemoryStream(imageResultBytes);
-                        using var srcImage = SixLabors.ImageSharp.Image.Load<Rgba32>(ms);
-
-                        if (srcImage.Width != cs.X || srcImage.Height != cs.Y)
-                            srcImage.Mutate(x => x.Resize(cs.X, cs.Y));
-
-                        using var outMs = new MemoryStream();
-                        srcImage.SaveAsPng(outMs);
-                        genImage.ImageData = outMs.ToArray();
-
-                        genImage.Dispose();
-                        var rw = srcImage.Width;
-                        var rh = srcImage.Height;
-                        var px = new byte[rw * rh * 4];
-                        srcImage.CopyPixelDataTo(px);
-                        genImage.Texture = Texture.Create(rw, rh, px, TextureFormat.RGBA8, TextureFilter.Linear, $"{Name}_gen");
-
-                        try
-                        {
-                            var tmpDir = System.IO.Path.Combine(EditorApplication.ProjectPath, "tmp");
-                            Directory.CreateDirectory(tmpDir);
-                            File.WriteAllBytes(System.IO.Path.Combine(tmpDir, $"{Name}_gen.png"), genImage.ImageData);
-                        }
-                        catch { }
-
-                        // Update seed from server response
-                        if (status.Result.Seed != 0 && string.IsNullOrEmpty(Seed))
-                            Seed = status.Result.Seed.ToString();
-
-                        Log.Info($"Generation complete for '{Name}' ({status.Result.Width}x{status.Result.Height}, seed={status.Result.Seed})");
-                        IncrementVersion();
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error($"Failed to process generated image for '{Name}': {ex.Message}");
-                    }
+                    ApplyGenerationResult(status);
                     break;
 
                 case GenerationState.Failed:
