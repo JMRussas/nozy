@@ -996,9 +996,13 @@ public partial class SpriteEditor : DocumentEditor, IShapeEditorHost
             using (UI.BeginFlex())
                 Document.Prompt = UI.TextInput(WidgetIds.LayerPrompt, Document.Prompt, EditorStyle.TextArea, "Prompt", Document, multiLine: true);
 
-            using (Inspector.BeginRow())
-            using (UI.BeginFlex())
-                Document.NegativePrompt = UI.TextInput(WidgetIds.LayerNegativePrompt, Document.NegativePrompt, EditorStyle.TextArea, "Negative Prompt", Document, multiLine: true);
+            var model = GenerationClient.GetModel(Document.Style?.ModelName);
+            if (model != null && model.HasControl("negative_prompt"))
+            {
+                using (Inspector.BeginRow())
+                using (UI.BeginFlex())
+                    Document.NegativePrompt = UI.TextInput(WidgetIds.LayerNegativePrompt, Document.NegativePrompt, EditorStyle.TextArea, "Negative Prompt", Document, multiLine: true);
+            }
 
             using (Inspector.BeginRow())
             {

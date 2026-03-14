@@ -1348,9 +1348,6 @@ public partial class SpriteDocument : Document, ISpriteSource, IShapeDocument
         var globalPromptPrefix = Style?.PromptPrefix ?? "";
         var globalPrompt = Style?.Prompt ?? "";
         var globalNegPrompt = Style?.NegativePrompt ?? "";
-        var steps = Style?.DefaultSteps ?? 30;
-        var strength = Style?.DefaultStrength ?? 0.8f;
-        var guidance = Style?.DefaultGuidanceScale ?? 6.0f;
 
         var workflow = Style?.Workflow ?? GenerationWorkflow.Sprite;
 
@@ -1378,12 +1375,9 @@ public partial class SpriteDocument : Document, ISpriteSource, IShapeDocument
             Workflow = (Style?.Workflow ?? GenerationWorkflow.Sprite).ToString().ToLowerInvariant(),
             Model = Style?.ModelName,
             Image = imageBytes.Length > 0 ? $"data:image/png;base64,{Convert.ToBase64String(imageBytes)}" : "",
-            Mask = maskBytes.Length > 0 ? $"data:image/png;base64,{Convert.ToBase64String(maskBytes)}" : "",
+            Mask = maskBytes.Length > 0 ? new MaskConfig { Image = $"data:image/png;base64,{Convert.ToBase64String(maskBytes)}" } : null,
             Prompt = prompt,
             NegativePrompt = string.IsNullOrEmpty(negPrompt) ? null : negPrompt,
-            Strength = strength,
-            Steps = steps,
-            GuidanceScale = guidance,
             Seed = seed,
         };
 

@@ -8,6 +8,13 @@ using System.Text.Json.Serialization;
 
 namespace NoZ.Editor;
 
+public class MaskConfig
+{
+    public string? Image { get; set; }
+    public string? Prompt { get; set; }
+    public float? Threshold { get; set; }
+}
+
 public class GenerationRequest
 {
     [JsonIgnore]
@@ -15,12 +22,9 @@ public class GenerationRequest
 
     public string Workflow { get; set; } = "sprite";
     public string? Image { get; set; }
-    public string? Mask { get; set; }
+    public MaskConfig? Mask { get; set; }
     public string Prompt { get; set; } = "";
     public string? NegativePrompt { get; set; }
-    public float? Strength { get; set; }
-    public int? Steps { get; set; }
-    public float? GuidanceScale { get; set; }
     public long? Seed { get; set; }
     public string? Model { get; set; }
 }
@@ -28,6 +32,10 @@ public class GenerationRequest
 public class ModelInfo
 {
     public string Name { get; set; } = "";
+    public string Type { get; set; } = "";
+    public List<string> Controls { get; set; } = [];
+
+    public bool HasControl(string control) => Controls.Contains(control);
 }
 
 public class GenerationResponse
@@ -224,6 +232,12 @@ public static class GenerationClient
     private static double _modelRetryTime;
 
     public static List<ModelInfo>? CachedModels => _cachedModels;
+
+    public static ModelInfo? GetModel(string? name)
+    {
+        if (name == null || _cachedModels == null) return null;
+        return _cachedModels.Find(m => m.Name == name);
+    }
 
     public static void FetchModels(string server)
     {

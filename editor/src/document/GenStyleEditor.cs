@@ -48,38 +48,7 @@ public partial class GenStyleEditor : DocumentEditor
         using var _ = Inspector.BeginSection("LAYER DEFAULTS");
         if (Inspector.IsSectionCollapsed) return;
 
-        using (UI.BeginRow(new ContainerStyle { Spacing = 4 }))
-        {
-            using (UI.BeginFlex())
-            {
-                var steps = Document.DefaultSteps;
-                if (UI.NumberInput(WidgetIds.LayerSteps, ref steps, EditorStyle.TextInput, min: 1, max: 100, icon: EditorAssets.Sprites.IconSort))
-                {
-                    Undo.Record(Document);
-                    Document.DefaultSteps = steps;
-                }
-            }
-
-            using (UI.BeginFlex())
-            {
-                var strength = Document.DefaultStrength;
-                if (UI.NumberInput(WidgetIds.LayerStrength, ref strength, EditorStyle.TextInput, min: 0f, max: 1f, step: 0.01f, format: "0.00", icon: EditorAssets.Sprites.IconOpacity))
-                {
-                    Undo.Record(Document);
-                    Document.DefaultStrength = strength;
-                }
-            }
-
-            using (UI.BeginFlex())
-            {
-                var guidance = Document.DefaultGuidanceScale;
-                if (UI.NumberInput(WidgetIds.LayerGuidance, ref guidance, EditorStyle.TextInput, min: 0f, max: 30f, step: 0.1f, format: "0.0", icon: EditorAssets.Sprites.IconConstraint))
-                {
-                    Undo.Record(Document);
-                    Document.DefaultGuidanceScale = guidance;
-                }
-            }
-        }
+        var model = GenerationClient.GetModel(Document.ModelName);
 
         using (Inspector.BeginRow())
         using (UI.BeginFlex())
@@ -89,9 +58,12 @@ public partial class GenStyleEditor : DocumentEditor
         using (UI.BeginFlex())
             Document.Prompt = UI.TextInput(WidgetIds.LayerPrompt, Document.Prompt, EditorStyle.TextArea, "Prompt", Document, multiLine: true);
 
-        using (Inspector.BeginRow())
-        using (UI.BeginFlex())
-            Document.NegativePrompt = UI.TextInput(WidgetIds.LayerNegativePrompt, Document.NegativePrompt, EditorStyle.TextArea, "Negative Prompt", Document, multiLine: true);
+        if (model != null && model.HasControl("negative_prompt"))
+        {
+            using (Inspector.BeginRow())
+            using (UI.BeginFlex())
+                Document.NegativePrompt = UI.TextInput(WidgetIds.LayerNegativePrompt, Document.NegativePrompt, EditorStyle.TextArea, "Negative Prompt", Document, multiLine: true);
+        }
     }
 
     private void StyleUI()

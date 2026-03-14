@@ -2,7 +2,6 @@
 //  NoZ - Copyright(c) 2026 NoZ Games, LLC
 //
 
-using System.Globalization;
 using System.Threading;
 
 namespace NoZ.Editor;
@@ -48,10 +47,6 @@ public class GenStyleDocument : Document
     public string PromptPrefix = "";
     public string Prompt = "";
     public string NegativePrompt = "";
-    public int DefaultSteps = 30;
-    public float DefaultStrength = 0.8f;
-    public float DefaultGuidanceScale = 6.0f;
-
     // Workflow
     public GenerationWorkflow Workflow = GenerationWorkflow.Sprite;
 
@@ -108,12 +103,6 @@ public class GenStyleDocument : Document
                 Prompt = tk.ExpectQuotedString() ?? "";
             else if (tk.ExpectIdentifier("prompt_neg"))
                 NegativePrompt = tk.ExpectQuotedString() ?? "";
-            else if (tk.ExpectIdentifier("steps"))
-                DefaultSteps = tk.ExpectInt(30);
-            else if (tk.ExpectIdentifier("strength"))
-                DefaultStrength = tk.ExpectFloat(0.8f);
-            else if (tk.ExpectIdentifier("guidance"))
-                DefaultGuidanceScale = tk.ExpectFloat(6.0f);
             else
             {
                 tk.ExpectToken(out var badToken);
@@ -134,10 +123,6 @@ public class GenStyleDocument : Document
             writer.WriteLine($"prompt \"{Prompt.Replace("\"", "\\\"")}\"");
         if (!string.IsNullOrEmpty(NegativePrompt))
             writer.WriteLine($"prompt_neg \"{NegativePrompt.Replace("\"", "\\\"")}\"");
-        writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "steps {0}", DefaultSteps));
-        writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "strength {0}", DefaultStrength));
-        writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "guidance {0}", DefaultGuidanceScale));
-
         // Model
         if (!string.IsNullOrEmpty(ModelName))
         {
