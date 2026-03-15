@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 1,
+  "projectType": "game-example",
+  "defaultRole": "general",
+  "analysis": {
+    "callGraphDepth": 5,
+    "similarityThreshold": 0.3,
+    "maxAnalogs": 10
+  },
+  "pathRules": [
+    {
+      "pattern": "src/**",
+      "role": "ui"
+    },
+    {
+      "pattern": "**",
+      "role": "general"
+    }
+  ],
+  "roles": {
+    "ui": {
+      "name": "ui",
+      "design": "game-ui",
+      "entryPoints": [
+        "Update",
+        "UpdateUI"
+      ],
+      "constraints": [
+        "zero-alloc-ui"
+      ],
+      "guidelines": [
+        "use-style-structs",
+        "immediate-mode-ui"
+      ],
+      "detectPatterns": [],
+      "trustRules": [
+        {
+          "condition": "isHotPath",
+          "level": "L2",
+          "label": "hot-path UI",
+          "scope": "thorough"
+        },
+        {
+          "condition": "default",
+          "level": "L1",
+          "label": "standard"
+        }
+      ]
+    },
+    "general": {
+      "name": "general",
+      "entryPoints": [],
+      "constraints": [],
+      "guidelines": [],
+      "detectPatterns": [],
+      "trustRules": [
+        {
+          "condition": "default",
+          "level": "L1",
+          "label": "standard"
+        }
+      ]
+    }
+  },
+  "constraintDefs": {
+    "zero-alloc-ui": {
+      "rule": "Zero heap allocations in UI update path",
+      "reason": "Allocations in UpdateUI cause GC pauses and frame drops",
+      "scope": "method",
+      "when": "isHotPath"
+    }
+  },
+  "guidelineDefs": {
+    "use-style-structs": {
+      "avoid": "Inline style values in UpdateUI",
+      "prefer": "Static readonly style structs (ContainerStyle, LabelStyle, ButtonStyle)",
+      "why": "Prevents per-frame allocation and keeps styling declarative"
+    },
+    "immediate-mode-ui": {
+      "avoid": "Retained-mode UI patterns (creating/destroying widget objects)",
+      "prefer": "Immediate-mode: UI.BeginContainer, UI.Label, UI.Button calls in UpdateUI",
+      "why": "NoZ is immediate-mode \u00e2\u20ac\u201d widgets are drawn each frame, not persisted"
+    }
+  },
+  "designDefs": {
+    "game-ui": {
+      "layoutPattern": "container-stack",
+      "density": "standard",
+      "surfaceModel": "color-fill",
+      "interactionModel": [
+        "mouse-first"
+      ],
+      "stateVocabulary": {
+        "expectedStates": [
+          "default",
+          "hover",
+          "pressed",
+          "disabled"
+        ],
+        "themeMapping": "ContainerStyle.Resolve / ButtonStyle.Resolve",
+        "notApplicable": [
+          "loading"
+        ]
+      },
+      "constraints": [
+        {
+          "rule": "no-alloc-in-update",
+          "reason": "UpdateUI runs every frame"
+        }
+      ],
+      "guidelines": [
+        {
+          "prefer": "Static style structs with Resolve callbacks for state",
+          "avoid": "Dynamic style creation per frame",
+          "why": "Per-frame allocation causes GC pauses; Resolve pattern keeps state changes zero-alloc"
+        }
+      ],
+      "roleBridges": [
+        {
+          "codeRole": "runtime",
+          "rule": "styles must be static readonly structs",
+          "reason": "GC pressure in game loop"
+        }
+      ],
+      "componentInventory": [
+        "container",
+        "label",
+        "button",
+        "image",
+        "text-input",
+        "popup-menu"
+      ],
+      "references": [
+        {
+          "filePath": "src/Game.cs",
+          "pattern": "container-stack",
+          "demonstrates": [
+            "container-stack",
+            "style-struct"
+          ]
+        }
+      ]
+    }
+  },
+  "patternDefs": {}
+}
