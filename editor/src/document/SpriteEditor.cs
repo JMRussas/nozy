@@ -106,7 +106,7 @@ public partial class SpriteEditor : DocumentEditor, IShapeEditorHost
         EditorUI.ClosePopup();
 
         if (Document.Version != _versionOnOpen && Document.Atlas != null)
-            AtlasManager.UpdateSource(Document);
+            if (Document.Atlas != null) AtlasManager.UpdateSource(Document);
 
         base.Dispose();
     }
@@ -386,7 +386,7 @@ public partial class SpriteEditor : DocumentEditor, IShapeEditorHost
         if (newFrame >= 0)
         {
             _currentTimeSlot = TimeSlotForFrame(newFrame);
-            AtlasManager.UpdateSource(Document);
+            if (Document.Atlas != null) AtlasManager.UpdateSource(Document);
         }
     }
 
@@ -398,7 +398,7 @@ public partial class SpriteEditor : DocumentEditor, IShapeEditorHost
         if (newFrame >= 0)
         {
             _currentTimeSlot = TimeSlotForFrame(newFrame);
-            AtlasManager.UpdateSource(Document);
+            if (Document.Atlas != null) AtlasManager.UpdateSource(Document);
         }
     }
 
@@ -408,7 +408,7 @@ public partial class SpriteEditor : DocumentEditor, IShapeEditorHost
         Undo.Record(Document);
         var fi = Document.DeleteFrame(CurrentFrameIndex);
         _currentTimeSlot = TimeSlotForFrame(fi);
-        AtlasManager.UpdateSource(Document);
+        if (Document.Atlas != null) AtlasManager.UpdateSource(Document);
     }
 
     private void AddHoldFrame()
@@ -1267,4 +1267,7 @@ public partial class SpriteEditor : DocumentEditor, IShapeEditorHost
     void IShapeEditorHost.ForEachEditableShape(Action<Shape> action)
     {
         action(CurrentShape);
-  
+    }
+
+    #endregion
+}

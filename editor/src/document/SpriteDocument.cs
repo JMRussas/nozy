@@ -19,6 +19,8 @@ public partial class SpriteDocument : Document, IShapeDocument
     public bool IsReference { get; private set; }
     public string? ImageFilePath { get; private set; }
     private Texture? _texture;
+    private Vector2Int _textureSize;
+    private Vector2Int _sourceImageSize;
 
     private static readonly string[] ImageExtensions = [".png", ".jpg", ".jpeg", ".tga", ".webp", ".bmp"];
 
@@ -232,6 +234,7 @@ public partial class SpriteDocument : Document, IShapeDocument
         var h = info.Height;
         FrameCount = 1;
 
+        _sourceImageSize = new Vector2Int(w, h);
         RasterBounds = new RectInt(-w / 2, -h / 2, w, h);
     }
 
@@ -448,18 +451,6 @@ public partial class SpriteDocument : Document, IShapeDocument
 
     public void UpdateBounds()
     {
-        if (!IsMutable)
-        {
-            var ppu = EditorApplication.Config.PixelsPerUnitInv;
-            var rb = RasterBounds;
-            Bounds = new Rect(
-                rb.X * ppu,
-                rb.Y * ppu,
-                rb.Width * ppu,
-                rb.Height * ppu);
-            return;
-        }
-
         if (ConstrainedSize.HasValue)
         {
             var cs = ConstrainedSize.Value;
@@ -475,6 +466,22 @@ public partial class SpriteDocument : Document, IShapeDocument
                 cs.X,
                 cs.Y);
 
+            return;
+        }
+
+        if (!IsMutable)
+        {
+            // Restore RasterBounds from original image size (constraint may have overwritten it)
+            var w = _sourceImageSize.X;
+            var h = _sourceImageSize.Y;
+            RasterBounds = new RectInt(-w / 2, -h / 2, w, h);
+
+            var ppu = EditorApplication.Config.PixelsPerUnitInv;
+            Bounds = new Rect(
+                RasterBounds.X * ppu,
+                RasterBounds.Y * ppu,
+                RasterBounds.Width * ppu,
+                RasterBounds.Height * ppu);
             return;
         }
 
@@ -686,15 +693,33 @@ public partial class SpriteDocument : Document, IShapeDocument
     {
         if (_texture == null && ImageFilePath != null && File.Exists(ImageFilePath))
         {
-            using var srcImage = SixLabors.ImageSharp.Image.Load<Rgba32>(ImageFilePath);
-            var w = srcImage.Width;
-            var h = srcImage.Height;
-            var data = new byte[w * h * 4];
-            srcImage.CopyPixelDataTo(data);
-            _texture = Texture.Create(w, h, data, TextureFormat.RGBA8, TextureFilter.Linear, Name + "_preview");
+            try
+            {
+                using var srcImage = SixLabors.ImageSharp.Image.Load<Rgba32>(ImageFilePath);
+                _textureSize = new Vector2Int(srcImage.Width, srcImage.Height);
+                var data = new byte[srcImage.Width * srcImage.Height * 4];
+                srcImage.CopyPixelDataTo(data);
+                _texture = Texture.Create(srcImage.Width, srcImage.Height, data, TextureFormat.RGBA8, TextureFilter.Linear, Name + "_preview");
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Failed to load preview texture '{ImageFilePath}': {ex.Message}");
+            }
         }
 
         if (_texture == null) return false;
+
+        // Compute UVs to clip the source image to the constrained bounds
+        var uv = new Rect(0, 0, 1, 1);
+        if (ConstrainedSize.HasValue && _textureSize.X > 0 && _textureSize.Y > 0)
+        {
+            var cs = ConstrainedSize.Value;
+            var uW = Math.Min(1f, (float)cs.X / _textureSize.X);
+            var uH = Math.Min(1f, (float)cs.Y / _textureSize.Y);
+            var uX = (1f - uW) * 0.5f;
+            var uY = (1f - uH) * 0.5f;
+            uv = new Rect(uX, uY, uW, uH);
+        }
 
         using (Graphics.PushState())
         {
@@ -702,7 +727,7 @@ public partial class SpriteDocument : Document, IShapeDocument
             Graphics.SetTexture(_texture);
             Graphics.SetShader(EditorAssets.Shaders.Texture);
             Graphics.SetColor(Color.White.WithAlpha(Workspace.XrayAlpha));
-            Graphics.Draw(Bounds);
+            Graphics.Draw(Bounds, uv);
         }
         return true;
     }
@@ -1308,7 +1333,7 @@ public partial class SpriteDocument : Document, IShapeDocument
     {
         UpdateBounds();
 
-        if (!IsEditing)
+        if (!IsEditing && Atlas != null)
             AtlasManager.UpdateSource(this);
 
         base.OnUndoRedo();
