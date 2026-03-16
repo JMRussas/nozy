@@ -21,6 +21,9 @@ try
         case "shader":
             ShaderCompiler.Run(commandArgs);
             break;
+        case "import":
+            ImportCommand.Run(commandArgs);
+            break;
         default:
             Console.Error.WriteLine($"Unknown command: {command}");
             PrintUsage();
@@ -41,6 +44,7 @@ static void PrintUsage()
     Console.WriteLine("Commands:");
     Console.WriteLine("  texture         Compile a PNG texture to noz binary format");
     Console.WriteLine("  shader          Compile a WGSL shader to noz binary format");
+    Console.WriteLine("  import          Batch-compile all assets in a project directory");
     Console.WriteLine();
     Console.WriteLine("Run 'noz-compile <command> --help' for command-specific options.");
 }
