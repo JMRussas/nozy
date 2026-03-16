@@ -11,10 +11,36 @@
 
   <ItemGroup>
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
+    <PackageReference Include="Clipper2" Version="2.0.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\engine\NoZ.csproj" />
+  </ItemGroup>
+
+  <!-- Font compiler: link TTF reader, MSDF generator, and utilities from editor -->
+  <ItemGroup>
+    <Compile Include="..\..\editor\src\TTF\TrueTypeFont.cs" Link="Linked\TrueTypeFont.cs" />
+    <Compile Include="..\..\editor\src\TTF\TrueTypeFont.Reader.cs" Link="Linked\TrueTypeFont.Reader.cs" />
+    <Compile Include="..\..\editor\src\TTF\UnicodeNames.cs" Link="Linked\UnicodeNames.cs" />
+    <Compile Include="..\..\editor\src\msdf\Msdf.EdgeSegments.cs" Link="Linked\Msdf.EdgeSegments.cs" />
+    <Compile Include="..\..\editor\src\msdf\Msdf.SignedDistance.cs" Link="Linked\Msdf.SignedDistance.cs" />
+    <Compile Include="..\..\editor\src\msdf\Msdf.Math.cs" Link="Linked\Msdf.Math.cs" />
+    <Compile Include="..\..\editor\src\msdf\Msdf.Generator.cs" Link="Linked\Msdf.Generator.cs" />
+    <Compile Include="..\..\editor\src\msdf\Msdf.Shape.cs" Link="Linked\Msdf.Shape.cs" />
+    <Compile Include="..\..\editor\src\msdf\Msdf.Contour.cs" Link="Linked\Msdf.Contour.cs" />
+    <Compile Include="..\..\editor\src\msdf\Msdf.EdgeColor.cs" Link="Linked\Msdf.EdgeColor.cs" />
+    <Compile Include="..\..\editor\src\msdf\Msdf.EdgeColoring.cs" Link="Linked\Msdf.EdgeColoring.cs" />
+    <!-- Msdf.ShapeClipper is NOT linked because it depends on NoZ.Editor.Shape (sprite).
+         FontShapeClipper.cs provides the subset needed for font compilation (Union only). -->
+    <Compile Include="..\..\editor\src\msdf\Msdf.Font.cs" Link="Linked\Msdf.Font.cs" />
+    <Compile Include="..\..\editor\src\utils\RectPacker.cs" Link="Linked\RectPacker.cs" />
+    <Compile Include="..\..\editor\src\utils\PixelData.cs" Link="Linked\PixelData.cs" />
+  </ItemGroup>
+
+  <!-- Embed UnicodeNames.txt for glyph name lookup -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\editor\src\TTF\UnicodeNames.txt" LogicalName="UnicodeNames.txt" />
   </ItemGroup>
 
 </Project>

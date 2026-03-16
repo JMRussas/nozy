@@ -135,6 +135,22 @@ static class ImportCommand
                 var targetPath = Path.Combine(outputDir, "shader", name);
                 ImportShader(file, targetPath, clean, verbose, dryRun, ref stats);
             }
+
+            // Walk for .ttf fonts
+            foreach (var file in Directory.EnumerateFiles(sourcePath, "*.ttf", SearchOption.AllDirectories))
+            {
+                var name = MakeCanonicalName(file);
+                var targetPath = Path.Combine(outputDir, "font", name);
+                ImportFont(file, targetPath, clean, verbose, dryRun, ref stats);
+            }
+
+            // Walk for .otf fonts
+            foreach (var file in Directory.EnumerateFiles(sourcePath, "*.otf", SearchOption.AllDirectories))
+            {
+                var name = MakeCanonicalName(file);
+                var targetPath = Path.Combine(outputDir, "font", name);
+                ImportFont(file, targetPath, clean, verbose, dryRun, ref stats);
+            }
         }
 
         Console.WriteLine();
@@ -232,6 +248,78 @@ static class ImportCommand
         }
     }
 
+    private static void ImportFont(
+        string sourcePath, string targetPath, bool clean, bool verbose, bool dryRun, ref ImportStats stats)
+    {
+        if (!clean && IsUpToDate(sourcePath, targetPath))
+        {
+            stats.Skipped++;
+            if (verbose)
+                Console.WriteLine($"  skip font     {Path.GetFileName(sourcePath)}");
+            return;
+        }
+
+        if (verbose || dryRun)
+            Console.WriteLine($"  {(dryRun ? "would compile" : "compile")} font     {Path.GetFileName(sourcePath)} -> {targetPath}");
+
+        if (dryRun)
+        {
+            stats.Compiled++;
+            return;
+        }
+
+        try
+        {
+            // Read .meta file for font options
+            var meta = LoadMeta(sourcePath);
+            var fontSize = meta?.GetInt("font", "size", 48) ?? 48;
+            var characters = meta?.GetString("font", "characters", "");
+            var ranges = meta?.GetString("font", "ranges", "");
+            var sdfRange = meta?.GetFloat("sdf", "range", 4f) ?? 4f;
+            var padding = meta?.GetInt("font", "padding", 1) ?? 1;
+            var symbol = meta?.GetBool("font", "symbol", false) ?? false;
+
+            // Merge ranges into characters if specified
+            string? finalCharacters = string.IsNullOrEmpty(characters) ? null : characters;
+            if (!string.IsNullOrEmpty(ranges))
+            {
+                var baseChars = finalCharacters ?? " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+                finalCharacters = MergeRanges(ranges, baseChars);
+            }
+
+            FontCompiler.Compile(sourcePath, targetPath, fontSize, finalCharacters, sdfRange, padding, symbol);
+            stats.Compiled++;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"  FAILED font {Path.GetFileName(sourcePath)}: {ex.Message}");
+            stats.Failed++;
+        }
+    }
+
+    private static string MergeRanges(string rangesStr, string existingChars)
+    {
+        var chars = new HashSet<char>(existingChars);
+        foreach (var range in rangesStr.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+        {
+            var parts = range.Split('-', 2);
+            if (parts.Length == 2)
+            {
+                var start = Convert.ToInt32(parts[0].Trim(), 16);
+                var end = Convert.ToInt32(parts[1].Trim(), 16);
+                for (int c = start; c <= end && c <= 0xFFFF; c++)
+                    chars.Add((char)c);
+            }
+            else if (parts.Length == 1)
+            {
+                var c = Convert.ToInt32(parts[0].Trim(), 16);
+                if (c <= 0xFFFF)
+                    chars.Add((char)c);
+            }
+        }
+        return new string(chars.OrderBy(c => c).ToArray());
+    }
+
     private static bool IsUpToDate(string sourcePath, string targetPath)
     {
         if (!File.Exists(targetPath))
@@ -323,7 +411,7 @@ static class ImportCommand
         Console.WriteLine("Usage: noz-compile import <project-dir> [options]");
         Console.WriteLine();
         Console.WriteLine("Batch-compiles all assets in the project's source directories.");
-        Console.WriteLine("Walks <project-dir>/assets/ for .png and .wgsl files, and");
+        Console.WriteLine("Walks <project-dir>/assets/ for .png, .wgsl, .ttf, and .otf files, and");
         Console.WriteLine("engine/assets/shader/ for engine shaders. Output goes to");
         Console.WriteLine("<project-dir>/library/. If editor.cfg is found, uses its");
         Console.WriteLine("source paths and output path configuration.");
