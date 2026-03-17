@@ -647,85 +647,6 @@
                       "fontFamily": "Inter",
                       "fontSize": 6,
                       "fontWeight": "normal"
-                    },
-                    {
-                      "type": "frame",
-                      "id": "wY1lA",
-                      "name": "Param Field",
-                      "reusable": true,
-                      "width": 60,
-                      "height": 27,
-                      "fill": "$control",
-                      "cornerRadius": "$corner-radius",
-                      "gap": 4,
-                      "padding": [
-                        0,
-                        5
-                      ],
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "id": "zj5OS",
-                          "type": "ref",
-                          "ref": "49yTu",
-                          "name": "Icon",
-                          "iconFontName": "hash",
-                          "x": 5,
-                          "y": 9
-                        },
-                        {
-                          "id": "4HEGP",
-                          "type": "ref",
-                          "ref": "ERdcn",
-                          "name": "Value",
-                          "content": "0",
-                          "x": 18,
-                          "y": 7
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "vr0PJ",
-                  "name": "Checkbox",
-                  "width": "fill_container",
-                  "fill": "$control",
-                  "cornerRadius": "$corner-radius",
-                  "layout": "vertical",
-                  "gap": 8,
-                  "padding": [
-                    11,
-                    13
-                  ],
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "IJmYN",
-                      "name": "cbLabel",
-                      "fill": "#555555",
-                      "content": "Checkbox",
-                      "fontFamily": "Inter",
-                      "fontSize": 6,
-                      "fontWeight": "normal"
-                    },
-                    {
-                      "type": "frame",
-                      "id": "ywC3t",
-                      "name": "Checkbox",
-                      "reusable": true,
-                      "width": 16,
-                      "height": 16,
-                      "fill": "$control",
-                      "cornerRadius": 3,
-                      "stroke": {
-                        "align": "inside",
-                        "thickness": 1,
-                        "fill": "$separator"
-                      },
-                      "justifyContent": "center",
-                      "alignItems": "center"
                     }
                   ]
                 }
@@ -1910,36 +1831,37 @@
                       "fontWeight": "normal"
                     },
                     {
-                      "id": "WRBq0",
-                      "type": "ref",
-                      "ref": "wvIMR",
+                      "type": "frame",
+                      "id": "aH8ud",
                       "name": "Text Input",
-                      "fill": "$control",
+                      "reusable": true,
                       "width": 60,
-                      "justifyContent": "start",
+                      "height": 27,
+                      "fill": "$control",
+                      "cornerRadius": 3,
+                      "gap": 4,
                       "padding": [
                         0,
                         5
                       ],
-                      "x": 0,
-                      "y": 11,
+                      "alignItems": "center",
                       "children": [
                         {
-                          "id": "fuguF",
+                          "id": "GZqkw",
                           "type": "ref",
                           "ref": "49yTu",
-                          "iconFontName": "hash",
                           "name": "Icon",
+                          "iconFontName": "hash",
+                          "enabled": true,
                           "x": 5,
-                          "y": 9,
-                          "enabled": true
+                          "y": 9
                         },
                         {
-                          "id": "z2L5C",
+                          "id": "Nmxrt",
                           "type": "ref",
                           "ref": "ERdcn",
-                          "content": "20",
                           "name": "Value",
+                          "content": "20",
                           "x": 18,
                           "y": 7
                         }
@@ -2323,6 +2245,156 @@
                           "width": "fill_container"
                         }
                       ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "r1XFE",
+          "name": "Checkboxes",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 11,
+          "children": [
+            {
+              "type": "text",
+              "id": "woBDt",
+              "name": "cbTitle",
+              "fill": "#AAAAAA",
+              "content": "Checkboxes",
+              "fontFamily": "Inter",
+              "fontSize": 9,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "YyATl",
+              "name": "Checkbox Samples",
+              "width": "fill_container",
+              "fill": "$panel",
+              "cornerRadius": "$corner-radius",
+              "gap": 16,
+              "padding": 11,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "GhrHq",
+                  "name": "Default",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "2kvIj",
+                      "name": "lbl",
+                      "fill": "#555555",
+                      "content": "Default",
+                      "fontFamily": "Inter",
+                      "fontSize": 6,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "id": "by5Ri",
+                      "type": "ref",
+                      "ref": "LZsol",
+                      "name": "cbDef",
+                      "x": 2.5,
+                      "y": 11
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "V2XW5",
+                  "name": "Checked",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "AGGUu",
+                      "name": "lbl",
+                      "fill": "#555555",
+                      "content": "Checked",
+                      "fontFamily": "Inter",
+                      "fontSize": 6,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "id": "BnI5W",
+                      "type": "ref",
+                      "ref": "28nqC",
+                      "name": "cbChk",
+                      "x": 5,
+                      "y": 11
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "MGXga",
+                  "name": "Hover",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "0ufoI",
+                      "name": "lbl",
+                      "fill": "#555555",
+                      "content": "Hover",
+                      "fontFamily": "Inter",
+                      "fontSize": 6,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "id": "B6RHv",
+                      "type": "ref",
+                      "ref": "LZsol",
+                      "name": "cbHov",
+                      "x": 0.5,
+                      "y": 11,
+                      "descendants": {
+                        "pH1Dk": {
+                          "fill": "$active"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "zo9AN",
+                  "name": "Disabled",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "tAjV4",
+                      "name": "lbl",
+                      "fill": "#555555",
+                      "content": "Disabled",
+                      "fontFamily": "Inter",
+                      "fontSize": 6,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "id": "g3Qlh",
+                      "type": "ref",
+                      "ref": "LZsol",
+                      "name": "cbDis",
+                      "opacity": 0.4,
+                      "x": 4.5,
+                      "y": 11
                     }
                   ]
                 }
@@ -4644,156 +4716,65 @@
         },
         {
           "type": "frame",
-          "id": "DWhdx",
-          "name": "Checkboxes",
-          "width": "fill_container",
-          "layout": "vertical",
-          "gap": 11,
+          "id": "LZsol",
+          "name": "Checkbox",
+          "reusable": true,
+          "width": 16,
+          "height": 27,
+          "justifyContent": "center",
+          "alignItems": "center",
           "children": [
             {
-              "type": "text",
-              "id": "gNz7H",
-              "name": "cbTitle",
-              "fill": "#AAAAAA",
-              "content": "Checkbox",
-              "fontFamily": "Inter",
-              "fontSize": 9,
-              "fontWeight": "600"
-            },
+              "type": "frame",
+              "id": "pH1Dk",
+              "name": "Box",
+              "width": 16,
+              "height": 16,
+              "fill": "$control",
+              "cornerRadius": 3,
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "$separator"
+              }
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "28nqC",
+          "name": "Checkbox Checked",
+          "reusable": true,
+          "width": 16,
+          "height": 27,
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
             {
               "type": "frame",
-              "id": "XVkph",
-              "name": "Checkbox Samples",
-              "width": "fill_container",
-              "fill": "$panel",
-              "cornerRadius": "$corner-radius",
-              "gap": 11,
-              "padding": 11,
+              "id": "ktfdT",
+              "name": "Box",
+              "width": 16,
+              "height": 16,
+              "fill": "$control",
+              "cornerRadius": 3,
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "$separator"
+              },
+              "justifyContent": "center",
+              "alignItems": "center",
               "children": [
                 {
-                  "type": "frame",
-                  "id": "BVjCI",
-                  "name": "States",
-                  "width": "fill_container",
-                  "gap": 16,
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "t5Osl",
-                      "name": "Default",
-                      "layout": "vertical",
-                      "gap": 4,
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "HfvTp",
-                          "name": "lbl",
-                          "fill": "#555555",
-                          "content": "Default",
-                          "fontFamily": "Inter",
-                          "fontSize": 6,
-                          "fontWeight": "normal"
-                        },
-                        {
-                          "id": "SAsZE",
-                          "type": "ref",
-                          "ref": "ywC3t"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "27Wx2",
-                      "name": "Checked",
-                      "layout": "vertical",
-                      "gap": 4,
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "H2REG",
-                          "name": "lbl",
-                          "fill": "#555555",
-                          "content": "Checked",
-                          "fontFamily": "Inter",
-                          "fontSize": 6,
-                          "fontWeight": "normal"
-                        },
-                        {
-                          "id": "ueT37",
-                          "type": "ref",
-                          "ref": "ywC3t",
-                          "name": "cbCheckedInst",
-                          "children": [
-                            {
-                              "id": "c4qd9",
-                              "type": "ref",
-                              "ref": "fHxvo",
-                              "name": "Check",
-                              "iconFontName": "check",
-                              "height": 9,
-                              "width": 9,
-                              "x": 3.5,
-                              "y": 3.5
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "gvrxP",
-                      "name": "Hover",
-                      "layout": "vertical",
-                      "gap": 4,
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "DkyuJ",
-                          "name": "lbl",
-                          "fill": "#555555",
-                          "content": "Hover",
-                          "fontFamily": "Inter",
-                          "fontSize": 6,
-                          "fontWeight": "normal"
-                        },
-                        {
-                          "id": "FDQMX",
-                          "type": "ref",
-                          "ref": "ywC3t",
-                          "fill": "$active"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "ueAcI",
-                      "name": "Disabled",
-                      "layout": "vertical",
-                      "gap": 4,
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "wiBu2",
-                          "name": "lbl",
-                          "fill": "#555555",
-                          "content": "Disabled",
-                          "fontFamily": "Inter",
-                          "fontSize": 6,
-                          "fontWeight": "normal"
-                        },
-                        {
-                          "id": "7S8JQ",
-                          "type": "ref",
-                          "ref": "ywC3t",
-                          "opacity": 0.4
-                        }
-                      ]
-                    }
-                  ]
+                  "type": "icon_font",
+                  "id": "Bluvx",
+                  "name": "Check",
+                  "width": 9,
+                  "height": 9,
+                  "iconFontName": "check",
+                  "iconFontFamily": "lucide",
+                  "fill": "#E8E8E8"
                 }
               ]
             }
@@ -5178,18 +5159,17 @@
                           "x": 81,
                           "children": [
                             {
-                              "id": "yde0F",
+                              "id": "NZRx5",
                               "type": "ref",
-                              "ref": "wY1lA",
+                              "ref": "aH8ud",
                               "name": "idIn",
                               "width": "fill_container",
-                              "x": 0,
                               "y": 0,
                               "descendants": {
-                                "zj5OS": {
+                                "GZqkw": {
                                   "enabled": false
                                 },
-                                "4HEGP": {
+                                "Nmxrt": {
                                   "content": "go",
                                   "x": 5
                                 }
@@ -5220,18 +5200,17 @@
                           "x": 81,
                           "children": [
                             {
-                              "id": "7qOff",
+                              "id": "gl8VB",
                               "type": "ref",
-                              "ref": "wY1lA",
+                              "ref": "aH8ud",
                               "name": "urlIn",
                               "width": "fill_container",
-                              "x": 0,
                               "y": 0,
                               "descendants": {
-                                "zj5OS": {
+                                "GZqkw": {
                                   "enabled": false
                                 },
-                                "4HEGP": {
+                                "Nmxrt": {
                                   "content": "/go",
                                   "x": 5
                                 }
@@ -5333,18 +5312,18 @@
                                   "y": 7
                                 },
                                 {
-                                  "id": "yR7wG",
+                                  "id": "YYNWc",
                                   "type": "ref",
-                                  "ref": "wY1lA",
+                                  "ref": "aH8ud",
                                   "name": "xv1",
                                   "width": "fill_container",
                                   "x": 12,
                                   "y": 0,
                                   "descendants": {
-                                    "zj5OS": {
+                                    "GZqkw": {
                                       "enabled": false
                                     },
-                                    "4HEGP": {
+                                    "Nmxrt": {
                                       "content": "0.0",
                                       "x": 5
                                     }
@@ -5360,18 +5339,18 @@
                                   "y": 7
                                 },
                                 {
-                                  "id": "RVSQI",
+                                  "id": "eoNqu",
                                   "type": "ref",
-                                  "ref": "wY1lA",
+                                  "ref": "aH8ud",
                                   "name": "yv1",
                                   "width": "fill_container",
                                   "x": 81.33333333333334,
                                   "y": 0,
                                   "descendants": {
-                                    "zj5OS": {
+                                    "GZqkw": {
                                       "enabled": false
                                     },
-                                    "4HEGP": {
+                                    "Nmxrt": {
                                       "content": "0.0",
                                       "x": 5
                                     }
@@ -5387,18 +5366,18 @@
                                   "y": 7
                                 },
                                 {
-                                  "id": "BUAQK",
+                                  "id": "IoH2H",
                                   "type": "ref",
-                                  "ref": "wY1lA",
+                                  "ref": "aH8ud",
                                   "name": "zv1",
                                   "width": "fill_container",
                                   "x": 149.66666666666669,
                                   "y": 0,
                                   "descendants": {
-                                    "zj5OS": {
+                                    "GZqkw": {
                                       "enabled": false
                                     },
-                                    "4HEGP": {
+                                    "Nmxrt": {
                                       "content": "0.0",
                                       "x": 5
                                     }
@@ -5449,18 +5428,18 @@
                                   "y": 7
                                 },
                                 {
-                                  "id": "0e6AP",
+                                  "id": "ONgGD",
                                   "type": "ref",
-                                  "ref": "wY1lA",
+                                  "ref": "aH8ud",
                                   "name": "xv2",
                                   "width": "fill_container",
                                   "x": 12,
                                   "y": 0,
                                   "descendants": {
-                                    "zj5OS": {
+                                    "GZqkw": {
                                       "enabled": false
                                     },
-                                    "4HEGP": {
+                                    "Nmxrt": {
                                       "content": "0.0",
                                       "x": 5
                                     }
@@ -5476,18 +5455,18 @@
                                   "y": 7
                                 },
                                 {
-                                  "id": "ImsDI",
+                                  "id": "QkyTo",
                                   "type": "ref",
-                                  "ref": "wY1lA",
+                                  "ref": "aH8ud",
                                   "name": "yv2",
                                   "width": "fill_container",
                                   "x": 81.33333333333334,
                                   "y": 0,
                                   "descendants": {
-                                    "zj5OS": {
+                                    "GZqkw": {
                                       "enabled": false
                                     },
-                                    "4HEGP": {
+                                    "Nmxrt": {
                                       "content": "0.0",
                                       "x": 5
                                     }
@@ -5503,18 +5482,18 @@
                                   "y": 7
                                 },
                                 {
-                                  "id": "hgp2a",
+                                  "id": "cOOby",
                                   "type": "ref",
-                                  "ref": "wY1lA",
+                                  "ref": "aH8ud",
                                   "name": "zv2",
                                   "width": "fill_container",
                                   "x": 149.66666666666669,
                                   "y": 0,
                                   "descendants": {
-                                    "zj5OS": {
+                                    "GZqkw": {
                                       "enabled": false
                                     },
-                                    "4HEGP": {
+                                    "Nmxrt": {
                                       "content": "0.0",
                                       "x": 5
                                     }
@@ -5565,18 +5544,18 @@
                                   "y": 7
                                 },
                                 {
-                                  "id": "3bt5x",
+                                  "id": "wgpnS",
                                   "type": "ref",
-                                  "ref": "wY1lA",
+                                  "ref": "aH8ud",
                                   "name": "xv3",
                                   "width": "fill_container",
                                   "x": 12,
                                   "y": 0,
                                   "descendants": {
-                                    "zj5OS": {
+                                    "GZqkw": {
                                       "enabled": false
                                     },
-                                    "4HEGP": {
+                                    "Nmxrt": {
                                       "content": "1.0",
                                       "x": 5
                                     }
@@ -5592,18 +5571,18 @@
                                   "y": 7
                                 },
                                 {
-                                  "id": "HQdGl",
+                                  "id": "RsiVY",
                                   "type": "ref",
-                                  "ref": "wY1lA",
+                                  "ref": "aH8ud",
                                   "name": "yv3",
                                   "width": "fill_container",
                                   "x": 81.33333333333334,
                                   "y": 0,
                                   "descendants": {
-                                    "zj5OS": {
+                                    "GZqkw": {
                                       "enabled": false
                                     },
-                                    "4HEGP": {
+                                    "Nmxrt": {
                                       "content": "1.0",
                                       "x": 5
                                     }
@@ -5619,18 +5598,18 @@
                                   "y": 7
                                 },
                                 {
-                                  "id": "Gg51c",
+                                  "id": "OuQy6",
                                   "type": "ref",
-                                  "ref": "wY1lA",
+                                  "ref": "aH8ud",
                                   "name": "zv3",
                                   "width": "fill_container",
                                   "x": 149.66666666666669,
                                   "y": 0,
                                   "descendants": {
-                                    "zj5OS": {
+                                    "GZqkw": {
                                       "enabled": false
                                     },
-                                    "4HEGP": {
+                                    "Nmxrt": {
                                       "content": "1.0",
                                       "x": 5
                                     }
@@ -5664,9 +5643,9 @@
                           "height": "fit_content",
                           "children": [
                             {
-                              "id": "u3K5m",
+                              "id": "NExD1",
                               "type": "ref",
-                              "ref": "ywC3t",
+                              "ref": "28nqC",
                               "name": "cbInst",
                               "x": 0,
                               "y": 0
