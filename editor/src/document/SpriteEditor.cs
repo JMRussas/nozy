@@ -38,6 +38,8 @@ public partial class SpriteEditor : DocumentEditor, IShapeEditorHost
         public static partial WidgetId LayerSeedDice { get; }
         public static partial WidgetId AddGenerationButton { get; }
         public static partial WidgetId RemoveGenerationButton { get; }
+        public static partial WidgetId AddReferenceButton { get; }
+        public static partial WidgetId RemoveReferenceBase { get; }
         public static partial WidgetId ExportToggle { get; }
     }
 
@@ -1058,6 +1060,8 @@ public partial class SpriteEditor : DocumentEditor, IShapeEditorHost
                     Document.Seed = GenerateRandomSeed();
                 }
             }
+
+            GenerationReferencesUI();
         }
 
         UI.Flex();
@@ -1067,6 +1071,52 @@ public partial class SpriteEditor : DocumentEditor, IShapeEditorHost
             GenerationProgressUI(genImage);
         else
             GenerateButtonUI(genImage);
+    }
+
+    private void GenerationReferencesUI()
+    {
+        using (Inspector.BeginRow())
+            UI.Text("References", EditorStyle.Inspector.PropertyName);
+
+        for (var i = 0; i < Document.References.Count; i++)
+        {
+            var refDoc = Document.References[i];
+            using (Inspector.BeginRow())
+            {
+                using (UI.BeginFlex())
+                    UI.Text(refDoc.Name, EditorStyle.Text.Primary);
+                if (UI.Button(WidgetIds.RemoveReferenceBase + i, EditorAssets.Sprites.IconDelete, EditorStyle.Button.IconOnly))
+                    RemoveReference(i);
+            }
+        }
+
+        using (Inspector.BeginRow())
+        {
+            UI.DropDown(WidgetIds.AddReferenceButton, () =>
+            {
+                var items = new List<PopupMenuItem>();
+                foreach (var doc in DocumentManager.Documents)
+                {
+                    if (doc is SpriteDocument sprite && sprite != Document && !Document.References.Contains(sprite))
+                        items.Add(PopupMenuItem.Item(sprite.Name, () => AddReference(sprite)));
+                }
+                return [.. items];
+            }, "+ Reference", icon: EditorAssets.Sprites.AssetIconSprite);
+        }
+    }
+
+    private void AddReference(SpriteDocument refDoc)
+    {
+        Undo.Record(Document);
+        Document.ReferenceNames.Add(refDoc.Name);
+        Document.References.Add(refDoc);
+    }
+
+    private void RemoveReference(int index)
+    {
+        Undo.Record(Document);
+        Document.ReferenceNames.RemoveAt(index);
+        Document.References.RemoveAt(index);
     }
 
     private void GenerationStyleUI()

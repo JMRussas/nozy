@@ -97,6 +97,8 @@ public partial class SpriteDocument : Document, IShapeDocument
     public GenerationImage Generation { get; } = new();
     public string? StyleName;
     public GenStyleDocument? Style;
+    public List<string> ReferenceNames { get; } = new();
+    public List<SpriteDocument> References { get; } = new();
     public bool HasGeneration { get; set; }
     public bool IsGenerating => Generation.IsGenerating;
 
@@ -248,6 +250,8 @@ public partial class SpriteDocument : Document, IShapeDocument
         Prompt = "";
         NegativePrompt = "";
         Seed = "";
+        ReferenceNames.Clear();
+        References.Clear();
         for (var fi = 0; fi < FrameCount; fi++)
             Frames[fi].Shape.Clear();
         FrameCount = 1;
@@ -258,7 +262,18 @@ public partial class SpriteDocument : Document, IShapeDocument
 
         Binding.Resolve();
         if (HasGeneration)
+        {
             LoadGeneratedTexture();
+            if (!string.IsNullOrEmpty(StyleName))
+                Style = DocumentManager.Find(GenStyleDocument.AssetTypeGenStyle, StyleName) as GenStyleDocument;
+
+            References.Clear();
+            foreach (var refName in ReferenceNames)
+            {
+                if (DocumentManager.Find(AssetType.Sprite, refName) is SpriteDocument refDoc)
+                    References.Add(refDoc);
+            }
+        }
         UpdateBounds();
     }
 
@@ -341,6 +356,8 @@ public partial class SpriteDocument : Document, IShapeDocument
                 StyleName = tk.ExpectQuotedString();
             else if (tk.ExpectIdentifier("prompt_hash"))
                 tk.ExpectQuotedString(); // Legacy: skip
+            else if (tk.ExpectIdentifier("reference"))
+                ReferenceNames.Add(tk.ExpectQuotedString() ?? "");
             else if (tk.ExpectIdentifier("image"))
             {
                 // Legacy migration: extract embedded base64 to companion file
@@ -597,6 +614,8 @@ public partial class SpriteDocument : Document, IShapeDocument
                 writer.WriteLine($"seed \"{Seed}\"");
             if (!string.IsNullOrEmpty(StyleName))
                 writer.WriteLine($"style \"{StyleName}\"");
+            foreach (var refName in ReferenceNames)
+                writer.WriteLine($"reference \"{refName}\"");
             // prompt_hash moved to .meta
             // image data moved to companion file
             if (Generation.HasImageData && ImageFilePath != null)
@@ -897,6 +916,11 @@ public partial class SpriteDocument : Document, IShapeDocument
             if (!string.IsNullOrEmpty(style))
                 StyleName = style;
         }
+
+        // Recompute bounds now that ConstrainedSize is available
+        // (Load() calls UpdateBounds() before metadata is loaded)
+        if (Loaded && ConstrainedSize.HasValue)
+            UpdateBounds();
     }
 
     private static Vector2Int? ParseConstrainedSize(string value)
@@ -940,9 +964,20 @@ public partial class SpriteDocument : Document, IShapeDocument
             if (!string.IsNullOrEmpty(StyleName))
                 Style = DocumentManager.Find(GenStyleDocument.AssetTypeGenStyle, StyleName) as GenStyleDocument;
             Log.Info($"[Gen] '{Name}' PostLoad: style={Style?.Name ?? "null"} hasImage={Generation.HasImageData}");
+
+            References.Clear();
+            foreach (var refName in ReferenceNames)
+            {
+                if (DocumentManager.Find(AssetType.Sprite, refName) is SpriteDocument refDoc)
+                    References.Add(refDoc);
+            }
         }
     }
 
+    public override void GetReferences(List<Document> references)
+    {
+        references.AddRange(References);
+    }
 
     internal void ClearAtlasUVs()
     {
@@ -1636,12 +1671,28 @@ public partial class SpriteDocument : Document, IShapeDocument
 
         var server = EditorApplication.Config?.GenerationServer ?? "http://127.0.0.1:7860";
 
+        var images = new List<string>();
+        if (imageBytes.Length > 0)
+            images.Add($"data:image/png;base64,{Convert.ToBase64String(imageBytes)}");
+
+        foreach (var refDoc in References)
+        {
+            byte[] refBytes;
+            if (refDoc.Generation.HasImageData)
+                refBytes = refDoc.Generation.ImageData!;
+            else
+                refBytes = refDoc.RasterizeColorToPng();
+
+            if (refBytes.Length > 0)
+                images.Add($"data:image/png;base64,{Convert.ToBase64String(refBytes)}");
+        }
+
         return new GenerationRequest
         {
             Server = server,
             Workflow = "generate",
             Model = Style?.ModelName,
-            Image = imageBytes.Length > 0 ? $"data:image/png;base64,{Convert.ToBase64String(imageBytes)}" : "",
+            Images = images.Count > 0 ? images : null,
             Prompt = prompt,
             NegativePrompt = string.IsNullOrEmpty(negPrompt) ? null : negPrompt,
             Seed = string.IsNullOrEmpty(Seed) ? null : Seed,

@@ -21,6 +21,7 @@ public static partial class Workspace
         public static partial WidgetId CollectionButton { get; }
         public static partial WidgetId ContextMenu { get; }
         public static partial WidgetId Scene { get; }
+        public static partial WidgetId ReferencesButton { get; }
     }
 
     private const float ZoomMin = 0.2f;
@@ -44,6 +45,7 @@ public static partial class Workspace
     private static float _userUIScale = 1f;
     private static bool _showGrid = true;
     private static bool _showNames;
+    private static bool _showReferences;
 
     private static Vector2 _mousePosition;
     private static Vector2 _mouseWorldPosition;
@@ -271,6 +273,7 @@ public static partial class Workspace
     {
         _showGrid = props.GetBool("workspace", "show_grid", true);
         _showNames = props.GetBool("workspace", "show_names", false);
+        _showReferences = props.GetBool("workspace", "show_references", false);
         _userUIScale = props.GetFloat("workspace", "ui_scale", 1f);
         UI.UserScale = _userUIScale;
 
@@ -296,6 +299,7 @@ public static partial class Workspace
 
         props.SetBool("workspace", "show_grid", _showGrid);
         props.SetBool("workspace", "show_names", _showNames);
+        props.SetBool("workspace", "show_references", _showReferences);
         props.SetFloat("workspace", "ui_scale", UI.UserScale);
     }
     
@@ -331,6 +335,9 @@ public static partial class Workspace
     private static void DrawScene()
     {
         DrawDocuments();
+
+        if (_showReferences)
+            DrawReferences();
 
         if (_showGrid)
             Grid.Draw(_camera);
@@ -469,6 +476,9 @@ public static partial class Workspace
                 }))
                 {
                     UI.Flex();
+                    UI.SetChecked(_showReferences);
+                    if (UI.Button(ElementId.ReferencesButton, EditorAssets.Sprites.IconConnected, EditorStyle.Button.ToggleIcon))
+                        _showReferences = !_showReferences;
                     UI.SetChecked(XrayMode);
                     if (UI.Button(ElementId.XrayButton, EditorAssets.Sprites.IconXray, EditorStyle.Button.ToggleIcon))
                     {
@@ -521,6 +531,7 @@ public static partial class Workspace
     private static void UpdateCulling()
     {
         var cameraBounds = _camera.WorldBounds;
+        var refs = _showReferences ? new List<Document>() : null;
         foreach (var doc in DocumentManager.Documents)
         {
             if (!CollectionManager.IsDocumentVisible(doc))
@@ -534,6 +545,22 @@ public static partial class Workspace
                 doc.Position.Y + doc.Bounds.Y,
                 doc.Bounds.Width,
                 doc.Bounds.Height);
+
+            if (refs != null)
+            {
+                refs.Clear();
+                doc.GetReferences(refs);
+                foreach (var refDoc in refs)
+                {
+                    var refBounds = new Rect(
+                        refDoc.Position.X + refDoc.Bounds.X,
+                        refDoc.Position.Y + refDoc.Bounds.Y,
+                        refDoc.Bounds.Width,
+                        refDoc.Bounds.Height);
+                    docBounds = Rect.Union(docBounds, refBounds);
+                }
+            }
+
             doc.IsClipped = !cameraBounds.Intersects(docBounds);
         }
     }
@@ -601,6 +628,83 @@ public static partial class Workspace
         }
 
         TextRender.ClearOutline();
+    }
+
+    private static void DrawReferences()
+    {
+        using var _ = Gizmos.PushState(EditorLayer.Grid);
+        Gizmos.SetColor(EditorStyle.Workspace.ReferenceLineColor);
+
+        var refs = new List<Document>();
+        var dotSize = Gizmos.GetLineWidth(6f);
+        foreach (var doc in DocumentManager.Documents)
+        {
+            if (!doc.Loaded || !doc.PostLoaded) continue;
+            if (!ShowHidden && !doc.IsVisible) continue;
+            if (doc.IsHiddenInWorkspace) continue;
+            if (!CollectionManager.IsDocumentVisible(doc)) continue;
+
+            refs.Clear();
+            doc.GetReferences(refs);
+
+            foreach (var refDoc in refs)
+            {
+                if (!refDoc.Loaded || !refDoc.PostLoaded) continue;
+                if (!CollectionManager.IsDocumentVisible(refDoc)) continue;
+                var fromBounds = refDoc.Bounds.Translate(refDoc.Position);
+                var toBounds = doc.Bounds.Translate(doc.Position);
+                var fromCenter = fromBounds.Center;
+                var toCenter = toBounds.Center;
+                var delta = toCenter - fromCenter;
+                var dist = delta.Length();
+                if (dist < 0.001f) continue;
+
+                // Connect to closest edge center
+                var from = ClosestEdgePoint(fromBounds, toCenter);
+                var to = ClosestEdgePoint(toBounds, fromCenter);
+
+                // S-curve tangents along dominant axis
+                var edgeDelta = to - from;
+                Vector2 cp1, cp2;
+                if (MathF.Abs(delta.X) >= MathF.Abs(delta.Y))
+                {
+                    var tx = edgeDelta.X * 0.5f;
+                    cp1 = new Vector2(from.X + tx, from.Y);
+                    cp2 = new Vector2(to.X - tx, to.Y);
+                }
+                else
+                {
+                    var ty = edgeDelta.Y * 0.5f;
+                    cp1 = new Vector2(from.X, from.Y + ty);
+                    cp2 = new Vector2(to.X, to.Y - ty);
+                }
+                Gizmos.DrawBezier(from, cp1, cp2, to);
+                Gizmos.DrawRect(from, dotSize);
+                Gizmos.DrawRect(to, dotSize);
+            }
+        }
+
+    }
+
+    private static Vector2 ClosestEdgePoint(Rect bounds, Vector2 target)
+    {
+        // Four edge midpoints
+        var top = new Vector2(bounds.Center.X, bounds.Top);
+        var bottom = new Vector2(bounds.Center.X, bounds.Bottom);
+        var left = new Vector2(bounds.Left, bounds.Center.Y);
+        var right = new Vector2(bounds.Right, bounds.Center.Y);
+
+        var best = top;
+        var bestDist = Vector2.DistanceSquared(top, target);
+
+        var d = Vector2.DistanceSquared(bottom, target);
+        if (d < bestDist) { best = bottom; bestDist = d; }
+        d = Vector2.DistanceSquared(left, target);
+        if (d < bestDist) { best = left; bestDist = d; }
+        d = Vector2.DistanceSquared(right, target);
+        if (d < bestDist) { best = right; }
+
+        return best;
     }
 
     private static void BeginMoveTool()

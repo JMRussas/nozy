@@ -21,7 +21,7 @@ public class GenerationRequest
     public string Server { get; set; } = "";
 
     public string Workflow { get; set; } = "sprite";
-    public string? Image { get; set; }
+    public List<string>? Images { get; set; }
     public string Prompt { get; set; } = "";
     public string? NegativePrompt { get; set; }
     public string? Seed { get; set; }

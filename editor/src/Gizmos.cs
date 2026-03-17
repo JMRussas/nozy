@@ -225,6 +225,20 @@ public static class Gizmos
         }
     }
 
+    public static void DrawBezier(Vector2 p0, Vector2 p1, Vector2 p2, Vector2 p3,
+        float width = DefaultLineWidth, int segments = 24, ushort order = 0)
+    {
+        var prev = p0;
+        for (var i = 1; i <= segments; i++)
+        {
+            var t = i / (float)segments;
+            var u = 1f - t;
+            var point = u * u * u * p0 + 3f * u * u * t * p1 + 3f * u * t * t * p2 + t * t * t * p3;
+            DrawLine(prev, point, width, order: order);
+            prev = point;
+        }
+    }
+
     public static void DrawOrigin(Color color, ushort order=0)
     {
         SetColor(color);
