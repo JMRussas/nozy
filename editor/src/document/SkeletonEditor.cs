@@ -58,8 +58,7 @@ internal partial class SkeletonEditor : DocumentEditor
             new Command { Name = "Create Bone", Handler = BeginCreateBone, Key = InputCode.KeyV },
         ];
 
-        bool HasSelection() => Document.SelectedBoneCount > 0;
-
+        // bool HasSelection() => Document.SelectedBoneCount > 0;
         //_contextMenuItems = [
         //    PopupMenuItem.FromCommand(renameCommand, enabled: () => Document.SelectedBoneCount == 1),
         //    PopupMenuItem.FromCommand(deleteCommand, enabled: HasSelection),

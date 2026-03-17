@@ -47,7 +47,6 @@ public partial class SpriteEditor : DocumentEditor, IShapeEditorHost
     private int _currentTimeSlot;
     private bool _isPlaying;
     private float _playTimer;
-    private PopupMenuItem[] _contextMenuItems;
     private readonly int _versionOnOpen;
 
     public new SpriteDocument Document => (SpriteDocument)base.Document;
@@ -113,7 +112,7 @@ public partial class SpriteEditor : DocumentEditor, IShapeEditorHost
 
     public override void OpenContextMenu(WidgetId id)
     {
-        PopupMenu.Open(id, _contextMenuItems, "Sprite");
+        //PopupMenu.Open(id, _contextMenuItems, "Sprite");
     }
 
     public override void OnUndoRedo()
