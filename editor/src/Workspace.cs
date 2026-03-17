@@ -101,7 +101,7 @@ public static partial class Workspace
 
     public static void ResetUIScale()
     {
-        _userUIScale = 0.66666f;
+        _userUIScale = 1.0f; //  0.66666f;
         UI.UserScale = _userUIScale;
     }
 

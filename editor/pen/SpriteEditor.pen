@@ -1510,6 +1510,726 @@
           ]
         }
       ]
+    },
+    {
+      "type": "frame",
+      "id": "HiVlU",
+      "x": 0,
+      "y": 454,
+      "name": "Floating Toolbar",
+      "fill": "#252525",
+      "cornerRadius": 4,
+      "stroke": {
+        "align": "inside",
+        "thickness": 1,
+        "fill": "#333333"
+      },
+      "gap": 2,
+      "padding": 2,
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "xiyf0",
+          "name": "Tool Group",
+          "gap": 2,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "fJcLq",
+              "name": "Pen Button",
+              "width": 40,
+              "height": 40,
+              "fill": "#3D3D3D",
+              "cornerRadius": 4,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "VQXNP",
+                  "name": "pen-icon",
+                  "width": 14,
+                  "height": 14,
+                  "iconFontName": "pen-tool",
+                  "iconFontFamily": "lucide",
+                  "fill": "#FFFFFF"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "oREZi",
+              "name": "Knife Button",
+              "width": 40,
+              "height": 40,
+              "cornerRadius": 4,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "0UQth",
+                  "name": "knife-icon",
+                  "width": 14,
+                  "height": 14,
+                  "iconFontName": "scissors",
+                  "iconFontFamily": "lucide",
+                  "fill": "#555555"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "8MoCJ",
+              "name": "Rect Button",
+              "width": 40,
+              "height": 40,
+              "cornerRadius": 4,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "zvEhh",
+                  "name": "rect-icon",
+                  "width": 14,
+                  "height": 14,
+                  "iconFontName": "square",
+                  "iconFontFamily": "lucide",
+                  "fill": "#555555"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "P7LTm",
+              "name": "Circle Button",
+              "width": 40,
+              "height": 40,
+              "cornerRadius": 4,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "SmO4e",
+                  "name": "circle-icon",
+                  "width": 14,
+                  "height": 14,
+                  "iconFontName": "circle",
+                  "iconFontFamily": "lucide",
+                  "fill": "#555555"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "rectangle",
+          "id": "RarW1",
+          "name": "Divider 1",
+          "fill": "#333333",
+          "width": 1,
+          "height": 24
+        },
+        {
+          "type": "frame",
+          "id": "VyhEO",
+          "name": "Toggle Group",
+          "gap": 2,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "DFqVp",
+              "name": "Tile Button",
+              "width": 40,
+              "height": 40,
+              "cornerRadius": 4,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "DWdhy",
+                  "name": "tile-icon",
+                  "width": 14,
+                  "height": 14,
+                  "iconFontName": "grid-3x3",
+                  "iconFontFamily": "lucide",
+                  "fill": "#555555"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Q7WsG",
+              "name": "GenImage Button",
+              "width": 40,
+              "height": 40,
+              "cornerRadius": 4,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "94yec",
+                  "name": "genimg-icon",
+                  "width": 14,
+                  "height": 14,
+                  "iconFontName": "image",
+                  "iconFontFamily": "lucide",
+                  "fill": "#555555"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "rectangle",
+          "id": "IbCjs",
+          "name": "Divider 2",
+          "fill": "#333333",
+          "width": 1,
+          "height": 24
+        },
+        {
+          "type": "frame",
+          "id": "sYD3d",
+          "name": "Anim Group",
+          "fill": "#00000000",
+          "gap": 2,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "lmjoE",
+              "name": "DopeSheet Button",
+              "width": 40,
+              "height": 40,
+              "cornerRadius": 4,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "XJoBD",
+                  "name": "dope-icon",
+                  "width": 14,
+                  "height": 14,
+                  "iconFontName": "rows-3",
+                  "iconFontFamily": "lucide",
+                  "fill": "#555555"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "XkMZo",
+      "x": 0,
+      "y": 546,
+      "name": "Floating Toolbar + Dopesheet",
+      "clip": true,
+      "fill": "#252525",
+      "cornerRadius": 4,
+      "stroke": {
+        "align": "inside",
+        "thickness": 1,
+        "fill": "#333333"
+      },
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "8tU8j",
+          "name": "Toolbar Row",
+          "fill": "#252525",
+          "stroke": {
+            "align": "inside",
+            "thickness": 0,
+            "fill": "#00000000"
+          },
+          "gap": 2,
+          "padding": 2,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "oyMlJ",
+              "name": "Tool Group",
+              "gap": 2,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "nE4uy",
+                  "name": "Pen Button",
+                  "width": 40,
+                  "height": 40,
+                  "fill": "#3D3D3D",
+                  "cornerRadius": 4,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "8yBTs",
+                      "name": "pen-icon",
+                      "width": 14,
+                      "height": 14,
+                      "iconFontName": "pen-tool",
+                      "iconFontFamily": "lucide",
+                      "fill": "#FFFFFF"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "VmfMd",
+                  "name": "Knife Button",
+                  "width": 40,
+                  "height": 40,
+                  "cornerRadius": 4,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "DtDsx",
+                      "name": "knife-icon",
+                      "width": 14,
+                      "height": 14,
+                      "iconFontName": "scissors",
+                      "iconFontFamily": "lucide",
+                      "fill": "#555555"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "mYXH6",
+                  "name": "Rect Button",
+                  "width": 40,
+                  "height": 40,
+                  "cornerRadius": 4,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "CngLJ",
+                      "name": "rect-icon",
+                      "width": 14,
+                      "height": 14,
+                      "iconFontName": "square",
+                      "iconFontFamily": "lucide",
+                      "fill": "#555555"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "I9OMB",
+                  "name": "Circle Button",
+                  "width": 40,
+                  "height": 40,
+                  "cornerRadius": 4,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "y0Udd",
+                      "name": "circle-icon",
+                      "width": 14,
+                      "height": 14,
+                      "iconFontName": "circle",
+                      "iconFontFamily": "lucide",
+                      "fill": "#555555"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "rectangle",
+              "id": "tzJP9",
+              "name": "Divider 1",
+              "fill": "#333333",
+              "width": 1,
+              "height": 24
+            },
+            {
+              "type": "frame",
+              "id": "Phbyp",
+              "name": "Toggle Group",
+              "gap": 2,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "O5vaR",
+                  "name": "Tile Button",
+                  "width": 40,
+                  "height": 40,
+                  "cornerRadius": 4,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "Iwfae",
+                      "name": "tile-icon",
+                      "width": 14,
+                      "height": 14,
+                      "iconFontName": "grid-3x3",
+                      "iconFontFamily": "lucide",
+                      "fill": "#555555"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "znO9G",
+                  "name": "GenImage Button",
+                  "width": 40,
+                  "height": 40,
+                  "cornerRadius": 4,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "pPbZI",
+                      "name": "genimg-icon",
+                      "width": 14,
+                      "height": 14,
+                      "iconFontName": "image",
+                      "iconFontFamily": "lucide",
+                      "fill": "#555555"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "rectangle",
+              "id": "cUTts",
+              "name": "Divider 2",
+              "fill": "#333333",
+              "width": 1,
+              "height": 24
+            },
+            {
+              "type": "frame",
+              "id": "AqOw5",
+              "name": "Anim Group",
+              "fill": "#00000000",
+              "gap": 2,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "FTMLR",
+                  "name": "DopeSheet Button",
+                  "width": 40,
+                  "height": 40,
+                  "fill": "#3D3D3D",
+                  "cornerRadius": 4,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "mMeUo",
+                      "name": "dope-icon",
+                      "width": 14,
+                      "height": 14,
+                      "iconFontName": "rows-3",
+                      "iconFontFamily": "lucide",
+                      "fill": "#FFFFFF"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "rectangle",
+          "id": "JV4CJ",
+          "name": "Toolbar Sep",
+          "fill": "#333333",
+          "width": "fill_container",
+          "height": 1
+        },
+        {
+          "type": "frame",
+          "id": "fHSRb",
+          "name": "Dopesheet Content",
+          "width": "fill_container",
+          "fill": "#252525",
+          "layout": "vertical",
+          "children": [
+            {
+              "type": "frame",
+              "id": "IsMsZ",
+              "name": "Header Row",
+              "width": "fill_container",
+              "height": 28,
+              "fill": "#2D2D2D",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "pymfu",
+                  "name": "Time 0:00",
+                  "width": 75,
+                  "height": "fill_container",
+                  "padding": [
+                    0,
+                    0,
+                    0,
+                    3
+                  ],
+                  "alignItems": "end",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "LLu3m",
+                      "name": "tb1Label",
+                      "fill": "#666666",
+                      "content": "0:00",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "rectangle",
+                  "id": "zYL8q",
+                  "name": "tb1sep",
+                  "fill": "#3E3E3E",
+                  "width": 1,
+                  "height": "fill_container"
+                },
+                {
+                  "type": "frame",
+                  "id": "46Pbs",
+                  "name": "Time 0:04",
+                  "width": 75,
+                  "height": "fill_container",
+                  "padding": [
+                    0,
+                    0,
+                    0,
+                    3
+                  ],
+                  "alignItems": "end",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "mPwvp",
+                      "name": "tb2Label",
+                      "fill": "#666666",
+                      "content": "0:04",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "rectangle",
+                  "id": "GDyCd",
+                  "name": "tb2sep",
+                  "fill": "#3E3E3E",
+                  "width": 1,
+                  "height": "fill_container"
+                },
+                {
+                  "type": "frame",
+                  "id": "7O3rL",
+                  "name": "Time 0:08",
+                  "width": 75,
+                  "height": "fill_container",
+                  "padding": [
+                    0,
+                    0,
+                    0,
+                    3
+                  ],
+                  "alignItems": "end",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "NLbKR",
+                      "name": "tb3Label",
+                      "fill": "#666666",
+                      "content": "0:08",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "rectangle",
+                  "id": "iFlnT",
+                  "name": "tb3sep",
+                  "fill": "#3E3E3E",
+                  "width": 1,
+                  "height": "fill_container"
+                }
+              ]
+            },
+            {
+              "type": "rectangle",
+              "id": "OaSYw",
+              "name": "Header Sep",
+              "fill": "#333333",
+              "width": "fill_container",
+              "height": 1
+            },
+            {
+              "type": "frame",
+              "id": "mX5TP",
+              "name": "Layer Row",
+              "width": "fill_container",
+              "height": 26,
+              "fill": "#252525",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "X3awn",
+                  "name": "Frame 0 Selected",
+                  "width": 18,
+                  "height": "fill_container",
+                  "fill": "#E83A3A",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "ellipse",
+                      "id": "kzmPH",
+                      "name": "f0dot",
+                      "fill": "#FFFFFF",
+                      "width": 6,
+                      "height": 6
+                    }
+                  ]
+                },
+                {
+                  "type": "rectangle",
+                  "id": "qewmT",
+                  "name": "f0sep",
+                  "fill": "#333333",
+                  "width": 1,
+                  "height": "fill_container"
+                },
+                {
+                  "type": "frame",
+                  "id": "4Pjxu",
+                  "name": "Frame 1",
+                  "width": 18,
+                  "height": "fill_container",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "ellipse",
+                      "id": "5MyEJ",
+                      "name": "f1dot",
+                      "fill": "#888888",
+                      "width": 6,
+                      "height": 6
+                    }
+                  ]
+                },
+                {
+                  "type": "rectangle",
+                  "id": "7JmvP",
+                  "name": "f1sep",
+                  "fill": "#333333",
+                  "width": 1,
+                  "height": "fill_container"
+                },
+                {
+                  "type": "rectangle",
+                  "id": "Bg6On",
+                  "name": "e1",
+                  "fill": "#00000000",
+                  "width": 18,
+                  "height": "fill_container"
+                },
+                {
+                  "type": "rectangle",
+                  "id": "smPfz",
+                  "name": "e1s",
+                  "fill": "#333333",
+                  "width": 1,
+                  "height": "fill_container"
+                },
+                {
+                  "type": "rectangle",
+                  "id": "QqckU",
+                  "name": "e2",
+                  "fill": "#00000000",
+                  "width": 18,
+                  "height": "fill_container"
+                },
+                {
+                  "type": "rectangle",
+                  "id": "foMjU",
+                  "name": "e2s",
+                  "fill": "#333333",
+                  "width": 1,
+                  "height": "fill_container"
+                },
+                {
+                  "type": "rectangle",
+                  "id": "ytfXC",
+                  "name": "e3",
+                  "fill": "#2D2D2D",
+                  "width": 18,
+                  "height": "fill_container"
+                },
+                {
+                  "type": "rectangle",
+                  "id": "0YeiG",
+                  "name": "e3s",
+                  "fill": "#333333",
+                  "width": 1,
+                  "height": "fill_container"
+                },
+                {
+                  "type": "rectangle",
+                  "id": "6UEWQ",
+                  "name": "e4",
+                  "fill": "#00000000",
+                  "width": 18,
+                  "height": "fill_container"
+                },
+                {
+                  "type": "rectangle",
+                  "id": "B15Jd",
+                  "name": "e4s",
+                  "fill": "#333333",
+                  "width": 1,
+                  "height": "fill_container"
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ]
 }
