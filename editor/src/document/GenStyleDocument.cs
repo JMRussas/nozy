@@ -43,13 +43,28 @@ public class GenStyleDocument : Document
 
     public override bool CanSave => true;
 
-    // Layer defaults
-    public string PromptPrefix = "";
+    // Prompts (format strings — use {0} for sprite prompt, or appends if no {0})
     public string Prompt = "";
     public string NegativePrompt = "";
 
-    // Model
+    // Model + LoRA
     public string? ModelName;
+    public string? LoraName;
+
+    /// <summary>
+    /// Merges a format-string template with a per-sprite input.
+    /// If template contains {0}, replaces it. Otherwise appends input before template.
+    /// </summary>
+    public static string FormatPrompt(string template, string input)
+    {
+        if (string.IsNullOrEmpty(template))
+            return input;
+        if (string.IsNullOrEmpty(input))
+            return template.Replace("{0}", "");
+        if (template.Contains("{0}"))
+            return template.Replace("{0}", input);
+        return $"{input}, {template}";
+    }
 
     public GenStyleDocument()
     {
@@ -89,12 +104,19 @@ public class GenStyleDocument : Document
         {
             if (tk.ExpectIdentifier("model"))
                 ModelName = tk.ExpectQuotedString();
-            else if (tk.ExpectIdentifier("prompt_prefix"))
-                PromptPrefix = tk.ExpectQuotedString() ?? "";
+            else if (tk.ExpectIdentifier("lora"))
+                LoraName = tk.ExpectQuotedString();
             else if (tk.ExpectIdentifier("prompt"))
                 Prompt = tk.ExpectQuotedString() ?? "";
             else if (tk.ExpectIdentifier("prompt_neg"))
                 NegativePrompt = tk.ExpectQuotedString() ?? "";
+            else if (tk.ExpectIdentifier("prompt_prefix"))
+            {
+                // Legacy support: convert prompt_prefix to format string
+                var prefix = tk.ExpectQuotedString() ?? "";
+                if (!string.IsNullOrEmpty(prefix) && string.IsNullOrEmpty(Prompt))
+                    Prompt = $"{prefix}{{0}}";
+            }
             else
             {
                 tk.ExpectToken(out var badToken);
@@ -106,18 +128,17 @@ public class GenStyleDocument : Document
 
     public override void Save(StreamWriter writer)
     {
-        if (!string.IsNullOrEmpty(PromptPrefix))
-            writer.WriteLine($"prompt_prefix \"{PromptPrefix.Replace("\"", "\\\"")}\"");
         if (!string.IsNullOrEmpty(Prompt))
             writer.WriteLine($"prompt \"{Prompt.Replace("\"", "\\\"")}\"");
         if (!string.IsNullOrEmpty(NegativePrompt))
             writer.WriteLine($"prompt_neg \"{NegativePrompt.Replace("\"", "\\\"")}\"");
-        // Model
         if (!string.IsNullOrEmpty(ModelName))
         {
             writer.WriteLine();
             writer.WriteLine($"model \"{ModelName}\"");
         }
+        if (!string.IsNullOrEmpty(LoraName))
+            writer.WriteLine($"lora \"{LoraName}\"");
     }
 
     public override void Draw()

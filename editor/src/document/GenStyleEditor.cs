@@ -8,16 +8,11 @@ public partial class GenStyleEditor : DocumentEditor
 {
     private static partial class WidgetIds
     {
-        public static partial WidgetId LayerPromptPrefix { get; }
         public static partial WidgetId LayerPrompt { get; }
         public static partial WidgetId LayerNegativePrompt { get; }
-        public static partial WidgetId LayerStrength { get; }
-        public static partial WidgetId LayerGuidance { get; }
-        public static partial WidgetId LayerSteps { get; }
         public static partial WidgetId ModelDropDown { get; }
+        public static partial WidgetId LoraDropDown { get; }
         public static partial WidgetId RefreshModels { get; }
-        public static partial WidgetId Detail { get; }
-        public static partial WidgetId WorkflowDropDown { get; }
     }
 
     public new GenStyleDocument Document => (GenStyleDocument)base.Document;
@@ -46,25 +41,16 @@ public partial class GenStyleEditor : DocumentEditor
 
     private void LayerDefaultsUI()
     {
-        using var _ = Inspector.BeginSection("LAYER DEFAULTS");
+        using var _ = Inspector.BeginSection("PROMPTS");
         if (Inspector.IsSectionCollapsed) return;
 
-        var model = GenerationClient.GetModel(Document.ModelName);
+        using (Inspector.BeginRow())
+        using (UI.BeginFlex())
+            Document.Prompt = UI.TextInput(WidgetIds.LayerPrompt, Document.Prompt, EditorStyle.TextArea, "Prompt (use {0} for sprite prompt)", Document, multiLine: true);
 
         using (Inspector.BeginRow())
         using (UI.BeginFlex())
-            Document.PromptPrefix = UI.TextInput(WidgetIds.LayerPromptPrefix, Document.PromptPrefix, EditorStyle.TextArea, "Prompt Prefix", Document, multiLine: true);
-
-        using (Inspector.BeginRow())
-        using (UI.BeginFlex())
-            Document.Prompt = UI.TextInput(WidgetIds.LayerPrompt, Document.Prompt, EditorStyle.TextArea, "Prompt", Document, multiLine: true);
-
-        if (model != null && model.HasControl("negative_prompt"))
-        {
-            using (Inspector.BeginRow())
-            using (UI.BeginFlex())
-                Document.NegativePrompt = UI.TextInput(WidgetIds.LayerNegativePrompt, Document.NegativePrompt, EditorStyle.TextArea, "Negative Prompt", Document, multiLine: true);
-        }
+            Document.NegativePrompt = UI.TextInput(WidgetIds.LayerNegativePrompt, Document.NegativePrompt, EditorStyle.TextArea, "Negative Prompt", Document, multiLine: true);
     }
 
     private void StyleUI()
@@ -110,5 +96,34 @@ public partial class GenStyleEditor : DocumentEditor
             }
         }
 
+        // LoRA style dropdown (only when a model is selected and has loras)
+        var selectedModel = GenerationClient.GetModel(Document.ModelName);
+        if (selectedModel != null && selectedModel.Loras.Count > 0)
+        {
+            using (Inspector.BeginProperty("Style"))
+            {
+                using (UI.BeginFlex())
+                    UI.DropDown(WidgetIds.LoraDropDown, () =>
+                    {
+                        var items = new List<PopupMenuItem>
+                        {
+                            PopupMenuItem.Item("None", () =>
+                            {
+                                Undo.Record(Document);
+                                Document.LoraName = null;
+                                Document.IncrementVersion();
+                            })
+                        };
+                        foreach (var lora in selectedModel.Loras)
+                            items.Add(PopupMenuItem.Item(lora.Name, () =>
+                            {
+                                Undo.Record(Document);
+                                Document.LoraName = lora.Key;
+                                Document.IncrementVersion();
+                            }));
+                        return items.ToArray();
+                    }, selectedModel.Loras.Find(l => l.Key == Document.LoraName)?.Name ?? "None");
+            }
+        }
     }
 }

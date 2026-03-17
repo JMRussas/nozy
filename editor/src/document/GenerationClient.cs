@@ -8,11 +8,9 @@ using System.Text.Json.Serialization;
 
 namespace NoZ.Editor;
 
-public class MaskConfig
+public class ImageRef
 {
-    public string? Image { get; set; }
-    public string? Prompt { get; set; }
-    public float? Threshold { get; set; }
+    public string Data { get; set; } = "";
 }
 
 public class GenerationRequest
@@ -20,21 +18,28 @@ public class GenerationRequest
     [JsonIgnore]
     public string Server { get; set; } = "";
 
-    public string Workflow { get; set; } = "sprite";
-    public List<string>? Images { get; set; }
     public string Prompt { get; set; } = "";
     public string? NegativePrompt { get; set; }
-    public string? Seed { get; set; }
     public string? Model { get; set; }
+    public string? Seed { get; set; }
+    public string? Lora { get; set; }
+    public List<ImageRef>? Images { get; set; }
+}
+
+public class LoraInfo
+{
+    public string Key { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string Description { get; set; } = "";
 }
 
 public class ModelInfo
 {
     public string Name { get; set; } = "";
-    public string Type { get; set; } = "";
-    public List<string> Controls { get; set; } = [];
-
-    public bool HasControl(string control) => Controls.Contains(control);
+    public string Backend { get; set; } = "";
+    public bool Valid { get; set; }
+    public List<string> Errors { get; set; } = [];
+    public List<LoraInfo> Loras { get; set; } = [];
 }
 
 public class GenerationResponse
@@ -72,12 +77,14 @@ public class GenerationStatus
     public bool IsTerminal => State is GenerationState.Completed or GenerationState.Failed;
 }
 
-// POST /generate response
+// POST /api/image/generate response
 public class GenerationSubmitResponse
 {
     public string JobId { get; set; } = "";
     public string Status { get; set; } = "";
-    public int Position { get; set; }
+    public string? Model { get; set; }
+    public string? Seed { get; set; }
+    public string? Lora { get; set; }
 }
 
 // GET /jobs/{job_id} response
@@ -126,7 +133,7 @@ public static class GenerationClient
                 catch { }
 
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
-                var response = await _http.PostAsync($"{request.Server}/generate", content, cancellationToken);
+                var response = await _http.PostAsync($"{request.Server}/api/image/generate", content, cancellationToken);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -160,7 +167,7 @@ public static class GenerationClient
                 {
                     State = GenerationState.Queued,
                     JobId = jobId,
-                    QueuePosition = submitResult.Position
+                    QueuePosition = 0
                 }));
 
                 // Phase 2: Poll loop
@@ -237,7 +244,7 @@ public static class GenerationClient
             catch { }
 
             var content = new StringContent(json, Encoding.UTF8, "application/json");
-            var response = await _http.PostAsync($"{request.Server}/generate", content, cancellationToken);
+            var response = await _http.PostAsync($"{request.Server}/api/image/generate", content, cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -261,7 +268,7 @@ public static class GenerationClient
             {
                 State = GenerationState.Queued,
                 JobId = jobId,
-                QueuePosition = submitResult.Position
+                QueuePosition = 0
             });
 
             var pollUrl = $"{request.Server}/jobs/{jobId}";

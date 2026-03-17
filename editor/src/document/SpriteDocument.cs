@@ -1653,27 +1653,16 @@ public partial class SpriteDocument : Document, IShapeDocument
 
     public GenerationRequest BuildGenerationRequest()
     {
-        var globalPromptPrefix = Style?.PromptPrefix ?? "";
-        var globalPrompt = Style?.Prompt ?? "";
-        var globalNegPrompt = Style?.NegativePrompt ?? "";
+        var prompt = GenStyleDocument.FormatPrompt(Style?.Prompt ?? "", Prompt);
+        var negPrompt = GenStyleDocument.FormatPrompt(Style?.NegativePrompt ?? "", NegativePrompt);
 
         var imageBytes = RasterizeColorToPng();
-        var maskBytes = RasterizeMaskToPng();
-
-        var prompt = Prompt;
-        if (!string.IsNullOrEmpty(globalPromptPrefix))
-            prompt = $"{globalPromptPrefix} {prompt}";
-        if (!string.IsNullOrEmpty(globalPrompt))
-            prompt = $"{prompt}, {globalPrompt}";
-        var negPrompt = NegativePrompt;
-        if (!string.IsNullOrEmpty(globalNegPrompt))
-            negPrompt = string.IsNullOrEmpty(negPrompt) ? globalNegPrompt : $"{negPrompt}, {globalNegPrompt}";
 
         var server = EditorApplication.Config?.GenerationServer ?? "http://127.0.0.1:7860";
 
-        var images = new List<string>();
+        var images = new List<ImageRef>();
         if (imageBytes.Length > 0)
-            images.Add($"data:image/png;base64,{Convert.ToBase64String(imageBytes)}");
+            images.Add(new ImageRef { Data = Convert.ToBase64String(imageBytes) });
 
         foreach (var refDoc in References)
         {
@@ -1684,14 +1673,14 @@ public partial class SpriteDocument : Document, IShapeDocument
                 refBytes = refDoc.RasterizeColorToPng();
 
             if (refBytes.Length > 0)
-                images.Add($"data:image/png;base64,{Convert.ToBase64String(refBytes)}");
+                images.Add(new ImageRef { Data = Convert.ToBase64String(refBytes) });
         }
 
         return new GenerationRequest
         {
             Server = server,
-            Workflow = "generate",
             Model = Style?.ModelName,
+            Lora = Style?.LoraName,
             Images = images.Count > 0 ? images : null,
             Prompt = prompt,
             NegativePrompt = string.IsNullOrEmpty(negPrompt) ? null : negPrompt,
