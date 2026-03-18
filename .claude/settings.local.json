@@ -11,7 +11,11 @@
       "Bash(git add:*)",
       "Bash(git commit -m \"$\\(cat <<''EOF''\nAdd LFS tracking for editor/library and remove library contents\n\nLibrary files will be regenerated and tracked via LFS.\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(git fsck:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "mcp__hecate__index_status",
+      "mcp__hecate__project_graph",
+      "mcp__hecate__analyze_file",
+      "Bash(git status:*)"
     ]
   }
 }
