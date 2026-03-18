@@ -1122,19 +1122,13 @@ public partial class SpriteEditor : DocumentEditor, IShapeEditorHost
             using (Inspector.BeginRow())
             using (UI.BeginFlex())
             {
-                using (UI.BeginRow(itemId, new ContainerStyle
-                {
-                    Height = EditorStyle.Control.Height,
-                    Padding = EdgeInsets.LeftRight(3),
-                    Spacing = 6,
-                }))
+                using (UI.BeginRow(itemId, EditorStyle.Inspector.ListItem))
                 {
                     UI.Image(EditorAssets.Sprites.AssetIconSprite, EditorStyle.Control.IconSecondary);
                     using (UI.BeginFlex())
                         UI.Text(refDoc.Name, EditorStyle.Text.Primary);
 
-                    var hovered = UI.IsHovered(itemId) || UI.IsHovered(WidgetIds.DeleteReference + i);
-                    using (UI.BeginOpacity(hovered ? 1.0f : 0.0f))
+                    if (UI.IsHovered(itemId))
                     {
                         if (UI.Button(WidgetIds.DeleteReference + i, EditorAssets.Sprites.IconDelete, EditorStyle.Button.IconOnly))
                             RemoveReference(i);

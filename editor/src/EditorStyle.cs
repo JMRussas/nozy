@@ -790,6 +790,20 @@ public static class EditorStyle
             AlignY = Align.Center
         };
 
+        public static readonly ContainerStyle ListItem = new()
+        {
+            Height = Control.Height,
+            Padding = EdgeInsets.LeftRight(BodyGap),
+            Spacing = HeaderGap,
+            BorderRadius = BorderRadius,
+            Resolve = (s, f) =>
+            {
+                if ((f & WidgetFlags.Hovered) != 0)
+                    s.Background = Palette.Active;
+                return s;
+            },
+        };
+
         public static readonly ContainerStyle Content = new()
         {
             Spacing = Control.Spacing,

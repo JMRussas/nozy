@@ -340,21 +340,24 @@ public static unsafe partial class ElementTree
         if (IsInsideNonInteractivePopup(e.Index))
             return;
 
-        var isHovered = _hoveredWidget == d.Id;
+        Matrix3x2.Invert(e.Transform, out var inv);
+        var localMouse = Vector2.Transform(MouseWorldPosition, inv);
+        var isHovered = e.Rect.Contains(localMouse);
+        var isDeepHovered = _hoveredWidget == d.Id;
 
         if (isHovered)
             state.Flags |= WidgetFlags.Hovered;
 
         var isCaptured = _captureId != 0 && _captureId == d.Id;
 
-        if (isHovered && _inputMousePressed && (_captureId == 0 || _captureId == d.Id))
+        if (isDeepHovered && _inputMousePressed && (_captureId == 0 || _captureId == d.Id))
         {
             state.Flags |= WidgetFlags.Pressed;
             if (d.IsInteractive)
                 Input.ConsumeButton(InputCode.MouseLeft);
         }
 
-        if (isCaptured ? _inputMouseDown : (isHovered && _inputMouseDown && _captureId == 0))
+        if (isCaptured ? _inputMouseDown : (isDeepHovered && _inputMouseDown && _captureId == 0))
             state.Flags |= WidgetFlags.Down;
 
         if (_hotId == d.Id)
