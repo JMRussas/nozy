@@ -49,7 +49,7 @@ internal struct Element
 [StructLayout(LayoutKind.Explicit)]
 internal struct ElementData
 {
-    [FieldOffset(0)] public Size2 Size;
+    [FieldOffset(0)] public SizeElement Size;
     [FieldOffset(0)] public WidgetElement Widget;
     [FieldOffset(0)] public FillElement Fill;
     [FieldOffset(0)] public EditableTextElement EditableText;
@@ -69,6 +69,15 @@ internal struct ElementData
     [FieldOffset(0)] public TextElement Text;
     [FieldOffset(0)] public ImageElement Image;
     [FieldOffset(0)] public SceneElement Scene;
+}
+
+internal struct SizeElement
+{
+    public Size2 Size;
+    public float MinWidth;
+    public float MaxWidth;
+    public float MinHeight;
+    public float MaxHeight;
 }
 
 internal struct WidgetElement

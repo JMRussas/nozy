@@ -9,12 +9,23 @@ namespace NoZ;
 
 public static unsafe partial class ElementTree
 {
-    public static int BeginSize(Size width, Size height) => BeginSize(new Size2(width, height));
+    public static int BeginSize(Size width, Size height, float minWidth, float maxWidth, float minHeight, float maxHeight)
+        => BeginSize(new Size2(width, height), minWidth, maxWidth, minHeight, maxHeight);
 
-    public static int BeginSize(Size2 size)
+    public static int BeginSize(Size width, Size height)
+        => BeginSize(new Size2(width, height), 0, float.MaxValue, 0, float.MaxValue);
+
+    public static int BeginSize(Size2 size, float minWidth = 0, float maxWidth = float.MaxValue, float minHeight = 0, float maxHeight = float.MaxValue)
     {
         ref var e = ref BeginElement(ElementType.Size);
-        e.Data.Size = size;
+        e.Data.Size = new SizeElement
+        {
+            Size = size,
+            MinWidth = minWidth,
+            MaxWidth = maxWidth,
+            MinHeight = minHeight,
+            MaxHeight = maxHeight,
+        };
         return e.Index;
     }
 

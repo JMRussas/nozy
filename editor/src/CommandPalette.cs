@@ -101,7 +101,7 @@ public static partial class CommandPalette
         {
             using (UI.BeginRow(EditorStyle.Popup.Item with { Spacing = 4.0f }))
             {
-                using (UI.BeginContainer(EditorStyle.Control.IconContainer))
+                using (UI.BeginContainer(new ContainerStyle { Width = EditorStyle.Control.Height, Height = EditorStyle.Control.Height }))
                     UI.Image(EditorAssets.Sprites.IconSearch, EditorStyle.Control.Icon);
                    
                 using (UI.BeginFlex())

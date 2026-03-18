@@ -564,7 +564,7 @@ public class ShapeEditor
                     DrawSegment(shape, anchorIndex, EditorStyle.Shape.SegmentLineWidth, 1);
             }
 
-            Gizmos.SetColor(EditorStyle.Palette.Selection);
+            Gizmos.SetColor(EditorStyle.Palette.Primary);
             for (ushort anchorIndex = 0; anchorIndex < shape.AnchorCount; anchorIndex++)
             {
                 if (shape.IsSegmentSelected(anchorIndex))
@@ -608,7 +608,7 @@ public class ShapeEditor
         {
             ref readonly var anchor = ref shape.GetAnchor(i);
             if (!anchor.IsSelected) continue;
-            Gizmos.SetColor(EditorStyle.Palette.Selection);
+            Gizmos.SetColor(EditorStyle.Palette.Primary);
             Gizmos.DrawRect(anchor.Position, EditorStyle.Shape.AnchorSize, order: 5);
         }
     }

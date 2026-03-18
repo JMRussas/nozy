@@ -112,7 +112,14 @@ public static unsafe partial class ElementTree
         ref var e = ref _elements.Add();
         e = default;
         e.Type = ElementType.Size;
-        e.Data.Size = new Size2(size.X, size.Y);
+        e.Data.Size = new SizeElement
+        {
+            Size = new Size2(size.X, size.Y),
+            MinWidth = 0,
+            MaxWidth = float.MaxValue,
+            MinHeight = 0,
+            MaxHeight = float.MaxValue,
+        };
         _stack.Add(0);
     }
 

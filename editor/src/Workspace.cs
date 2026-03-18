@@ -101,7 +101,7 @@ public static partial class Workspace
 
     public static void ResetUIScale()
     {
-        _userUIScale = 1.0f; //  0.66666f;
+        _userUIScale = 1.2f;
         UI.UserScale = _userUIScale;
     }
 
@@ -386,7 +386,7 @@ public static partial class Workspace
         using var _ = UI.BeginContainer(new ContainerStyle
         {
             Height = Size.Fit,
-            Background = EditorStyle.PanelOld.Root.Background
+            Background = EditorStyle.Palette.Separator
         });
         using var __ = UI.BeginRow(new ContainerStyle { 
             Padding = EdgeInsets.Symmetric(4, EditorStyle.Control.Spacing),
@@ -464,7 +464,7 @@ public static partial class Workspace
             using (UI.BeginRow(new ContainerStyle
             {
                 Height = Size.Fit,
-                Background = EditorStyle.PanelOld.Root.Background,
+                Background = EditorStyle.Palette.Separator,
             }))
             {
                 // Left toolbar
@@ -497,7 +497,7 @@ public static partial class Workspace
                     CollectionUI();
             }
 
-            UI.Container(new ContainerStyle { Height = 1, Background = EditorStyle.PanelOld.Root.BorderColor });
+            UI.Container(new ContainerStyle { Height = 1, Background = EditorStyle.Palette.Separator });
 
             // Content row
             using (UI.BeginFlex())

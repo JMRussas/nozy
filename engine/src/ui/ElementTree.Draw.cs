@@ -702,7 +702,12 @@ public static partial class ElementTree
             }
             case ElementType.Size:
             {
-                sb.Append($" size={e.Data.Size}");
+                ref var s = ref e.Data.Size;
+                sb.Append($" size={s.Size}");
+                if (s.MinWidth > 0) sb.Append($" minW={s.MinWidth}");
+                if (s.MinHeight > 0) sb.Append($" minH={s.MinHeight}");
+                if (s.MaxWidth < float.MaxValue) sb.Append($" maxW={s.MaxWidth}");
+                if (s.MaxHeight < float.MaxValue) sb.Append($" maxH={s.MaxHeight}");
                 break;
             }
             case ElementType.Fill:

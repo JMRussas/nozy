@@ -49,7 +49,7 @@ public partial class SpriteEditor : DocumentEditor, IShapeEditorHost
     private int _currentTimeSlot;
     private bool _isPlaying;
     private float _playTimer;
-    private PopupMenuItem[] _contextMenuItems;
+    //private PopupMenuItem[] _contextMenuItems;
     private readonly int _versionOnOpen;
 
     public new SpriteDocument Document => (SpriteDocument)base.Document;
@@ -115,7 +115,7 @@ public partial class SpriteEditor : DocumentEditor, IShapeEditorHost
 
     public override void OpenContextMenu(WidgetId id)
     {
-        PopupMenu.Open(id, _contextMenuItems, "Sprite");
+        //PopupMenu.Open(id, _contextMenuItems, "Sprite");
     }
 
     public override void OnUndoRedo()
@@ -180,7 +180,7 @@ public partial class SpriteEditor : DocumentEditor, IShapeEditorHost
     private void ToolbarUI()
     {
         using var _ = UI.BeginRow(EditorStyle.SpriteEditor.Toolbar);
-        UI.Separator(EditorStyle.Palette.PanelSeparator);
+        UI.Separator(EditorStyle.Palette.Separator);
     }
 
     public override void UpdateUI()
@@ -194,7 +194,7 @@ public partial class SpriteEditor : DocumentEditor, IShapeEditorHost
             using (UI.BeginColumn(WidgetIds.Root, EditorStyle.DocumentEditor.Root))
             {
                 ToolbarUI();
-                UI.Separator(EditorStyle.Palette.PanelSeparator);
+                UI.Separator(EditorStyle.Palette.Separator);
                 DopeSheetUI();
                 UI.Spacer(EditorStyle.Control.Spacing);
             }
@@ -214,7 +214,7 @@ public partial class SpriteEditor : DocumentEditor, IShapeEditorHost
                     UI.Flex();
                 }
 
-                UI.Separator(EditorStyle.Palette.PanelSeparator);
+                UI.Separator(EditorStyle.Palette.Separator);
 
                 var blockCount = maxSlots / 4;
                 for (var blockIndex = 0; blockIndex < blockCount; blockIndex++)
@@ -229,7 +229,7 @@ public partial class SpriteEditor : DocumentEditor, IShapeEditorHost
                 }
             }
 
-            UI.Separator(EditorStyle.Palette.PanelSeparator);
+            UI.Separator(EditorStyle.Palette.Separator);
 
             // Single row of frame cells
             using (UI.BeginRow(EditorStyle.SpriteEditor.LayerRow))
@@ -1034,13 +1034,28 @@ public partial class SpriteEditor : DocumentEditor, IShapeEditorHost
         {
             if (Inspector.IsSectionCollapsed) return;
 
-            using (Inspector.BeginRow())
-            using (UI.BeginFlex())
-                GenerationStyleUI();
+            // style
+            using (Inspector.BeginProperty("Style"))
+                UI.DropDown(
+                    WidgetIds.StyleDropDown,
+                    text: Document.StyleName ?? "None",
+                    icon: EditorAssets.Sprites.AssetIconGenstyle,
+                    getItems: () =>
+                    {
+                        var items = new List<PopupMenuItem>
+                        {
+                        PopupMenuItem.Item("None", () => SetStyle(null))
+                        };
+                        foreach (var doc in DocumentManager.Documents)
+                        {
+                            if (doc is GenStyleDocument styleDoc)
+                                items.Add(PopupMenuItem.Item(styleDoc.Name, () => SetStyle(styleDoc)));
+                        }
+                        return [.. items];
+                    });
 
-            using (Inspector.BeginRow())
-            using (UI.BeginFlex())
-                Document.Prompt = UI.TextInput(WidgetIds.LayerPrompt, Document.Prompt, EditorStyle.TextArea, "Prompt", Document, multiLine: true);
+            using (Inspector.BeginProperty("Prompt"))
+                Document.Prompt = UI.TextInput(WidgetIds.LayerPrompt, Document.Prompt, EditorStyle.TextArea with { Height = Size.Fit }, "Prompt", Document, multiLine: true);
 
             using (Inspector.BeginRow())
             using (UI.BeginFlex())
@@ -1117,20 +1132,7 @@ public partial class SpriteEditor : DocumentEditor, IShapeEditorHost
 
     private void GenerationStyleUI()
     {
-        UI.DropDown(WidgetIds.StyleDropDown, () =>
-        {
-            var items = new List<PopupMenuItem>
-            {
-                PopupMenuItem.Item("None", () => SetStyle(null))
-            };
-            foreach (var doc in DocumentManager.Documents)
-            {
-                if (doc is GenStyleDocument styleDoc)
-                    items.Add(PopupMenuItem.Item(styleDoc.Name, () => SetStyle(styleDoc)));
-            }
-            return [.. items];
-        }, Document.StyleName ?? "None",
-        icon: EditorAssets.Sprites.AssetIconGenstyle);
+
     }
 
     private void SetStyle(GenStyleDocument? style)
@@ -1161,7 +1163,7 @@ public partial class SpriteEditor : DocumentEditor, IShapeEditorHost
             {
                 UI.Text(progressText, EditorStyle.Text.Primary with { FontSize = EditorStyle.Control.TextSize });
                 UI.Flex();
-                if (UI.Button(WidgetIds.CancelButton, EditorAssets.Sprites.IconClose, EditorStyle.Button.SmallIconOnly))
+                if (UI.Button(WidgetIds.CancelButton, EditorAssets.Sprites.IconClose, EditorStyle.Button.IconOnly))
                     genImage.CancelGeneration();
             }
 

@@ -198,7 +198,7 @@ internal static partial class EditorUI
     }
 
     public static void ControlIcon(Sprite? icon) =>
-        ControlIcon(EditorStyle.Control.IconContainer, icon);
+        ControlIcon(new ContainerStyle { Width = EditorStyle.Control.Height, Height = EditorStyle.Control.Height }, icon);
 
     // --- Color Button ---
 

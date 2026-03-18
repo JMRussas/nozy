@@ -31,7 +31,7 @@ internal partial class SkeletonEditor : DocumentEditor
     private readonly SavedBone[] _savedBones = new SavedBone[Skeleton.MaxBones];
     private Vector2 _selectionCenter;
     private Vector2 _selectionCenterWorld;
-    private PopupMenuItem[] _contextMenuItems = null!;
+    //private PopupMenuItem[] _contextMenuItems = null!;
     private bool _clearSelectionOnUp;
     private bool _ignoreUp;
     private bool _showPreview = true;
@@ -58,8 +58,7 @@ internal partial class SkeletonEditor : DocumentEditor
             new Command { Name = "Create Bone", Handler = BeginCreateBone, Key = InputCode.KeyV },
         ];
 
-        bool HasSelection() => Document.SelectedBoneCount > 0;
-
+        //bool HasSelection() => Document.SelectedBoneCount > 0;
         //_contextMenuItems = [
         //    PopupMenuItem.FromCommand(renameCommand, enabled: () => Document.SelectedBoneCount == 1),
         //    PopupMenuItem.FromCommand(deleteCommand, enabled: HasSelection),

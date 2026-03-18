@@ -34,16 +34,19 @@ public static unsafe partial class ElementTree
         {
             case ElementType.Size:
             {
-                var mode = e.Data.Size[axis].Mode;
+                var mode = e.Data.Size.Size[axis].Mode;
                 if (mode == SizeMode.Default)
                     mode = SizeMode.Fit;
-                return mode switch
+                var fit = mode switch
                 {
-                    SizeMode.Fixed => e.Data.Size[axis].Value,
+                    SizeMode.Fixed => e.Data.Size.Size[axis].Value,
                     SizeMode.Fit => e.ChildCount > 0 ? FitAxis(e.FirstChild, axis, layoutAxis) : 0,
                     SizeMode.Percent => 0,
                     _ => 0
                 };
+                var fitMin = axis == 0 ? e.Data.Size.MinWidth : e.Data.Size.MinHeight;
+                var fitMax = axis == 0 ? e.Data.Size.MaxWidth : e.Data.Size.MaxHeight;
+                return Math.Clamp(fit, fitMin, fitMax);
             }
 
             case ElementType.Padding:
@@ -202,17 +205,20 @@ public static unsafe partial class ElementTree
         {
             case ElementType.Size:
             {
-                var mode = e.Data.Size[axis].Mode;
+                var mode = e.Data.Size.Size[axis].Mode;
                 var isDefault = mode == SizeMode.Default;
                 if (isDefault)
                     mode = (layoutAxis == axis) ? SizeMode.Fit : SizeMode.Percent;
                 size = mode switch
                 {
-                    SizeMode.Fixed => e.Data.Size[axis].Value,
-                    SizeMode.Percent => available * (isDefault ? 1.0f : e.Data.Size[axis].Value),
+                    SizeMode.Fixed => e.Data.Size.Size[axis].Value,
+                    SizeMode.Percent => available * (isDefault ? 1.0f : e.Data.Size.Size[axis].Value),
                     SizeMode.Fit => e.ChildCount > 0 ? FitAxis(e.FirstChild, axis, layoutAxis) : 0,
                     _ => 0
                 };
+                var min = axis == 0 ? e.Data.Size.MinWidth : e.Data.Size.MinHeight;
+                var max = axis == 0 ? e.Data.Size.MaxWidth : e.Data.Size.MaxHeight;
+                size = Math.Clamp(size, min, max);
                 break;
             }
 
@@ -412,7 +418,7 @@ public static unsafe partial class ElementTree
             }
             case ElementType.Size:
             {
-                var mode = e.Data.Size[axis].Mode;
+                var mode = e.Data.Size.Size[axis].Mode;
                 var isFit = mode == SizeMode.Fit || (mode == SizeMode.Default && layoutAxis == axis);
                 LayoutChildrenAxis(ref e, e.Rect[axis], size, axis, isFit ? layoutAxis : -1);
                 break;

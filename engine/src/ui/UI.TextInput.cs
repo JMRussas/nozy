@@ -39,11 +39,10 @@ public static partial class UI
         var s = style.Resolve != null ? style.Resolve(style, flags) : style;
 
         var font = s.Font ?? DefaultFont;
-        var floatingLabel = s.PlaceholderMode == PlaceholderMode.FloatingLabel && placeholder != null;
-        var height = s.Height.IsFixed ? s.Height.Value : s.FontSize * 1.8f;
+        const float DefaultHeightScale = 1.8f;
+        var height = s.Height.IsFixed ? s.Height : multiLine ? Size.Fit : new Size(s.FontSize * DefaultHeightScale);
 
-        if (!floatingLabel)
-            ElementTree.BeginSize(s.Width, new Size(height));
+        ElementTree.BeginSize(s.Width, height);
 
         if (s.BackgroundColor.A > 0 || s.BorderWidth > 0)
             ElementTree.BeginFill(s.BackgroundColor, s.BorderRadius, s.BorderWidth, s.BorderColor);
@@ -67,12 +66,6 @@ public static partial class UI
                 new Align2(Align.Min, Align.Center));
         }
 
-        if (floatingLabel)
-        {
-            ElementTree.BeginColumn(4);
-            ElementTree.Text(placeholder, font, s.LabelFontSize, s.LabelColor);
-        }
-
         value = ElementTree.EditableText(
             ref state,
             value,
@@ -81,7 +74,7 @@ public static partial class UI
             s.TextColor,
             s.TextColor,
             s.SelectionColor,
-            floatingLabel ? null : placeholder,
+            placeholder,
             s.PlaceholderColor,
             multiLine,
             false,
@@ -100,9 +93,6 @@ public static partial class UI
                     handler.CancelChange();
             }
         }
-
-        if (floatingLabel)
-            ElementTree.EndColumn();
 
         if (hasIcon)
             ElementTree.EndRow();

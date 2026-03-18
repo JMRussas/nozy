@@ -134,7 +134,7 @@ internal partial class AnimationEditor : DocumentEditor
     private bool _showSkeleton = true;
     private bool _clearSelectionOnUp;
     private bool _ignoreUp;
-    private PopupMenuItem[] _contextMenuItems;
+    //private PopupMenuItem[] _contextMenuItems;
     private Vector2 _selectionCenter;
     private Vector2 _selectionCenterWorld;
     private bool _onionSkin;
@@ -176,14 +176,14 @@ internal partial class AnimationEditor : DocumentEditor
             new Command { Name = "Mirror Pose", Handler = MirrorPose, Key = InputCode.KeyM },
         ];
 
-        bool HasSelection() => Document.SelectedBoneCount > 0;
+        //bool HasSelection() => Document.SelectedBoneCount > 0;
 
-        _contextMenuItems = [
+        //_contextMenuItems = [
             //PopupMenuItem.FromCommand(copyCommand, enabled: HasSelection),
             //PopupMenuItem.FromCommand(pasteCommand, enabled: Clipboard.Is<AnimationFrameData>),
             //PopupMenuItem.Separator(),
             //PopupMenuItem.FromCommand(exitEditCommand),
-        ];
+        //];
 
         ClearSelection();
         Document.UpdateTransforms();

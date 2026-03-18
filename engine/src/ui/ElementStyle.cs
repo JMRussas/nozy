@@ -146,12 +146,6 @@ public struct PopupStyle()
     public Align PopupAlignY { readonly get => PopupAlign.Y; set => PopupAlign.Y = value; }
 }
 
-public enum PlaceholderMode
-{
-    Inline,
-    FloatingLabel,
-}
-
 public struct TextInputStyle()
 {
     public Size Width = Size.Percent(1);
@@ -168,7 +162,6 @@ public struct TextInputStyle()
     public EdgeInsets Padding = EdgeInsets.Zero;
     public bool IsPassword = false;
     public InputScope Scope = InputScope.All;
-    public PlaceholderMode PlaceholderMode = PlaceholderMode.Inline;
     public float LabelFontSize = 9;
     public Color LabelColor = new(0.47f, 0.47f, 0.47f, 1f);
     public float IconSize = 14;

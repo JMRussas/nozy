@@ -33,26 +33,26 @@ public static class Grid
             Graphics.SetTexture(Graphics.WhiteTexture);
             Graphics.SetShader(EditorAssets.Shaders.Texture);
 
-            DrawZeroLines(camera, EditorStyle.Palette.Grid.WithAlpha(EditorStyle.Workspace.GridZeroAlpha));
+            DrawZeroLines(camera, EditorStyle.Palette.Active.WithAlpha(EditorStyle.Workspace.GridZeroAlpha));
 
             if (IsPixelGridVisible)
             {
-                Gizmos.SetColor(EditorStyle.Palette.Grid.WithAlpha(world.CoarseAlpha * EditorStyle.Workspace.GridAlpha));
+                Gizmos.SetColor(EditorStyle.Palette.Active.WithAlpha(world.CoarseAlpha * EditorStyle.Workspace.GridAlpha));
                 DrawHorizontalLines(camera, world.FineSpacing);
                 DrawVerticalLines(camera, world.FineSpacing);
 
                 Graphics.SetLayer(EditorLayer.PixelGrid);
-                Gizmos.SetColor(EditorStyle.Palette.Grid.WithAlpha(pixelGridAlpha));
+                Gizmos.SetColor(EditorStyle.Palette.Active.WithAlpha(pixelGridAlpha));
                 DrawHorizontalLines(camera, pixelSize);
                 DrawVerticalLines(camera, pixelSize);
             }
             else
             {
-                Gizmos.SetColor(EditorStyle.Palette.Grid.WithAlpha(world.CoarseAlpha * EditorStyle.Workspace.GridAlpha));
+                Gizmos.SetColor(EditorStyle.Palette.Active.WithAlpha(world.CoarseAlpha * EditorStyle.Workspace.GridAlpha));
                 DrawHorizontalLines(camera, world.CoarseSpacing);
                 DrawVerticalLines(camera, world.CoarseSpacing);
 
-                Gizmos.SetColor(EditorStyle.Palette.Grid.WithAlpha(world.FineAlpha * EditorStyle.Workspace.GridAlpha));
+                Gizmos.SetColor(EditorStyle.Palette.Active.WithAlpha(world.FineAlpha * EditorStyle.Workspace.GridAlpha));
                 DrawHorizontalLines(camera, world.FineSpacing);
                 DrawVerticalLines(camera, world.FineSpacing);
             }

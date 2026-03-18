@@ -149,7 +149,7 @@ public static partial class AssetBrowser
     {
         using (UI.BeginRow(EditorStyle.Popup.Item with { Spacing = 4.0f }))
         {
-            using (UI.BeginContainer(EditorStyle.Control.IconContainer))
+            using (UI.BeginContainer(new ContainerStyle { Width = EditorStyle.Control.Height, Height = EditorStyle.Control.Height }))
                 UI.Image(EditorAssets.Sprites.IconSearch, EditorStyle.Control.Icon);
 
             using (UI.BeginFlex())
@@ -185,7 +185,7 @@ public static partial class AssetBrowser
                     UI.Text("No matches", new LabelStyle
                     {
                         FontSize = EditorStyle.Control.TextSize,
-                        Color = EditorStyle.Palette.Placeholder,
+                        Color = EditorStyle.Palette.SecondaryText,
                         AlignY = Align.Center,
                     });
                 }
@@ -205,11 +205,11 @@ public static partial class AssetBrowser
                     BorderRadius = hovered ? 2 : 0,
                 }))
                 {
-                    using (UI.BeginContainer(EditorStyle.Control.IconContainer))
+                    using (UI.BeginContainer(new ContainerStyle { Width = EditorStyle.Control.Height, Height = EditorStyle.Control.Height }))
                         UI.Image(EditorAssets.Sprites.AssetIconSprite, new ImageStyle
                         {
                             Size = EditorStyle.Control.IconSize,
-                            Color = hovered ? EditorStyle.Palette.HeaderText : EditorStyle.Palette.Label,
+                            Color = hovered ? EditorStyle.Palette.Content : EditorStyle.Palette.SecondaryText,
                             Align = Align.Center,
                         });
 

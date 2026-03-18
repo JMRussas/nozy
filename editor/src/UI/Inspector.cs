@@ -49,56 +49,56 @@ internal static partial class Inspector
         var sectionId = _nextSectionId++;
         _sectionActive = isActive;
 
-        // Outer section wrapper
         ElementTree.BeginColumn();
 
-        var borderColor = isActive ? EditorStyle.Palette.Primary : Color.Transparent;
-        ElementTree.BeginFill(Color.Transparent, default, 1.25f, borderColor);
-        ElementTree.BeginPadding(EdgeInsets.All(1 + 1.25f));
-        ElementTree.BeginColumn();
-
-        // Header (self-contained tree)
+        // header
         ElementTree.BeginTree();
         ref var state = ref ElementTree.BeginWidget<SectionState>(sectionId);
         var flags = ElementTree.GetWidgetFlags();
         var hovered = flags.HasFlag(WidgetFlags.Hovered);
 
         _wasHeaderPressed = flags.HasFlag(WidgetFlags.Pressed);
+        _sectionCollapsed = state.Collapsed != 0 || collapsed;
 
         if (_wasHeaderPressed)
             state.Collapsed = (byte)(state.Collapsed != 0 ? 0 : 1);
 
-        var iconColor = isActive ? EditorStyle.Palette.Content : EditorStyle.Palette.HeaderText;
-        var headerBg = hovered ? EditorStyle.Palette.Secondary : EditorStyle.Palette.Header;
+        var iconColor = isActive ? EditorStyle.Palette.Content : EditorStyle.Palette.SecondaryText;
+        var headerBg = hovered ? EditorStyle.Palette.Active : EditorStyle.Palette.Separator;
         var chevron = (state.Collapsed != 0 || collapsed)
             ? EditorAssets.Sprites.IconFoldoutClosed
             : EditorAssets.Sprites.IconFoldoutOpen;
 
         ElementTree.BeginSize(Size.Default, EditorStyle.Control.Height);
-        ElementTree.BeginFill(headerBg);
+        ElementTree.BeginFill(headerBg, radius: BorderRadius.Only(
+            topLeft: EditorStyle.Control.BorderRadius,
+            topRight: EditorStyle.Control.BorderRadius,
+            bottomLeft: _sectionCollapsed ? EditorStyle.Control.BorderRadius : 0,
+            bottomRight: _sectionCollapsed ? EditorStyle.Control.BorderRadius : 0));
         ElementTree.BeginPadding(EdgeInsets.LeftRight(8));
-        ElementTree.BeginRow(EditorStyle.Inspector.HeaderGap);
 
-        ElementTree.Image(chevron, EditorStyle.Icon.SmallSize, ImageStretch.Uniform, iconColor, 1.0f, Align.Center);
+        ElementTree.BeginRow(EditorStyle.Control.Spacing);
+        ElementTree.Image(chevron, EditorStyle.Icon.Size, ImageStretch.Uniform, iconColor, 1.0f, Align.Center);
 
         if (icon != null)
             ElementTree.Image(icon, EditorStyle.Control.IconSize, ImageStretch.Uniform, iconColor, 1.0f, new Align2(Align.Center, Align.Center));
 
-        ElementTree.Text(name, UI.DefaultFont, EditorStyle.Control.TextSize, EditorStyle.Palette.HeaderText, new Align2(Align.Min, Align.Center));
-
+        ElementTree.Text(name, UI.DefaultFont, EditorStyle.Control.TextSize, EditorStyle.Palette.SecondaryText, new Align2(Align.Min, Align.Center));
         ElementTree.Flex();
 
         content?.Invoke();
 
         ElementTree.EndTree();
 
-        _sectionCollapsed = state.Collapsed != 0 || collapsed;
+        // content        
 
-        // Body (only if not collapsed)
         if (!_sectionCollapsed)
         {
-            ElementTree.BeginFill(EditorStyle.Palette.Panel);
-            ElementTree.BeginPadding(EdgeInsets.Symmetric(EditorStyle.Inspector.BodyPaddingV, EditorStyle.Inspector.BodyPaddingH));
+            ElementTree.BeginPadding(new EdgeInsets(
+                EditorStyle.Control.Spacing,
+                EditorStyle.Inspector.BodyPaddingH,
+                0,
+                EditorStyle.Inspector.BodyPaddingH));
             ElementTree.BeginColumn(EditorStyle.Inspector.BodyGap);
         }
 
@@ -116,36 +116,32 @@ internal static partial class Inspector
         {
             ElementTree.EndColumn();
             ElementTree.EndPadding();
-            ElementTree.EndFill();
         }
 
         _sectionCollapsed = false;
 
         ElementTree.EndColumn();
-        ElementTree.EndPadding();
-        ElementTree.EndFill();
 
-        ElementTree.BeginSize(Size.Default, 2);
-        ElementTree.Fill(EditorStyle.Palette.PanelSeparator);
-        ElementTree.EndSize();
-
-        ElementTree.EndColumn();
         _sectionActive = false;
     }
 
     public static AutoProperty BeginProperty(string name)
     {
+        ElementTree.BeginSize(Size.Default, Size.Fit, 0, float.MaxValue, EditorStyle.Control.Height, float.MaxValue);
         ElementTree.BeginRow();
         ElementTree.BeginFlex(0.4f);
         UI.Text(name, style: EditorStyle.Text.Secondary);
         ElementTree.EndFlex();
         ElementTree.BeginFlex(0.6f);
+        ElementTree.BeginSize(Size.Default, Size.Fit, 0, float.MaxValue, EditorStyle.Control.Height, float.MaxValue);
         return new AutoProperty();
     }
 
     public static void EndProperty()
     {
+        ElementTree.EndSize();
         ElementTree.EndFlex();
         ElementTree.EndRow();
+        ElementTree.EndSize();
     }
 }

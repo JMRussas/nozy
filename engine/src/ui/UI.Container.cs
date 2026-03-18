@@ -25,7 +25,7 @@ public static partial class UI
         if (style.Align.X != Align.Min || style.Align.Y != Align.Min)
             ElementTree.BeginAlign(style.Align);
 
-        ElementTree.BeginSize(style.Size);
+        ElementTree.BeginSize(style.Size, style.MinWidth, style.MaxWidth, style.MinHeight, style.MaxHeight);
 
         if (!resolved.Background.IsTransparent || resolved.BorderWidth > 0)
             ElementTree.BeginFill(resolved.Background, style.BorderRadius, resolved.BorderWidth, resolved.BorderColor, style.Order);
