@@ -4779,6 +4779,28 @@
               ]
             }
           ]
+        },
+        {
+          "type": "frame",
+          "id": "ZtYco",
+          "name": "Section Action",
+          "reusable": true,
+          "width": 18,
+          "height": 18,
+          "cornerRadius": 3,
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "id": "LsYFf",
+              "type": "ref",
+              "ref": "49yTu",
+              "name": "Icon",
+              "iconFontName": "plus",
+              "x": 4.5,
+              "y": 4.5
+            }
+          ]
         }
       ]
     },
@@ -4800,6 +4822,7 @@
           "width": "fill_container",
           "layout": "vertical",
           "gap": 16,
+          "padding": 8,
           "children": [
             {
               "type": "frame",
@@ -5024,6 +5047,223 @@
                           "y": 7
                         }
                       ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "lRuh3",
+                      "name": "Actions Label",
+                      "fill": "#555555",
+                      "content": "List Section",
+                      "fontFamily": "Inter",
+                      "fontSize": 6,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "MRHUS",
+                      "name": "List Section Header",
+                      "reusable": true,
+                      "width": "fill_container",
+                      "height": 27,
+                      "fill": "$separator",
+                      "cornerRadius": "$corner-radius",
+                      "gap": 4,
+                      "padding": [
+                        0,
+                        5
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "id": "ltDMo",
+                          "type": "ref",
+                          "ref": "49yTu",
+                          "name": "Chevron",
+                          "iconFontName": "chevron-down",
+                          "x": 5,
+                          "y": 9
+                        },
+                        {
+                          "id": "6DnPn",
+                          "type": "ref",
+                          "ref": "49yTu",
+                          "name": "Icon",
+                          "iconFontName": "layers",
+                          "x": 18,
+                          "y": 9
+                        },
+                        {
+                          "id": "7NESv",
+                          "type": "ref",
+                          "ref": "1bEvv",
+                          "name": "Title",
+                          "content": "Components",
+                          "x": 31,
+                          "y": 7
+                        },
+                        {
+                          "type": "frame",
+                          "id": "gBqQo",
+                          "name": "Flex",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "id": "xq0KT",
+                          "type": "ref",
+                          "ref": "ZtYco",
+                          "name": "Add",
+                          "fill": "$active",
+                          "x": 126,
+                          "y": 4.5,
+                          "descendants": {
+                            "LsYFf": {
+                              "iconFontName": "plus"
+                            }
+                          }
+                        },
+                        {
+                          "id": "F08nA",
+                          "type": "ref",
+                          "ref": "ZtYco",
+                          "name": "Remove",
+                          "x": 148,
+                          "y": 4.5,
+                          "descendants": {
+                            "LsYFf": {
+                              "iconFontName": "minus"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "dZQBf",
+                      "name": "List Container",
+                      "width": "fill_container",
+                      "height": 50,
+                      "fill": "$control",
+                      "cornerRadius": "$corner-radius",
+                      "layout": "vertical"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "oN7AP",
+                      "name": "Item States",
+                      "width": "fill_container",
+                      "gap": 16,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "ZGqD6",
+                          "name": "Default",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "Wjj7b",
+                              "name": "lbl",
+                              "fill": "#555555",
+                              "content": "Default",
+                              "fontFamily": "Inter",
+                              "fontSize": 6,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "IAgm2",
+                              "name": "List Item",
+                              "reusable": true,
+                              "width": 120,
+                              "height": 27,
+                              "gap": 6,
+                              "padding": [
+                                0,
+                                8
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "id": "UJXRA",
+                                  "type": "ref",
+                                  "ref": "49yTu",
+                                  "name": "Icon",
+                                  "iconFontName": "file",
+                                  "x": 8,
+                                  "y": 9
+                                },
+                                {
+                                  "id": "4862N",
+                                  "type": "ref",
+                                  "ref": "ERdcn",
+                                  "name": "Label",
+                                  "content": "Item Name",
+                                  "x": 23,
+                                  "y": 7
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "P0uKM",
+                          "name": "Selected",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "EMYkh",
+                              "name": "lbl",
+                              "fill": "#555555",
+                              "content": "Selected",
+                              "fontFamily": "Inter",
+                              "fontSize": 6,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "O9Myc",
+                              "name": "List Item Selected",
+                              "reusable": true,
+                              "width": 120,
+                              "height": 27,
+                              "fill": "$active",
+                              "gap": 6,
+                              "padding": [
+                                0,
+                                8
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "id": "COty1",
+                                  "type": "ref",
+                                  "ref": "49yTu",
+                                  "name": "Icon",
+                                  "iconFontName": "file",
+                                  "x": 8,
+                                  "y": 9
+                                },
+                                {
+                                  "id": "vROPk",
+                                  "type": "ref",
+                                  "ref": "ERdcn",
+                                  "name": "Label",
+                                  "content": "Item Name",
+                                  "x": 23,
+                                  "y": 7
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
                     }
                   ]
                 }
@@ -5031,740 +5271,860 @@
             },
             {
               "type": "frame",
-              "id": "XhosN",
-              "name": "Property Row",
-              "reusable": true,
+              "id": "UynI5",
+              "name": "Property",
               "width": "fill_container",
-              "gap": 8,
-              "padding": [
-                0,
-                8
-              ],
+              "layout": "vertical",
+              "gap": 11,
               "children": [
                 {
-                  "type": "frame",
-                  "id": "0c7q7",
-                  "name": "Label",
-                  "width": 65,
-                  "height": 27,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "id": "60Gqq",
-                      "type": "ref",
-                      "ref": "1bEvv",
-                      "name": "Text",
-                      "content": "Property",
-                      "width": 65,
-                      "textGrowth": "fixed-width",
-                      "x": 0,
-                      "y": 7
-                    }
-                  ]
+                  "type": "text",
+                  "id": "qlIoF",
+                  "name": "propTitle",
+                  "fill": "#AAAAAA",
+                  "content": "Property",
+                  "fontFamily": "Inter",
+                  "fontSize": 9,
+                  "fontWeight": "600"
                 },
                 {
                   "type": "frame",
-                  "id": "1edHd",
-                  "name": "Control",
-                  "slot": [
-                    "WRBq0"
-                  ],
-                  "width": "fill_container",
-                  "height": "fit_content(27)",
-                  "alignItems": "center"
+                  "id": "8sM0o",
+                  "name": "Property Samples",
+                  "width": 187,
+                  "fill": "#232428",
+                  "cornerRadius": 3,
+                  "layout": "vertical",
+                  "gap": 8,
+                  "padding": 8,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "XhosN",
+                      "name": "Property Row",
+                      "reusable": true,
+                      "width": "fill_container",
+                      "gap": 8,
+                      "padding": [
+                        0,
+                        8
+                      ],
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "0c7q7",
+                          "name": "Label",
+                          "width": 65,
+                          "height": 27,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "id": "60Gqq",
+                              "type": "ref",
+                              "ref": "1bEvv",
+                              "name": "Text",
+                              "content": "Property",
+                              "width": 65,
+                              "textGrowth": "fixed-width",
+                              "x": 0,
+                              "y": 7
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "1edHd",
+                          "name": "Control",
+                          "slot": [
+                            "WRBq0"
+                          ],
+                          "width": "fill_container",
+                          "height": "fit_content(27)",
+                          "alignItems": "center"
+                        }
+                      ]
+                    }
+                  ]
                 }
               ]
             },
             {
-              "type": "text",
-              "id": "BH6rF",
-              "name": "Mock Inspector Label",
-              "fill": "#555555",
-              "content": "Mock Inspector",
-              "fontFamily": "Inter",
-              "fontSize": 6,
-              "fontWeight": "normal"
-            },
-            {
-              "id": "sOPp8",
-              "type": "ref",
-              "ref": "AkT8O",
+              "type": "frame",
+              "id": "JXzrK",
               "name": "Mock Inspector",
               "width": "fill_container",
-              "height": "fit_content",
-              "gap": 1,
-              "padding": [
-                0,
-                4
-              ],
-              "x": 0,
-              "y": 262,
+              "layout": "vertical",
+              "gap": 11,
               "children": [
                 {
-                  "id": "VIsRK",
-                  "type": "ref",
-                  "ref": "94Fgs",
-                  "name": "Transform Section",
-                  "width": "fill_container",
-                  "x": 4,
-                  "y": 0,
-                  "descendants": {
-                    "vHcCi": {
-                      "iconFontName": "move"
-                    },
-                    "QF7hf": {
-                      "content": "Transform",
-                      "y": 7
-                    },
-                    "4Qa8a": {
-                      "width": "fill_container",
-                      "x": 89,
-                      "y": 13
-                    },
-                    "RWoWZ": {
-                      "x": 278
-                    }
-                  }
+                  "type": "text",
+                  "id": "BH6rF",
+                  "name": "Mock Inspector Label",
+                  "fill": "#AAAAAA",
+                  "content": "Mock Inspector",
+                  "fontFamily": "Inter",
+                  "fontSize": 9,
+                  "fontWeight": "600"
                 },
                 {
-                  "type": "frame",
-                  "id": "V1X8x",
-                  "name": "Transform Properties",
+                  "id": "sOPp8",
+                  "type": "ref",
+                  "ref": "AkT8O",
+                  "name": "Mock Inspector",
                   "width": "fill_container",
-                  "layout": "vertical",
-                  "gap": 4,
+                  "height": "fit_content",
+                  "gap": 1,
                   "padding": [
-                    4,
-                    0
+                    0,
+                    4
                   ],
+                  "x": 0,
+                  "y": 22,
                   "children": [
                     {
-                      "id": "cYMEp",
+                      "id": "VIsRK",
                       "type": "ref",
-                      "ref": "XhosN",
-                      "name": "Id Row",
+                      "ref": "94Fgs",
+                      "name": "Transform Section",
                       "width": "fill_container",
-                      "y": 4,
-                      "height": "fit_content",
+                      "x": 4,
+                      "y": 0,
                       "descendants": {
-                        "0c7q7": {
-                          "x": 8
+                        "vHcCi": {
+                          "iconFontName": "move"
                         },
-                        "60Gqq": {
-                          "content": "Id",
+                        "QF7hf": {
+                          "content": "Transform",
                           "y": 7
                         },
-                        "1edHd": {
+                        "4Qa8a": {
                           "width": "fill_container",
-                          "x": 81,
-                          "children": [
-                            {
-                              "id": "NZRx5",
-                              "type": "ref",
-                              "ref": "aH8ud",
-                              "name": "idIn",
-                              "width": "fill_container",
-                              "y": 0,
-                              "descendants": {
-                                "GZqkw": {
-                                  "enabled": false
-                                },
-                                "Nmxrt": {
-                                  "content": "go",
-                                  "x": 5
-                                }
-                              }
-                            }
-                          ]
+                          "x": 89,
+                          "y": 13
+                        },
+                        "RWoWZ": {
+                          "x": 262
                         }
                       }
                     },
                     {
-                      "id": "TQ6lg",
-                      "type": "ref",
-                      "ref": "XhosN",
-                      "name": "URL Row",
+                      "type": "frame",
+                      "id": "V1X8x",
+                      "name": "Transform Properties",
                       "width": "fill_container",
-                      "y": 35,
-                      "height": "fit_content",
-                      "descendants": {
-                        "0c7q7": {
-                          "x": 8
-                        },
-                        "60Gqq": {
-                          "content": "URL",
-                          "y": 7
-                        },
-                        "1edHd": {
+                      "layout": "vertical",
+                      "gap": 4,
+                      "padding": [
+                        4,
+                        0
+                      ],
+                      "children": [
+                        {
+                          "id": "cYMEp",
+                          "type": "ref",
+                          "ref": "XhosN",
+                          "name": "Id Row",
                           "width": "fill_container",
-                          "x": 81,
-                          "children": [
-                            {
-                              "id": "gl8VB",
-                              "type": "ref",
-                              "ref": "aH8ud",
-                              "name": "urlIn",
+                          "y": 4,
+                          "height": "fit_content",
+                          "descendants": {
+                            "0c7q7": {
+                              "x": 8
+                            },
+                            "60Gqq": {
+                              "content": "Id",
+                              "y": 7
+                            },
+                            "1edHd": {
                               "width": "fill_container",
-                              "y": 0,
-                              "descendants": {
-                                "GZqkw": {
-                                  "enabled": false
-                                },
-                                "Nmxrt": {
-                                  "content": "/go",
-                                  "x": 5
+                              "x": 81,
+                              "children": [
+                                {
+                                  "id": "NZRx5",
+                                  "type": "ref",
+                                  "ref": "aH8ud",
+                                  "name": "idIn",
+                                  "width": "fill_container",
+                                  "y": 0,
+                                  "descendants": {
+                                    "GZqkw": {
+                                      "enabled": false
+                                    },
+                                    "Nmxrt": {
+                                      "content": "go",
+                                      "x": 5
+                                    }
+                                  }
                                 }
-                              }
+                              ]
                             }
-                          ]
-                        }
-                      }
-                    },
-                    {
-                      "id": "gjmRe",
-                      "type": "ref",
-                      "ref": "XhosN",
-                      "name": "Testing Row",
-                      "width": "fill_container",
-                      "height": "fit_content",
-                      "alignItems": "start",
-                      "y": 66,
-                      "descendants": {
-                        "0c7q7": {
-                          "x": 8
+                          }
                         },
-                        "60Gqq": {
-                          "x": 0,
-                          "y": 7,
-                          "content": "Testing"
+                        {
+                          "id": "TQ6lg",
+                          "type": "ref",
+                          "ref": "XhosN",
+                          "name": "URL Row",
+                          "width": "fill_container",
+                          "y": 35,
+                          "height": "fit_content",
+                          "descendants": {
+                            "0c7q7": {
+                              "x": 8
+                            },
+                            "60Gqq": {
+                              "content": "URL",
+                              "y": 7
+                            },
+                            "1edHd": {
+                              "width": "fill_container",
+                              "x": 81,
+                              "children": [
+                                {
+                                  "id": "gl8VB",
+                                  "type": "ref",
+                                  "ref": "aH8ud",
+                                  "name": "urlIn",
+                                  "width": "fill_container",
+                                  "y": 0,
+                                  "descendants": {
+                                    "GZqkw": {
+                                      "enabled": false
+                                    },
+                                    "Nmxrt": {
+                                      "content": "/go",
+                                      "x": 5
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
                         },
-                        "1edHd": {
+                        {
+                          "id": "gjmRe",
+                          "type": "ref",
+                          "ref": "XhosN",
+                          "name": "Testing Row",
                           "width": "fill_container",
                           "height": "fit_content",
-                          "x": 81,
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "BaYSr",
-                              "name": "Value",
-                              "width": "fill_container",
-                              "fill": "$control",
-                              "cornerRadius": "$corner-radius",
-                              "layout": "vertical",
-                              "padding": [
-                                5,
-                                7
-                              ],
-                              "children": [
-                                {
-                                  "id": "ofrQc",
-                                  "type": "ref",
-                                  "ref": "ERdcn",
-                                  "content": "The quick brown fox jumps over the lazy dog",
-                                  "name": "Value",
-                                  "x": 7,
-                                  "y": 5,
-                                  "textGrowth": "fixed-width",
-                                  "width": "fill_container"
-                                }
-                              ]
-                            }
-                          ]
-                        }
-                      }
-                    },
-                    {
-                      "id": "liaFj",
-                      "type": "ref",
-                      "ref": "XhosN",
-                      "name": "Position Row",
-                      "width": "fill_container",
-                      "y": 106,
-                      "height": "fit_content",
-                      "descendants": {
-                        "0c7q7": {
-                          "x": 8
-                        },
-                        "60Gqq": {
-                          "content": "Position",
-                          "y": 7
-                        },
-                        "1edHd": {
-                          "width": "fill_container",
-                          "x": 81,
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "UMAn4",
-                              "name": "Vec3",
-                              "width": "fill_container",
-                              "height": 27,
-                              "gap": 4,
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "id": "SgSbT",
-                                  "type": "ref",
-                                  "ref": "1bEvv",
-                                  "name": "X",
-                                  "content": "X",
-                                  "x": 0,
-                                  "y": 7
-                                },
-                                {
-                                  "id": "YYNWc",
-                                  "type": "ref",
-                                  "ref": "aH8ud",
-                                  "name": "xv1",
-                                  "width": "fill_container",
-                                  "x": 12,
-                                  "y": 0,
-                                  "descendants": {
-                                    "GZqkw": {
-                                      "enabled": false
-                                    },
-                                    "Nmxrt": {
-                                      "content": "0.0",
-                                      "x": 5
-                                    }
-                                  }
-                                },
-                                {
-                                  "id": "8Wtks",
-                                  "type": "ref",
-                                  "ref": "1bEvv",
-                                  "name": "Y",
-                                  "content": "Y",
-                                  "x": 69.33333333333334,
-                                  "y": 7
-                                },
-                                {
-                                  "id": "eoNqu",
-                                  "type": "ref",
-                                  "ref": "aH8ud",
-                                  "name": "yv1",
-                                  "width": "fill_container",
-                                  "x": 81.33333333333334,
-                                  "y": 0,
-                                  "descendants": {
-                                    "GZqkw": {
-                                      "enabled": false
-                                    },
-                                    "Nmxrt": {
-                                      "content": "0.0",
-                                      "x": 5
-                                    }
-                                  }
-                                },
-                                {
-                                  "id": "dr18C",
-                                  "type": "ref",
-                                  "ref": "1bEvv",
-                                  "name": "Z",
-                                  "content": "Z",
-                                  "x": 138.66666666666669,
-                                  "y": 7
-                                },
-                                {
-                                  "id": "IoH2H",
-                                  "type": "ref",
-                                  "ref": "aH8ud",
-                                  "name": "zv1",
-                                  "width": "fill_container",
-                                  "x": 149.66666666666669,
-                                  "y": 0,
-                                  "descendants": {
-                                    "GZqkw": {
-                                      "enabled": false
-                                    },
-                                    "Nmxrt": {
-                                      "content": "0.0",
-                                      "x": 5
-                                    }
-                                  }
-                                }
-                              ]
-                            }
-                          ]
-                        }
-                      }
-                    },
-                    {
-                      "id": "XlYxc",
-                      "type": "ref",
-                      "ref": "XhosN",
-                      "name": "Rotation Row",
-                      "width": "fill_container",
-                      "y": 137,
-                      "height": "fit_content",
-                      "descendants": {
-                        "0c7q7": {
-                          "x": 8
-                        },
-                        "60Gqq": {
-                          "content": "Rotation",
-                          "y": 7
-                        },
-                        "1edHd": {
-                          "width": "fill_container",
-                          "x": 81,
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "4Szxf",
-                              "name": "Vec3",
-                              "width": "fill_container",
-                              "height": 27,
-                              "gap": 4,
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "id": "o7jMT",
-                                  "type": "ref",
-                                  "ref": "1bEvv",
-                                  "name": "X",
-                                  "content": "X",
-                                  "x": 0,
-                                  "y": 7
-                                },
-                                {
-                                  "id": "ONgGD",
-                                  "type": "ref",
-                                  "ref": "aH8ud",
-                                  "name": "xv2",
-                                  "width": "fill_container",
-                                  "x": 12,
-                                  "y": 0,
-                                  "descendants": {
-                                    "GZqkw": {
-                                      "enabled": false
-                                    },
-                                    "Nmxrt": {
-                                      "content": "0.0",
-                                      "x": 5
-                                    }
-                                  }
-                                },
-                                {
-                                  "id": "tK5TP",
-                                  "type": "ref",
-                                  "ref": "1bEvv",
-                                  "name": "Y",
-                                  "content": "Y",
-                                  "x": 69.33333333333334,
-                                  "y": 7
-                                },
-                                {
-                                  "id": "QkyTo",
-                                  "type": "ref",
-                                  "ref": "aH8ud",
-                                  "name": "yv2",
-                                  "width": "fill_container",
-                                  "x": 81.33333333333334,
-                                  "y": 0,
-                                  "descendants": {
-                                    "GZqkw": {
-                                      "enabled": false
-                                    },
-                                    "Nmxrt": {
-                                      "content": "0.0",
-                                      "x": 5
-                                    }
-                                  }
-                                },
-                                {
-                                  "id": "dqtzo",
-                                  "type": "ref",
-                                  "ref": "1bEvv",
-                                  "name": "Z",
-                                  "content": "Z",
-                                  "x": 138.66666666666669,
-                                  "y": 7
-                                },
-                                {
-                                  "id": "cOOby",
-                                  "type": "ref",
-                                  "ref": "aH8ud",
-                                  "name": "zv2",
-                                  "width": "fill_container",
-                                  "x": 149.66666666666669,
-                                  "y": 0,
-                                  "descendants": {
-                                    "GZqkw": {
-                                      "enabled": false
-                                    },
-                                    "Nmxrt": {
-                                      "content": "0.0",
-                                      "x": 5
-                                    }
-                                  }
-                                }
-                              ]
-                            }
-                          ]
-                        }
-                      }
-                    },
-                    {
-                      "id": "eroLv",
-                      "type": "ref",
-                      "ref": "XhosN",
-                      "name": "Scale Row",
-                      "width": "fill_container",
-                      "y": 168,
-                      "height": "fit_content",
-                      "descendants": {
-                        "0c7q7": {
-                          "x": 8
-                        },
-                        "60Gqq": {
-                          "content": "Scale",
-                          "y": 7
-                        },
-                        "1edHd": {
-                          "width": "fill_container",
-                          "x": 81,
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "cRjW3",
-                              "name": "Vec3",
-                              "width": "fill_container",
-                              "height": 27,
-                              "gap": 4,
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "id": "lSUTr",
-                                  "type": "ref",
-                                  "ref": "1bEvv",
-                                  "name": "X",
-                                  "content": "X",
-                                  "x": 0,
-                                  "y": 7
-                                },
-                                {
-                                  "id": "wgpnS",
-                                  "type": "ref",
-                                  "ref": "aH8ud",
-                                  "name": "xv3",
-                                  "width": "fill_container",
-                                  "x": 12,
-                                  "y": 0,
-                                  "descendants": {
-                                    "GZqkw": {
-                                      "enabled": false
-                                    },
-                                    "Nmxrt": {
-                                      "content": "1.0",
-                                      "x": 5
-                                    }
-                                  }
-                                },
-                                {
-                                  "id": "rR7to",
-                                  "type": "ref",
-                                  "ref": "1bEvv",
-                                  "name": "Y",
-                                  "content": "Y",
-                                  "x": 69.33333333333334,
-                                  "y": 7
-                                },
-                                {
-                                  "id": "RsiVY",
-                                  "type": "ref",
-                                  "ref": "aH8ud",
-                                  "name": "yv3",
-                                  "width": "fill_container",
-                                  "x": 81.33333333333334,
-                                  "y": 0,
-                                  "descendants": {
-                                    "GZqkw": {
-                                      "enabled": false
-                                    },
-                                    "Nmxrt": {
-                                      "content": "1.0",
-                                      "x": 5
-                                    }
-                                  }
-                                },
-                                {
-                                  "id": "15q22",
-                                  "type": "ref",
-                                  "ref": "1bEvv",
-                                  "name": "Z",
-                                  "content": "Z",
-                                  "x": 138.66666666666669,
-                                  "y": 7
-                                },
-                                {
-                                  "id": "OuQy6",
-                                  "type": "ref",
-                                  "ref": "aH8ud",
-                                  "name": "zv3",
-                                  "width": "fill_container",
-                                  "x": 149.66666666666669,
-                                  "y": 0,
-                                  "descendants": {
-                                    "GZqkw": {
-                                      "enabled": false
-                                    },
-                                    "Nmxrt": {
-                                      "content": "1.0",
-                                      "x": 5
-                                    }
-                                  }
-                                }
-                              ]
-                            }
-                          ]
-                        }
-                      }
-                    },
-                    {
-                      "id": "sfTUP",
-                      "type": "ref",
-                      "ref": "XhosN",
-                      "name": "Visible Row",
-                      "width": "fill_container",
-                      "height": "fit_content",
-                      "y": 199,
-                      "descendants": {
-                        "0c7q7": {
-                          "x": 8
-                        },
-                        "60Gqq": {
-                          "content": "Visible",
-                          "y": 7
-                        },
-                        "1edHd": {
-                          "width": "fill_container",
-                          "x": 81,
-                          "height": "fit_content",
-                          "children": [
-                            {
-                              "id": "NExD1",
-                              "type": "ref",
-                              "ref": "28nqC",
-                              "name": "cbInst",
+                          "alignItems": "start",
+                          "y": 66,
+                          "descendants": {
+                            "0c7q7": {
+                              "x": 8
+                            },
+                            "60Gqq": {
                               "x": 0,
-                              "y": 0
+                              "y": 7,
+                              "content": "Testing"
+                            },
+                            "1edHd": {
+                              "width": "fill_container",
+                              "height": "fit_content",
+                              "x": 81,
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "BaYSr",
+                                  "name": "Value",
+                                  "width": "fill_container",
+                                  "fill": "$control",
+                                  "cornerRadius": "$corner-radius",
+                                  "layout": "vertical",
+                                  "padding": [
+                                    5,
+                                    7
+                                  ],
+                                  "children": [
+                                    {
+                                      "id": "ofrQc",
+                                      "type": "ref",
+                                      "ref": "ERdcn",
+                                      "content": "The quick brown fox jumps over the lazy dog",
+                                      "name": "Value",
+                                      "x": 7,
+                                      "y": 5,
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container"
+                                    }
+                                  ]
+                                }
+                              ]
                             }
-                          ]
+                          }
+                        },
+                        {
+                          "id": "liaFj",
+                          "type": "ref",
+                          "ref": "XhosN",
+                          "name": "Position Row",
+                          "width": "fill_container",
+                          "y": 106,
+                          "height": "fit_content",
+                          "descendants": {
+                            "0c7q7": {
+                              "x": 8
+                            },
+                            "60Gqq": {
+                              "content": "Position",
+                              "y": 7
+                            },
+                            "1edHd": {
+                              "width": "fill_container",
+                              "x": 81,
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "UMAn4",
+                                  "name": "Vec3",
+                                  "width": "fill_container",
+                                  "height": 27,
+                                  "gap": 4,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "id": "SgSbT",
+                                      "type": "ref",
+                                      "ref": "1bEvv",
+                                      "name": "X",
+                                      "content": "X",
+                                      "x": 0,
+                                      "y": 7
+                                    },
+                                    {
+                                      "id": "YYNWc",
+                                      "type": "ref",
+                                      "ref": "aH8ud",
+                                      "name": "xv1",
+                                      "width": "fill_container",
+                                      "x": 12,
+                                      "y": 0,
+                                      "descendants": {
+                                        "GZqkw": {
+                                          "enabled": false
+                                        },
+                                        "Nmxrt": {
+                                          "content": "0.0",
+                                          "x": 5
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "id": "8Wtks",
+                                      "type": "ref",
+                                      "ref": "1bEvv",
+                                      "name": "Y",
+                                      "content": "Y",
+                                      "x": 64,
+                                      "y": 7
+                                    },
+                                    {
+                                      "id": "eoNqu",
+                                      "type": "ref",
+                                      "ref": "aH8ud",
+                                      "name": "yv1",
+                                      "width": "fill_container",
+                                      "x": 76,
+                                      "y": 0,
+                                      "descendants": {
+                                        "GZqkw": {
+                                          "enabled": false
+                                        },
+                                        "Nmxrt": {
+                                          "content": "0.0",
+                                          "x": 5
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "id": "dr18C",
+                                      "type": "ref",
+                                      "ref": "1bEvv",
+                                      "name": "Z",
+                                      "content": "Z",
+                                      "x": 128,
+                                      "y": 7
+                                    },
+                                    {
+                                      "id": "IoH2H",
+                                      "type": "ref",
+                                      "ref": "aH8ud",
+                                      "name": "zv1",
+                                      "width": "fill_container",
+                                      "x": 139,
+                                      "y": 0,
+                                      "descendants": {
+                                        "GZqkw": {
+                                          "enabled": false
+                                        },
+                                        "Nmxrt": {
+                                          "content": "0.0",
+                                          "x": 5
+                                        }
+                                      }
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "id": "XlYxc",
+                          "type": "ref",
+                          "ref": "XhosN",
+                          "name": "Rotation Row",
+                          "width": "fill_container",
+                          "y": 137,
+                          "height": "fit_content",
+                          "descendants": {
+                            "0c7q7": {
+                              "x": 8
+                            },
+                            "60Gqq": {
+                              "content": "Rotation",
+                              "y": 7
+                            },
+                            "1edHd": {
+                              "width": "fill_container",
+                              "x": 81,
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "4Szxf",
+                                  "name": "Vec3",
+                                  "width": "fill_container",
+                                  "height": 27,
+                                  "gap": 4,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "id": "o7jMT",
+                                      "type": "ref",
+                                      "ref": "1bEvv",
+                                      "name": "X",
+                                      "content": "X",
+                                      "x": 0,
+                                      "y": 7
+                                    },
+                                    {
+                                      "id": "ONgGD",
+                                      "type": "ref",
+                                      "ref": "aH8ud",
+                                      "name": "xv2",
+                                      "width": "fill_container",
+                                      "x": 12,
+                                      "y": 0,
+                                      "descendants": {
+                                        "GZqkw": {
+                                          "enabled": false
+                                        },
+                                        "Nmxrt": {
+                                          "content": "0.0",
+                                          "x": 5
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "id": "tK5TP",
+                                      "type": "ref",
+                                      "ref": "1bEvv",
+                                      "name": "Y",
+                                      "content": "Y",
+                                      "x": 64,
+                                      "y": 7
+                                    },
+                                    {
+                                      "id": "QkyTo",
+                                      "type": "ref",
+                                      "ref": "aH8ud",
+                                      "name": "yv2",
+                                      "width": "fill_container",
+                                      "x": 76,
+                                      "y": 0,
+                                      "descendants": {
+                                        "GZqkw": {
+                                          "enabled": false
+                                        },
+                                        "Nmxrt": {
+                                          "content": "0.0",
+                                          "x": 5
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "id": "dqtzo",
+                                      "type": "ref",
+                                      "ref": "1bEvv",
+                                      "name": "Z",
+                                      "content": "Z",
+                                      "x": 128,
+                                      "y": 7
+                                    },
+                                    {
+                                      "id": "cOOby",
+                                      "type": "ref",
+                                      "ref": "aH8ud",
+                                      "name": "zv2",
+                                      "width": "fill_container",
+                                      "x": 139,
+                                      "y": 0,
+                                      "descendants": {
+                                        "GZqkw": {
+                                          "enabled": false
+                                        },
+                                        "Nmxrt": {
+                                          "content": "0.0",
+                                          "x": 5
+                                        }
+                                      }
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "id": "eroLv",
+                          "type": "ref",
+                          "ref": "XhosN",
+                          "name": "Scale Row",
+                          "width": "fill_container",
+                          "y": 168,
+                          "height": "fit_content",
+                          "descendants": {
+                            "0c7q7": {
+                              "x": 8
+                            },
+                            "60Gqq": {
+                              "content": "Scale",
+                              "y": 7
+                            },
+                            "1edHd": {
+                              "width": "fill_container",
+                              "x": 81,
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "cRjW3",
+                                  "name": "Vec3",
+                                  "width": "fill_container",
+                                  "height": 27,
+                                  "gap": 4,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "id": "lSUTr",
+                                      "type": "ref",
+                                      "ref": "1bEvv",
+                                      "name": "X",
+                                      "content": "X",
+                                      "x": 0,
+                                      "y": 7
+                                    },
+                                    {
+                                      "id": "wgpnS",
+                                      "type": "ref",
+                                      "ref": "aH8ud",
+                                      "name": "xv3",
+                                      "width": "fill_container",
+                                      "x": 12,
+                                      "y": 0,
+                                      "descendants": {
+                                        "GZqkw": {
+                                          "enabled": false
+                                        },
+                                        "Nmxrt": {
+                                          "content": "1.0",
+                                          "x": 5
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "id": "rR7to",
+                                      "type": "ref",
+                                      "ref": "1bEvv",
+                                      "name": "Y",
+                                      "content": "Y",
+                                      "x": 64,
+                                      "y": 7
+                                    },
+                                    {
+                                      "id": "RsiVY",
+                                      "type": "ref",
+                                      "ref": "aH8ud",
+                                      "name": "yv3",
+                                      "width": "fill_container",
+                                      "x": 76,
+                                      "y": 0,
+                                      "descendants": {
+                                        "GZqkw": {
+                                          "enabled": false
+                                        },
+                                        "Nmxrt": {
+                                          "content": "1.0",
+                                          "x": 5
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "id": "15q22",
+                                      "type": "ref",
+                                      "ref": "1bEvv",
+                                      "name": "Z",
+                                      "content": "Z",
+                                      "x": 128,
+                                      "y": 7
+                                    },
+                                    {
+                                      "id": "OuQy6",
+                                      "type": "ref",
+                                      "ref": "aH8ud",
+                                      "name": "zv3",
+                                      "width": "fill_container",
+                                      "x": 139,
+                                      "y": 0,
+                                      "descendants": {
+                                        "GZqkw": {
+                                          "enabled": false
+                                        },
+                                        "Nmxrt": {
+                                          "content": "1.0",
+                                          "x": 5
+                                        }
+                                      }
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "id": "sfTUP",
+                          "type": "ref",
+                          "ref": "XhosN",
+                          "name": "Visible Row",
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "y": 199,
+                          "descendants": {
+                            "0c7q7": {
+                              "x": 8
+                            },
+                            "60Gqq": {
+                              "content": "Visible",
+                              "y": 7
+                            },
+                            "1edHd": {
+                              "width": "fill_container",
+                              "x": 81,
+                              "height": "fit_content",
+                              "children": [
+                                {
+                                  "id": "NExD1",
+                                  "type": "ref",
+                                  "ref": "28nqC",
+                                  "name": "cbInst",
+                                  "x": 0,
+                                  "y": 0
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "id": "bMsxf",
+                      "type": "ref",
+                      "ref": "MRHUS",
+                      "name": "Components Section",
+                      "width": "fill_container",
+                      "x": 4,
+                      "y": 259,
+                      "descendants": {
+                        "gBqQo": {
+                          "width": "fill_container"
+                        },
+                        "xq0KT": {
+                          "x": 231
+                        },
+                        "F08nA": {
+                          "x": 253
+                        }
+                      }
+                    },
+                    {
+                      "type": "frame",
+                      "id": "rJVbD",
+                      "name": "Components List",
+                      "width": "fill_container",
+                      "fill": "$control",
+                      "cornerRadius": "$corner-radius",
+                      "layout": "vertical",
+                      "padding": 4,
+                      "children": [
+                        {
+                          "id": "Qa85J",
+                          "type": "ref",
+                          "ref": "IAgm2",
+                          "name": "Item 1",
+                          "width": "fill_container",
+                          "descendants": {
+                            "UJXRA": {
+                              "iconFontName": "image"
+                            },
+                            "4862N": {
+                              "content": "SpriteRenderer"
+                            }
+                          }
+                        },
+                        {
+                          "id": "6Lgfi",
+                          "type": "ref",
+                          "ref": "O9Myc",
+                          "name": "Item 2",
+                          "width": "fill_container",
+                          "descendants": {
+                            "COty1": {
+                              "iconFontName": "move"
+                            },
+                            "vROPk": {
+                              "content": "RigidBody2D"
+                            }
+                          }
+                        },
+                        {
+                          "id": "jzA3Z",
+                          "type": "ref",
+                          "ref": "IAgm2",
+                          "name": "Item 3",
+                          "width": "fill_container",
+                          "descendants": {
+                            "UJXRA": {
+                              "iconFontName": "square"
+                            },
+                            "4862N": {
+                              "content": "BoxCollider2D"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "id": "UHJSL",
+                      "type": "ref",
+                      "ref": "94Fgs",
+                      "name": "Appearance Section",
+                      "width": "fill_container",
+                      "x": 4,
+                      "y": 377,
+                      "descendants": {
+                        "vHcCi": {
+                          "iconFontName": "paintbrush"
+                        },
+                        "QF7hf": {
+                          "content": "Appearance",
+                          "y": 7
+                        },
+                        "4Qa8a": {
+                          "width": "fill_container",
+                          "x": 99,
+                          "y": 13
+                        },
+                        "RWoWZ": {
+                          "x": 262
+                        }
+                      }
+                    },
+                    {
+                      "id": "D2dJY",
+                      "type": "ref",
+                      "ref": "94Fgs",
+                      "name": "Layout Section",
+                      "width": "fill_container",
+                      "x": 4,
+                      "y": 405,
+                      "descendants": {
+                        "vHcCi": {
+                          "iconFontName": "columns-2"
+                        },
+                        "QF7hf": {
+                          "content": "Layout",
+                          "y": 7
+                        },
+                        "4Qa8a": {
+                          "width": "fill_container",
+                          "x": 70,
+                          "y": 13
+                        },
+                        "RWoWZ": {
+                          "x": 262
+                        }
+                      }
+                    },
+                    {
+                      "id": "GLVka",
+                      "type": "ref",
+                      "ref": "94Fgs",
+                      "name": "Effects Section",
+                      "width": "fill_container",
+                      "x": 4,
+                      "y": 433,
+                      "descendants": {
+                        "D9SXP": {
+                          "iconFontName": "chevron-right"
+                        },
+                        "vHcCi": {
+                          "iconFontName": "sparkles"
+                        },
+                        "QF7hf": {
+                          "content": "Effects",
+                          "y": 7
+                        },
+                        "4Qa8a": {
+                          "width": "fill_container",
+                          "x": 71,
+                          "y": 13
+                        },
+                        "RWoWZ": {
+                          "x": 262
+                        }
+                      }
+                    },
+                    {
+                      "id": "JpTmS",
+                      "type": "ref",
+                      "ref": "94Fgs",
+                      "name": "Constraints Section",
+                      "width": "fill_container",
+                      "x": 4,
+                      "y": 461,
+                      "descendants": {
+                        "D9SXP": {
+                          "iconFontName": "chevron-right"
+                        },
+                        "vHcCi": {
+                          "iconFontName": "anchor"
+                        },
+                        "QF7hf": {
+                          "content": "Constraints",
+                          "y": 7
+                        },
+                        "4Qa8a": {
+                          "width": "fill_container",
+                          "x": 95,
+                          "y": 13
+                        },
+                        "RWoWZ": {
+                          "x": 262
                         }
                       }
                     }
                   ]
-                },
-                {
-                  "id": "UHJSL",
-                  "type": "ref",
-                  "ref": "94Fgs",
-                  "name": "Appearance Section",
-                  "width": "fill_container",
-                  "x": 4,
-                  "y": 259,
-                  "descendants": {
-                    "vHcCi": {
-                      "iconFontName": "paintbrush"
-                    },
-                    "QF7hf": {
-                      "content": "Appearance",
-                      "y": 7
-                    },
-                    "4Qa8a": {
-                      "width": "fill_container",
-                      "x": 99,
-                      "y": 13
-                    },
-                    "RWoWZ": {
-                      "x": 278
-                    }
-                  }
-                },
-                {
-                  "id": "D2dJY",
-                  "type": "ref",
-                  "ref": "94Fgs",
-                  "name": "Layout Section",
-                  "width": "fill_container",
-                  "x": 4,
-                  "y": 287,
-                  "descendants": {
-                    "vHcCi": {
-                      "iconFontName": "columns-2"
-                    },
-                    "QF7hf": {
-                      "content": "Layout",
-                      "y": 7
-                    },
-                    "4Qa8a": {
-                      "width": "fill_container",
-                      "x": 70,
-                      "y": 13
-                    },
-                    "RWoWZ": {
-                      "x": 278
-                    }
-                  }
-                },
-                {
-                  "id": "GLVka",
-                  "type": "ref",
-                  "ref": "94Fgs",
-                  "name": "Effects Section",
-                  "width": "fill_container",
-                  "x": 4,
-                  "y": 315,
-                  "descendants": {
-                    "D9SXP": {
-                      "iconFontName": "chevron-right"
-                    },
-                    "vHcCi": {
-                      "iconFontName": "sparkles"
-                    },
-                    "QF7hf": {
-                      "content": "Effects",
-                      "y": 7
-                    },
-                    "4Qa8a": {
-                      "width": "fill_container",
-                      "x": 71,
-                      "y": 13
-                    },
-                    "RWoWZ": {
-                      "x": 278
-                    }
-                  }
-                },
-                {
-                  "id": "JpTmS",
-                  "type": "ref",
-                  "ref": "94Fgs",
-                  "name": "Constraints Section",
-                  "width": "fill_container",
-                  "x": 4,
-                  "y": 343,
-                  "descendants": {
-                    "D9SXP": {
-                      "iconFontName": "chevron-right"
-                    },
-                    "vHcCi": {
-                      "iconFontName": "anchor"
-                    },
-                    "QF7hf": {
-                      "content": "Constraints",
-                      "y": 7
-                    },
-                    "4Qa8a": {
-                      "width": "fill_container",
-                      "x": 95,
-                      "y": 13
-                    },
-                    "RWoWZ": {
-                      "x": 278
-                    }
-                  }
                 }
               ]
             }
