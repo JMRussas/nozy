@@ -4,23 +4,23 @@
 
 namespace NoZ.Editor;
 
-public partial class GenStyleEditor : DocumentEditor
+public partial class GenerationConfigEditor : DocumentEditor
 {
     private static partial class WidgetIds
     {
-        public static partial WidgetId LayerPrompt { get; }
-        public static partial WidgetId LayerNegativePrompt { get; }
+        public static partial WidgetId GenerationPrompt { get; }
+        public static partial WidgetId GenerationNegativePrompt { get; }
         public static partial WidgetId ModelDropDown { get; }
         public static partial WidgetId StyleDropDown { get; }
         public static partial WidgetId RefreshModels { get; }
         public static partial WidgetId RemoveBackground { get; }
     }
 
-    public new GenStyleDocument Document => (GenStyleDocument)base.Document;
+    public new GenerationConfig Document => (GenerationConfig)base.Document;
 
     public override bool ShowInspector => true;
 
-    public GenStyleEditor(GenStyleDocument doc) : base(doc)
+    public GenerationConfigEditor(GenerationConfig doc) : base(doc)
     {
         Commands =
         [
@@ -37,21 +37,21 @@ public partial class GenStyleEditor : DocumentEditor
     public override void InspectorUI()
     {
         StyleUI();
-        LayerDefaultsUI();
+        GenerationPromptsUI();
     }
 
-    private void LayerDefaultsUI()
+    private void GenerationPromptsUI()
     {
         using var _ = Inspector.BeginSection("PROMPTS");
         if (Inspector.IsSectionCollapsed) return;
 
         using (Inspector.BeginRow())
         using (UI.BeginFlex())
-            Document.Prompt = UI.TextInput(WidgetIds.LayerPrompt, Document.Prompt, EditorStyle.TextArea, "Prompt (use {0} for sprite prompt)", Document, multiLine: true);
+            Document.Prompt = UI.TextInput(WidgetIds.GenerationPrompt, Document.Prompt, EditorStyle.TextArea, "Prompt (use {0} for sprite prompt)", Document, multiLine: true);
 
         using (Inspector.BeginRow())
         using (UI.BeginFlex())
-            Document.NegativePrompt = UI.TextInput(WidgetIds.LayerNegativePrompt, Document.NegativePrompt, EditorStyle.TextArea, "Negative Prompt", Document, multiLine: true);
+            Document.NegativePrompt = UI.TextInput(WidgetIds.GenerationNegativePrompt, Document.NegativePrompt, EditorStyle.TextArea, "Negative Prompt", Document, multiLine: true);
     }
 
     private void StyleUI()

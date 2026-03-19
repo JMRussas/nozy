@@ -79,7 +79,7 @@ public class SkeletonDocument : Document
 
     public static void RegisterDef()
     {
-        DocumentManager.RegisterDef(new DocumentDef {
+        DocumentDef<SkeletonDocument>.Register(new DocumentDef {
             Type = AssetType.Skeleton,
             Name = "Skeleton",
             Extensions = [".skel"],
@@ -671,7 +671,7 @@ public class SkeletonDocument : Document
             for (var i = 0; i < Sprites.Count; i++)
             {
                 Debug.Assert(Sprites[i] != null);
-                Debug.Assert(Sprites[i].Binding.IsBoundTo(this));
+                Debug.Assert(Sprites[i].Skeleton.Document == this);
                 Sprites[i].DrawSprite();
             }
         }
@@ -727,7 +727,7 @@ public class SkeletonDocument : Document
 
         Sprites = [.. DocumentManager.Documents
             .OfType<SpriteDocument>()
-            .Where(d => d.Binding.IsBoundTo(this) && d.ShowInSkeleton)];
+            .Where(d => d.Skeleton.Document == this && d.ShowInSkeleton)];
     }
 
     public void NotifyBoneRenamed(int boneIndex, string oldName, string newName)
