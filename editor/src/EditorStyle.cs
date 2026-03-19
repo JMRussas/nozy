@@ -97,10 +97,10 @@ public static class EditorStyle
         public const float XrayAlpha = 0.5f;
         public const float OriginSize = 0.1f;
         public const float DocumentBoundsLineWidth = 0.015f;
-        public static readonly Color NameColor = Color.White;
-        public static readonly Color NameOutlineColor = Color.Black;
+        public static readonly Color NameColor = Palette.Content;
+        public static readonly Color NameOutlineColor = Palette.Popup;
         public static readonly Color SelectedNameColor = Palette.Primary;
-        public const float NameSize = 0.36f;
+        public const float NameSize = 0.25f;
         public const float NamePadding = 0.26f;
         public const float NameOutline = 0.15f;
         public const float GridAlpha = 0.4f;
@@ -235,9 +235,10 @@ public static class EditorStyle
         {
             Padding = EdgeInsets.LeftRight(4.0f)
         };
+        
         public readonly static ContainerStyle Separator = new() {
             Height = 1,
-            Margin = EdgeInsets.Symmetric(2, 4),
+            Margin = EdgeInsets.Symmetric(2,0),
             Background = Palette.Separator
         };
         public readonly static TextStyle Title = new()
@@ -425,10 +426,11 @@ public static class EditorStyle
     {
         public static readonly ContainerStyle Root = Popup.Root with
         {
-            Width = 340.0f,
+            Width = 440.0f,
             Height = Size.Fit,
             MinHeight = 100.0f,
-            Spacing = 2.0f
+            Spacing = Control.Spacing,
+            Padding = Control.Spacing
         };
 
         public static readonly TextInputStyle SearchTextBox = new()
@@ -438,19 +440,19 @@ public static class EditorStyle
             SelectionColor = Palette.TextSelection,
             PlaceholderColor = Palette.Disabled,
             IconSize = Control.IconSize,
-            IconColor = Palette.SecondaryText
+            IconColor = Palette.SecondaryText,
+            IconSpacing = Control.Spacing,
         };
 
         public static readonly ContainerStyle CommandList = new()
         {
-            Height = List.ItemHeight * 10,
-            Padding = EdgeInsets.Symmetric(3, 0)
+            Height = Control.Height * 10
         };
 
         public static readonly ContainerStyle Item = new()
         {
-            Height = List.ItemHeight,
-            Padding = EdgeInsets.LeftRight(8),
+            Height = Control.Height,
+            Padding = EdgeInsets.LeftRight(Control.Spacing),
             Spacing = 6.0f
         };
 
@@ -499,9 +501,9 @@ public static class EditorStyle
     // :shape
     public static class Shape
     {
-        public const float AnchorSize = 0.14f;
+        public const float AnchorSize = 0.12f;
         public const float AnchorHitSize = AnchorSize * 2.0f;
-        public const float SegmentLineWidth = 0.02f;
+        public const float SegmentLineWidth = 0.016f;
         public const float SegmentHitSize = SegmentLineWidth * 12.0f;
 
         public static readonly Color ControlPointColor = Color.FromRgb(0xff7900);
@@ -924,6 +926,49 @@ public static class EditorStyle
             Height = Control.Height,
         };
 
+        public static readonly ContainerStyle FloatingToolbar = new()
+        {
+            Background = Palette.Panel,
+            AlignX = Align.Center,
+            AlignY = Align.Max,
+            Width = Size.Fit,
+            Height = Size.Fit,
+            Padding = 2,
+            BorderRadius = Control.BorderRadius,
+            Margin = EdgeInsets.Bottom(8),
+        };
+
+        public static readonly ContainerStyle FloatingToolbarRow = new()
+        {
+            Height = Size.Fit,
+            Spacing = 2,
+        };
+
+        public static readonly ButtonStyle ToolButton = new()
+        {
+            Width = Control.Height,
+            Height = Control.Height,
+            Background = Color.Transparent,
+            ContentColor = Palette.SecondaryText,
+            IconSize = Control.IconSize,
+            BorderRadius = Control.BorderRadius,
+            Resolve = (s, f) =>
+            {
+                if ((f & WidgetFlags.Checked) != 0) { s.Background = Palette.Active; s.ContentColor = Palette.Content; }
+                if ((f & WidgetFlags.Hovered) != 0) { s.BorderWidth = 1; s.BorderColor = Palette.FocusRing; }
+                return s;
+            },
+        };
+
+        public static readonly ContainerStyle FloatingDivider = new()
+        {
+            Width = 1,
+            Height = 16,
+            Background = Palette.Separator,
+            AlignY = Align.Center,
+            Margin = EdgeInsets.LeftRight(2),
+        };
+
         public static readonly ContainerStyle LayerToolbar = new()
         {
             Width = LayerColumnWidth,
@@ -1138,6 +1183,75 @@ public static class EditorStyle
         {
             Height = FrameSpacerWidth,
             Background = Palette.Separator
+        };
+
+        // Floating dopesheet styles
+        public static readonly ContainerStyle FloatingDopesheet = new()
+        {
+            Background = Palette.Panel,
+            Padding = 1,
+        };
+
+        public static readonly ContainerStyle FloatingHeaderContainer = new()
+        {
+            Height = 20,
+            Background = Palette.Control,
+        };
+
+        public static readonly ContainerStyle FloatingLayerRow = new()
+        {
+            Height = 20,
+            Background = Palette.Panel,
+            Spacing = 1,
+        };
+
+        public static readonly ContainerStyle FloatingFrame = new()
+        {
+            Width = FrameWidth,
+            Background = Palette.Canvas,
+        };
+
+        public static readonly ContainerStyle FloatingSelectedFrame = FloatingFrame with
+        {
+            Background = Palette.Primary,
+        };
+
+        public static readonly ContainerStyle FloatingFrameDot = new()
+        {
+            Width = 4,
+            Height = 4,
+            AlignX = Align.Center,
+            AlignY = Align.Center,
+            Background = Palette.Disabled,
+            BorderRadius = 2,
+        };
+
+        public static readonly ContainerStyle FloatingSelectedFrameDot = FloatingFrameDot with
+        {
+            Background = Palette.Content,
+        };
+
+        public static readonly ContainerStyle FloatingTimeTick = new()
+        {
+            Width = 1,
+            Background = Palette.Panel,
+        };
+
+        public static readonly ContainerStyle FloatingHoldSeparator = new()
+        {
+            Width = 1,
+            Background = Palette.Canvas,
+        };
+
+        public static readonly ContainerStyle FloatingSelectedHoldSeparator = FloatingHoldSeparator with
+        {
+            Background = Palette.Primary,
+        };
+
+        public static readonly ContainerStyle FloatingEmptyFrame = new()
+        {
+            Width = Size.Default,
+            Background = Palette.Panel,
         };
     }
 

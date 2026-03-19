@@ -42,7 +42,12 @@ public partial class SpriteEditor : DocumentEditor, IShapeEditorHost
         public static partial WidgetId ReferenceItem { get; }
         public static partial WidgetId DeleteReference { get; }
         public static partial WidgetId ExportToggle { get; }
-
+        public static partial WidgetId PenToolButton { get; }
+        public static partial WidgetId KnifeToolButton { get; }
+        public static partial WidgetId RectToolButton { get; }
+        public static partial WidgetId CircleToolButton { get; }
+        public static partial WidgetId GenImageToggle { get; }
+        public static partial WidgetId DopeSheetToggle { get; }
     }
 
     private static readonly WordGenerator _wordGenerator = new();
@@ -50,6 +55,7 @@ public partial class SpriteEditor : DocumentEditor, IShapeEditorHost
     private readonly ShapeEditor _shapeEditor;
     private int _currentTimeSlot;
     private bool _isPlaying;
+    private bool _showDopesheet = true;
     private float _playTimer;
     //private PopupMenuItem[] _contextMenuItems;
     private readonly int _versionOnOpen;
@@ -179,13 +185,11 @@ public partial class SpriteEditor : DocumentEditor, IShapeEditorHost
             HandleLeftClick();
     }
 
-    private void ToolbarUI()
+    public override void UpdateUI()
     {
-        using var _ = UI.BeginRow(EditorStyle.SpriteEditor.Toolbar);
-        UI.Separator(EditorStyle.Palette.Separator);
     }
 
-    public override void UpdateUI()
+    public override void UpdateOverlayUI()
     {
         if (!Document.IsMutable) return;
 
@@ -193,57 +197,102 @@ public partial class SpriteEditor : DocumentEditor, IShapeEditorHost
         {
             UI.Flex();
 
-            using (UI.BeginColumn(WidgetIds.Root, EditorStyle.DocumentEditor.Root))
+            using (UI.BeginColumn(WidgetIds.Root, EditorStyle.SpriteEditor.FloatingToolbar))
             {
-                ToolbarUI();
-                UI.Separator(EditorStyle.Palette.Separator);
-                DopeSheetUI();
-                UI.Spacer(EditorStyle.Control.Spacing);
+                FloatingToolbarUI();
+
+                if (_showDopesheet)
+                    FloatingDopeSheetUI();
             }
         }
     }
 
-    private void DopeSheetUI()
+    private void FloatingToolbarUI()
+    {
+        using var _ = UI.BeginRow(EditorStyle.SpriteEditor.FloatingToolbarRow);
+
+        // Tool group: Pen, Knife, Rect, Circle
+        var activeTool = Workspace.ActiveTool;
+
+        UI.SetChecked(activeTool is PenTool);
+        if (UI.Button(WidgetIds.PenToolButton, EditorAssets.Sprites.IconEdit, EditorStyle.SpriteEditor.ToolButton))
+            _shapeEditor.BeginPenTool();
+
+        UI.SetChecked(activeTool is KnifeTool);
+        if (UI.Button(WidgetIds.KnifeToolButton, EditorAssets.Sprites.IconClose, EditorStyle.SpriteEditor.ToolButton))
+            _shapeEditor.BeginKnifeTool();
+
+        UI.SetChecked(activeTool is ShapeTool { ShapeType: ShapeType.Rectangle });
+        if (UI.Button(WidgetIds.RectToolButton, EditorAssets.Sprites.IconLayer, EditorStyle.SpriteEditor.ToolButton))
+            _shapeEditor.BeginRectangleTool();
+
+        UI.SetChecked(activeTool is ShapeTool { ShapeType: ShapeType.Circle });
+        if (UI.Button(WidgetIds.CircleToolButton, EditorAssets.Sprites.IconCircle, EditorStyle.SpriteEditor.ToolButton))
+            _shapeEditor.BeginCircleTool();
+
+        // Divider
+        UI.Container(EditorStyle.SpriteEditor.FloatingDivider);
+
+        // Toggle group: Tile, GenImage
+        UI.SetChecked(Document.ShowTiling);
+        if (UI.Button(WidgetIds.TileButton, EditorAssets.Sprites.IconTiling, EditorStyle.SpriteEditor.ToolButton))
+            Document.ShowTiling = !Document.ShowTiling;
+
+        UI.SetChecked(Document.HasGeneration);
+        if (UI.Button(WidgetIds.GenImageToggle, EditorAssets.Sprites.IconAi, EditorStyle.SpriteEditor.ToolButton))
+            Document.HasGeneration = !Document.HasGeneration;
+
+        // Divider
+        UI.Container(EditorStyle.SpriteEditor.FloatingDivider);
+
+        // Anim group: DopeSheet toggle
+        UI.SetChecked(_showDopesheet);
+        if (UI.Button(WidgetIds.DopeSheetToggle, EditorAssets.Sprites.IconKeyframe, EditorStyle.SpriteEditor.ToolButton))
+            _showDopesheet = !_showDopesheet;
+    }
+
+    private int TotalTimeSlots()
+    {
+        var total = 0;
+        for (var f = 0; f < Document.FrameCount; f++)
+            total += 1 + Document.Frames[f].Hold;
+        return total;
+    }
+
+    private void FloatingDopeSheetUI()
     {
         var maxSlots = Sprite.MaxFrames;
+        var usedSlots = TotalTimeSlots();
+        // Show enough time blocks to cover used slots, rounded up to next block of 4
+        var visibleSlots = Math.Max(usedSlots, 4);
+        var blockCount = (visibleSlots + 3) / 4;
 
-        using (UI.BeginColumn(new ContainerStyle { Padding = EdgeInsets.LeftRight(EditorStyle.Control.Spacing) }))
+        using (UI.BeginColumn(EditorStyle.Dopesheet.FloatingDopesheet))
         {
-            using (UI.BeginRow(EditorStyle.Dopesheet.HeaderContainer))
+            // Header row: frame numbers
+            using (UI.BeginRow(EditorStyle.Dopesheet.FloatingHeaderContainer))
             {
-                using (UI.BeginRow(EditorStyle.SpriteEditor.LayerNameContainer))
-                {
-                    UI.Flex();
-                }
-
-                UI.Separator(EditorStyle.Palette.Separator);
-
-                var blockCount = maxSlots / 4;
                 for (var blockIndex = 0; blockIndex < blockCount; blockIndex++)
                 {
+                    if (blockIndex > 0)
+                        UI.Container(EditorStyle.Dopesheet.FloatingTimeTick);
+
                     using (UI.BeginContainer(EditorStyle.Dopesheet.TimeBlock))
                     {
-                        if (blockIndex > 0)
-                            UI.Text(AnimationEditor.FrameTimeStrings[blockIndex], EditorStyle.Dopesheet.TimeText);
+                        UI.Text(AnimationEditor.FrameTimeStrings[blockIndex], EditorStyle.Dopesheet.TimeText);
                     }
-
-                    UI.Container(EditorStyle.Dopesheet.FrameSeparator);
                 }
+
+                // Fill remaining width to match toolbar
+                UI.Flex();
             }
 
-            UI.Separator(EditorStyle.Palette.Separator);
+            // 1px gap (panel bg shows through)
+            UI.Spacer(1);
 
-            // Single row of frame cells
-            using (UI.BeginRow(EditorStyle.SpriteEditor.LayerRow))
+            // Layer row: keyframe cells
+            using (UI.BeginRow(EditorStyle.Dopesheet.FloatingLayerRow))
             {
-                using (UI.BeginRow(EditorStyle.SpriteEditor.LayerNameContainer))
-                {
-                    UI.Text("Frames", EditorStyle.Text.Primary);
-                    UI.Flex();
-                }
-
-                UI.Container(EditorStyle.Dopesheet.FrameSeparator);
-
                 var slotIndex = 0;
                 for (ushort fi = 0; fi < Document.FrameCount && slotIndex < maxSlots; fi++)
                 {
@@ -254,48 +303,46 @@ public partial class SpriteEditor : DocumentEditor, IShapeEditorHost
                         if (UI.WasPressed())
                             _currentTimeSlot = TimeSlotForFrame(fi);
 
+                        // Keyframe cell with dot
                         using (UI.BeginContainer(isCurrentSlot
-                            ? EditorStyle.Dopesheet.SelectedFrame
-                            : EditorStyle.Dopesheet.Frame))
+                            ? EditorStyle.Dopesheet.FloatingSelectedFrame
+                            : EditorStyle.Dopesheet.FloatingFrame))
                         {
                             UI.Container(isCurrentSlot
-                                ? EditorStyle.Dopesheet.SelectedFrameDot
-                                : EditorStyle.Dopesheet.FrameDot);
+                                ? EditorStyle.Dopesheet.FloatingSelectedFrameDot
+                                : EditorStyle.Dopesheet.FloatingFrameDot);
                         }
 
                         slotIndex++;
 
-                        // Hold cells
+                        // Hold cells (no dot, same color as keyframe)
                         var hold = Document.Frames[fi].Hold;
                         for (int h = 0; h < hold && slotIndex < maxSlots; h++, slotIndex++)
                         {
-                            using (UI.BeginContainer(isCurrentSlot
-                                ? EditorStyle.Dopesheet.SelectedFrame
-                                : EditorStyle.Dopesheet.Frame))
-                            {
-                            }
-
                             if (h < hold - 1)
                                 UI.Container(isCurrentSlot
-                                    ? EditorStyle.Dopesheet.SelectedHoldSeparator
-                                    : EditorStyle.Dopesheet.HoldSeparator);
-                        }
+                                    ? EditorStyle.Dopesheet.FloatingSelectedHoldSeparator
+                                    : EditorStyle.Dopesheet.FloatingHoldSeparator);
 
-                        UI.Container(EditorStyle.Dopesheet.FrameSeparator);
+                            using (UI.BeginContainer(isCurrentSlot
+                                ? EditorStyle.Dopesheet.FloatingSelectedFrame
+                                : EditorStyle.Dopesheet.FloatingFrame))
+                            {
+                            }
+                        }
                     }
                 }
 
-                // Empty cells after frames
-                for (; slotIndex < maxSlots; slotIndex++)
+                // Empty cells after frames up to visible slot count
+                var visibleSlotCount = blockCount * 4;
+                for (; slotIndex < visibleSlotCount; slotIndex++)
                 {
-                    UI.Container(slotIndex % 4 == 0
-                        ? EditorStyle.Dopesheet.FourthEmptyFrame
-                        : EditorStyle.Dopesheet.EmptyFrame);
-                    UI.Container(EditorStyle.Dopesheet.FrameSeparator);
+                    UI.Container(EditorStyle.Dopesheet.FloatingFrame);
                 }
-            }
 
-            UI.Container(EditorStyle.Dopesheet.LayerSeparator);
+                // Fill any remaining width to match toolbar
+                UI.Flex();
+            }
         }
     }
 

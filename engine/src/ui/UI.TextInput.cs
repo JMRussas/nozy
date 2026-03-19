@@ -53,10 +53,9 @@ public static partial class UI
 
         var hasIcon = icon != null;
         if (hasIcon)
-            ElementTree.BeginRow(style.IconSpacing);
-
-        if (hasIcon)
         {
+            ElementTree.BeginRow(style.IconSpacing);
+            ElementTree.Spacer(0);
             ElementTree.Image(
                 icon!,
                 s.IconSize,

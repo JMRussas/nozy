@@ -522,6 +522,7 @@ public static partial class Workspace
             }
         }
 
+        ActiveEditor?.UpdateOverlayUI();
         ActiveTool?.UpdateUI();
     }
 

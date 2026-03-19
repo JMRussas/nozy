@@ -22,7 +22,7 @@ public class ShapeTool(
     private readonly IShapeDocument _document = document;
     private readonly Shape _shape = shape;
     private readonly Color32 _fillColor = fillColor;
-    private readonly ShapeType _shapeType = shapeType;
+    public readonly ShapeType ShapeType = shapeType;
     private readonly PathOperation _operation = operation;
 
     private Vector2 _startLocal;
@@ -98,7 +98,7 @@ public class ShapeTool(
             var lineWidth = Gizmos.GetLineWidth();
             Gizmos.SetColor(EditorStyle.Tool.LineColor);
 
-            if (_shapeType == ShapeType.Rectangle)
+            if (ShapeType == ShapeType.Rectangle)
                 DrawRectanglePreview(min, max, lineWidth);
             else
                 DrawCirclePreview(min, max, lineWidth);
@@ -188,7 +188,7 @@ public class ShapeTool(
             return;
         }
 
-        if (_shapeType == ShapeType.Rectangle)
+        if (ShapeType == ShapeType.Rectangle)
             AddRectangleAnchors(pathIndex, min, max);
         else
             AddCircleAnchors(pathIndex, min, max);
