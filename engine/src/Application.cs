@@ -24,6 +24,9 @@ public static class Application
     public static Vector2Int WindowPosition => Platform.WindowPosition;
     public static string AssetPath { get; private set; } = null!;
 
+    public static AssetWatcher? AssetWatcher { get; private set; }
+    public static CommandServer? CommandServer { get; private set; }
+
     public static event Action? BeginFrame;
     public static event Action? PreFrame;
     public static event Action<bool>? FocusChanged;
@@ -109,6 +112,24 @@ public static class Application
 
         _instance.Init();
 
+        // Hot reload (opt-in)
+        if (config.EnableHotReload)
+        {
+            AssetWatcher = new AssetWatcher();
+
+            var fileSource = new FileSystemWatcherSource();
+            fileSource.Start(AssetPath);
+            AssetWatcher.Subscribe(fileSource);
+
+            if (config.NetworkDriver != null)
+            {
+                CommandServer = new CommandServer(AssetWatcher);
+                CommandServer.Start(config.NetworkDriver, config.CommandServerPort);
+            }
+
+            Log.Info($"Hot reload enabled (watching {AssetPath})");
+        }
+
         _running = true;
     }
 
@@ -161,6 +182,9 @@ public static class Application
         PreFrame = null;
         preFrame?.Invoke();
 
+        AssetWatcher?.ProcessReloadQueue();
+        CommandServer?.ProcessMessages();
+
         if (!Graphics.BeginFrame())
             return _running;
 
@@ -189,6 +213,10 @@ public static class Application
 
     public static void Shutdown()
     {
+        CommandServer?.Stop();
+        CommandServer = null;
+        AssetWatcher = null;
+
         _instance.Shutdown();
         _instance.SaveConfig();
         _instance.UnloadAssets();

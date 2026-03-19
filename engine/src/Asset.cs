@@ -198,8 +198,22 @@ public class Asset : IDisposable {
         return asset;
     }
 
+    public static Asset? Reload(AssetType type, string name, string? libraryPath = null)
+    {
+        if (_registry.TryGetValue((type, name), out var existing))
+            existing.Dispose();
+
+        return Load(type, name, useRegistry: true, libraryPath: libraryPath);
+    }
+
+    internal static void ClearRegistry()
+    {
+        _registry.Clear();
+    }
+
     public virtual void Dispose()
     {
+        Unregister();
     }
 }
 

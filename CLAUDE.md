@@ -34,6 +34,8 @@ noz/
 │   ├── webgpu/                 # WebGPU graphics driver (Silk.NET.WebGPU)
 │   └── web/                    # Blazor WebAssembly platform
 ├── generators/                 # C# source generators
+├── tests/
+│   └── NoZ.Tests/              # xUnit test project (mocks, helpers, asset reload tests)
 └── docs/                       # Architecture docs
 ```
 
@@ -43,6 +45,7 @@ noz/
 dotnet build editor/editor.csproj       # Build editor
 dotnet build src/noz.csproj             # Build engine only
 dotnet run --project editor/editor.csproj  # Run editor
+dotnet test tests/NoZ.Tests/NoZ.Tests.csproj  # Run tests
 ```
 
 Game projects reference noz as a git submodule. Editor `--init --project .` scaffolds a new game.
@@ -124,6 +127,16 @@ Immediate-mode hierarchical UI built on `ElementTree`. Facade: `UI.cs`. Core: `E
 - **Loading**: `Asset.Load<T>(type, name)` — platform stream → embedded resource fallback → per-type deserialization → registry cache
 - **Binary format**: Header (4-byte signature + type + version + flags) then type-specific data
 - **Key asset classes**: `Texture`, `Shader`, `Font`, `Sprite`, `Atlas`, `Sound`, `Animation`, `Skeleton`, `Vfx`
+- **Hot reload**: `Asset.Reload(type, name)` — disposes old asset (frees GPU resources, unregisters), reloads from disk, re-registers. Consumers using `Asset.Get<T>()` automatically see the new asset next frame.
+
+### Hot Reload System (`engine/src/AssetWatcher.cs`, `CommandServer.cs`)
+
+- **Opt-in** via `ApplicationConfig.EnableHotReload = true`
+- **AssetWatcher**: Queue-based reload coordinator. `EnqueueReload(type, name)` from any thread, `ProcessReloadQueue()` executes on game thread before `Graphics.BeginFrame()`. Deduplicates rapid reloads. Sorts by dependency order (shaders first, then textures, then sprites).
+- **CommandServer**: WebSocket server (JSON over Binary frames) for external tool control. Commands: `reload`, `ping`, `list`. Default port 19999, configurable via `ApplicationConfig.CommandServerPort`.
+- **IFileChangeSource / FileSystemWatcherSource**: Watches asset directory for file changes, auto-queues reloads.
+- **Static cache invalidation**: After shader reload, `Graphics.ResolveAssets()` is called to refresh `_spriteShader`.
+- **Frame loop integration**: `AssetWatcher.ProcessReloadQueue()` + `CommandServer.ProcessMessages()` run between `PreFrame` and `Graphics.BeginFrame()` in `Application.RunFrame()`.
 
 ### Input System (`engine/src/input/Input.cs`)
 

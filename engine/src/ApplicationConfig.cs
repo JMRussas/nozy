@@ -45,4 +45,7 @@ public class ApplicationConfig
     public string? AssetPath { get; init; } = null;
     public string TextShader { get; init; } = "text";
     public Assembly? ResourceAssembly { get; init; }
+    public bool EnableHotReload { get; init; } = false;
+    public int CommandServerPort { get; init; } = 19999;
+    public INetworkDriver? NetworkDriver { get; init; }
 }

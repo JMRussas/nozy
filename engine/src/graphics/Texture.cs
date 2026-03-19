@@ -144,7 +144,6 @@ public class Texture : Asset
     public override void Dispose()
     {
         GC.SuppressFinalize(this);
-        Unregister();
 
         if (Handle != nuint.Zero)
         {
