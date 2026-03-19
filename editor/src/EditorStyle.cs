@@ -57,6 +57,7 @@ public static class EditorStyle
     public static class Icon
     {
         public const float Size = 9.0f;
+        public const float LargeSize = 13.0f;
 
         public static readonly ImageStyle Primary = new()
         {
@@ -950,7 +951,7 @@ public static class EditorStyle
             Height = Control.Height,
             Background = Color.Transparent,
             ContentColor = Palette.SecondaryText,
-            IconSize = Control.IconSize,
+            IconSize = Icon.LargeSize,
             BorderRadius = Control.BorderRadius,
             Resolve = (s, f) =>
             {
@@ -1250,8 +1251,7 @@ public static class EditorStyle
 
         public static readonly ContainerStyle FloatingEmptyFrame = new()
         {
-            Width = Size.Default,
-            Background = Palette.Panel,
+            Width = FrameWidth,
         };
     }
 

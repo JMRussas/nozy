@@ -55,7 +55,6 @@ public partial class SpriteEditor : DocumentEditor, IShapeEditorHost
     private readonly ShapeEditor _shapeEditor;
     private int _currentTimeSlot;
     private bool _isPlaying;
-    private bool _showDopesheet = true;
     private float _playTimer;
     //private PopupMenuItem[] _contextMenuItems;
     private readonly int _versionOnOpen;
@@ -201,7 +200,7 @@ public partial class SpriteEditor : DocumentEditor, IShapeEditorHost
             {
                 FloatingToolbarUI();
 
-                if (_showDopesheet)
+                if (Document.FrameCount > 1)
                     FloatingDopeSheetUI();
             }
         }
@@ -233,22 +232,18 @@ public partial class SpriteEditor : DocumentEditor, IShapeEditorHost
         // Divider
         UI.Container(EditorStyle.SpriteEditor.FloatingDivider);
 
-        // Toggle group: Tile, GenImage
-        UI.SetChecked(Document.ShowTiling);
-        if (UI.Button(WidgetIds.TileButton, EditorAssets.Sprites.IconTiling, EditorStyle.SpriteEditor.ToolButton))
-            Document.ShowTiling = !Document.ShowTiling;
-
-        UI.SetChecked(Document.HasGeneration);
-        if (UI.Button(WidgetIds.GenImageToggle, EditorAssets.Sprites.IconAi, EditorStyle.SpriteEditor.ToolButton))
-            Document.HasGeneration = !Document.HasGeneration;
+        // Add frame
+        if (UI.Button(WidgetIds.AddFrameButton, EditorAssets.Sprites.IconKeyframe, EditorStyle.SpriteEditor.ToolButton))
+            InsertFrameAfter();
 
         // Divider
         UI.Container(EditorStyle.SpriteEditor.FloatingDivider);
 
-        // Anim group: DopeSheet toggle
-        UI.SetChecked(_showDopesheet);
-        if (UI.Button(WidgetIds.DopeSheetToggle, EditorAssets.Sprites.IconKeyframe, EditorStyle.SpriteEditor.ToolButton))
-            _showDopesheet = !_showDopesheet;
+        // Toggle group: Tile
+        UI.SetChecked(Document.ShowTiling);
+        if (UI.Button(WidgetIds.TileButton, EditorAssets.Sprites.IconTiling, EditorStyle.SpriteEditor.ToolButton))
+            Document.ShowTiling = !Document.ShowTiling;
+
     }
 
     private int TotalTimeSlots()
@@ -263,9 +258,8 @@ public partial class SpriteEditor : DocumentEditor, IShapeEditorHost
     {
         var maxSlots = Sprite.MaxFrames;
         var usedSlots = TotalTimeSlots();
-        // Show enough time blocks to cover used slots, rounded up to next block of 4
-        var visibleSlots = Math.Max(usedSlots, 4);
-        var blockCount = (visibleSlots + 3) / 4;
+        // Always show enough time blocks to fill the toolbar width (~5 blocks minimum)
+        var blockCount = Math.Max((usedSlots + 3) / 4, 5);
 
         using (UI.BeginColumn(EditorStyle.Dopesheet.FloatingDopesheet))
         {
@@ -333,14 +327,7 @@ public partial class SpriteEditor : DocumentEditor, IShapeEditorHost
                     }
                 }
 
-                // Empty cells after frames up to visible slot count
-                var visibleSlotCount = blockCount * 4;
-                for (; slotIndex < visibleSlotCount; slotIndex++)
-                {
-                    UI.Container(EditorStyle.Dopesheet.FloatingFrame);
-                }
-
-                // Fill any remaining width to match toolbar
+                // Fill remaining width (panel bg shows through)
                 UI.Flex();
             }
         }
