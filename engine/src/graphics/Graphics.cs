@@ -69,6 +69,7 @@ public static unsafe partial class Graphics
     private static int _boneRow;
     private static float _time;
     private static Shader? _spriteShader;
+    private static TaskCompletionSource<byte[]>? _captureRequest;
 
     public static event Action? AfterEndFrame;
 
@@ -240,10 +241,41 @@ public static unsafe partial class Graphics
     {
         ExecuteCommands();
 
+        // Inject frame capture copy command before the command encoder is finished
+        if (_captureRequest != null)
+        {
+            var size = Application.Platform.WindowSize;
+            var task = Driver.CaptureFrameAsync(size.X, size.Y);
+            if (task != null)
+            {
+                var tcs = _captureRequest;
+                task.ContinueWith(t =>
+                {
+                    if (t.IsCompletedSuccessfully)
+                        tcs.SetResult(t.Result);
+                    else
+                        tcs.SetException(t.Exception?.InnerException ?? new Exception("Capture failed"));
+                });
+            }
+            else
+            {
+                _captureRequest.SetException(new Exception("Driver does not support frame capture"));
+            }
+            _captureRequest = null;
+        }
+
         AfterEndFrame?.Invoke();
         AfterEndFrame = null;
 
         Driver.EndFrame();
+    }
+
+    public static Task<byte[]>? RequestCapture()
+    {
+        if (_captureRequest != null)
+            return null; // Already pending
+        _captureRequest = new TaskCompletionSource<byte[]>();
+        return _captureRequest.Task;
     }
 
     internal static void ResolveAssets()

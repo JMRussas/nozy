@@ -89,4 +89,8 @@ public interface IGraphicsDriver
     void BeginRenderTexturePass(nuint renderTexture, Color clearColor);
     void EndRenderTexturePass();
     Task<byte[]> ReadRenderTexturePixelsAsync(nuint renderTexture);
+
+    // Frame capture: copies current surface texture to a staging buffer and returns RGBA pixels.
+    // Must be called after all render passes end but before EndFrame.
+    Task<byte[]>? CaptureFrameAsync(int width, int height) => null;
 }

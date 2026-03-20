@@ -2,8 +2,9 @@
 //
 //  Parses JSON commands from external tools and dispatches them to AssetWatcher.
 //  Commands arrive as UTF-8 bytes in WebSocket Binary frames.
+//  Supports async commands (capture) that respond after GPU work completes.
 //
-//  Depends on: AssetWatcher, AssetType, INetworkDriver
+//  Depends on: AssetWatcher, AssetType, Graphics, INetworkDriver
 //  Used by:    Application (frame loop)
 
 using System.Text;
@@ -17,6 +18,9 @@ public class CommandServer
     private readonly AssetWatcher _watcher;
     private INetworkDriver? _network;
     private int _port;
+
+    // Pending async responses (capture, etc.)
+    private readonly Queue<(int ConnId, Task<byte[]> Task)> _pendingCaptures = new();
 
     public CommandServer(AssetWatcher watcher)
     {
@@ -42,15 +46,46 @@ public class CommandServer
         if (_network == null)
             return;
 
+        // Check for completed async captures
+        while (_pendingCaptures.Count > 0)
+        {
+            var (connId, task) = _pendingCaptures.Peek();
+            if (!task.IsCompleted)
+                break;
+
+            _pendingCaptures.Dequeue();
+
+            if (task.IsCompletedSuccessfully)
+            {
+                var pixels = task.Result;
+                var base64 = Convert.ToBase64String(pixels);
+                var size = Application.Platform.WindowSize;
+                var json = JsonSerializer.Serialize(new
+                {
+                    ok = true,
+                    width = size.X,
+                    height = size.Y,
+                    format = "rgba",
+                    data = base64,
+                });
+                _network.SendTo(connId, Encoding.UTF8.GetBytes(json));
+            }
+            else
+            {
+                var error = task.Exception?.InnerException?.Message ?? "capture failed";
+                _network.SendTo(connId, MakeError(error));
+            }
+        }
+
         while (_network.TryReceiveServer(out var connId, out var msg))
         {
-            var response = HandleMessage(msg.Data.AsSpan(0, msg.Length));
+            var response = HandleMessage(connId, msg.Data.AsSpan(0, msg.Length));
             if (response != null)
                 _network.SendTo(connId, response);
         }
     }
 
-    public byte[]? HandleMessage(ReadOnlySpan<byte> data)
+    private byte[]? HandleMessage(int connId, ReadOnlySpan<byte> data)
     {
         try
         {
@@ -80,6 +115,7 @@ public class CommandServer
                 "ping" => MakeOk("pong"),
                 "reload" => HandleReload(root),
                 "list" => HandleList(root),
+                "capture" => HandleCapture(connId),
                 _ => MakeError($"unknown command: {cmd}"),
             };
         }
@@ -91,6 +127,19 @@ public class CommandServer
         {
             return MakeError(ex.Message);
         }
+    }
+
+    // Keep old public signature for tests
+    public byte[]? HandleMessage(ReadOnlySpan<byte> data) => HandleMessage(-1, data);
+
+    private byte[]? HandleCapture(int connId)
+    {
+        var task = Graphics.RequestCapture();
+        if (task == null)
+            return MakeError("capture already pending");
+
+        _pendingCaptures.Enqueue((connId, task));
+        return null; // Response sent asynchronously
     }
 
     private byte[] HandleReload(JsonElement root)

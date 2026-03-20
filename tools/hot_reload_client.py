@@ -8,6 +8,7 @@ Usage:
     python tools/hot_reload_client.py ping               # Health check
     python tools/hot_reload_client.py reload Texture hero # Reload specific asset
     python tools/hot_reload_client.py list               # List asset types
+    python tools/hot_reload_client.py capture [path.png] # Capture current frame
     python tools/hot_reload_client.py watch               # Watch library/ and auto-reload
 
 Requires: pip install websockets
@@ -26,11 +27,11 @@ except ImportError:
     sys.exit(1)
 
 
-async def send_command(uri: str, cmd: dict) -> dict:
+async def send_command(uri: str, cmd: dict, timeout: float = 10.0) -> dict:
     async with websockets.connect(uri) as ws:
         payload = json.dumps(cmd).encode("utf-8")
         await ws.send(payload)
-        response = await ws.recv()
+        response = await asyncio.wait_for(ws.recv(), timeout=timeout)
         if isinstance(response, bytes):
             response = response.decode("utf-8")
         return json.loads(response)
@@ -38,7 +39,7 @@ async def send_command(uri: str, cmd: dict) -> dict:
 
 async def interactive_mode(uri: str):
     print(f"Connected to {uri}")
-    print("Commands: ping | reload <Type> <name> | list | quit")
+    print("Commands: ping | reload <Type> <name> | list | capture [path] | quit")
     print()
 
     while True:
@@ -66,6 +67,18 @@ async def interactive_mode(uri: str):
                 })
             elif cmd_name == "list":
                 result = await send_command(uri, {"cmd": "list"})
+            elif cmd_name == "capture":
+                print("  Capturing frame...")
+                result = await send_command(uri, {"cmd": "capture"}, timeout=30.0)
+                if result.get("data"):
+                    import base64
+                    data = base64.b64decode(result["data"])
+                    w, h = result.get("width", 0), result.get("height", 0)
+                    path = parts[1] if len(parts) > 1 else "capture.raw"
+                    with open(path, "wb") as f:
+                        f.write(data)
+                    print(f"  Saved {w}x{h} RGBA to {path} ({len(data)} bytes)")
+                    result = {"ok": True, "width": w, "height": h, "saved": path}
             else:
                 print(f"Unknown: {line}")
                 continue
@@ -144,7 +157,7 @@ def main():
     parser.add_argument("--port", type=int, default=19999)
     parser.add_argument("--host", default="localhost")
     parser.add_argument("command", nargs="?", default=None,
-                        help="ping | reload | list | watch")
+                        help="ping | reload | list | capture | watch")
     parser.add_argument("args", nargs="*")
 
     args = parser.parse_args()
@@ -165,6 +178,17 @@ def main():
     elif args.command == "list":
         result = asyncio.run(send_command(uri, {"cmd": "list"}))
         print(json.dumps(result, indent=2))
+    elif args.command == "capture":
+        import base64
+        result = asyncio.run(send_command(uri, {"cmd": "capture"}, timeout=30.0))
+        if result.get("data"):
+            data = base64.b64decode(result["data"])
+            path = args.args[0] if args.args else "capture.raw"
+            with open(path, "wb") as f:
+                f.write(data)
+            print(f"Saved {result.get('width')}x{result.get('height')} RGBA to {path}")
+        else:
+            print(json.dumps(result, indent=2))
     elif args.command == "watch":
         library_path = args.args[0] if args.args else "library"
         asyncio.run(watch_mode(uri, library_path))

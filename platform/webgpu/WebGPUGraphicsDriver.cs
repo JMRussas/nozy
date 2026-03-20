@@ -561,6 +561,10 @@ public unsafe partial class WebGPUGraphicsDriver : IGraphicsDriver
         var commandBuffer = _wgpu.CommandEncoderFinish(_commandEncoder, &commandBufferDesc);
 
         _wgpu.QueueSubmit(_queue, 1, &commandBuffer);
+
+        // Map pending capture buffer after submit (GPU copy is now in flight)
+        FlushPendingCapture();
+
         _wgpu.SurfacePresent(_surface);
 
         _wgpu.CommandBufferRelease(commandBuffer);

@@ -954,4 +954,121 @@ public unsafe partial class WebGPUGraphicsDriver
 
         return tcs.Task;
     }
+
+    public Task<byte[]>? CaptureFrameAsync(int width, int height)
+    {
+        if (_currentSurfaceTexture.Texture == null || _pendingCapture != null)
+            return null;
+
+        int bytesPerPixel = 4;
+        int bytesPerRow = width * bytesPerPixel;
+        int alignedBytesPerRow = (bytesPerRow + 255) & ~255;
+        int bufferSize = alignedBytesPerRow * height;
+
+        var bufferDesc = new BufferDescriptor
+        {
+            Label = (byte*)System.Runtime.InteropServices.Marshal.StringToHGlobalAnsi("capture_staging"),
+            Size = (ulong)bufferSize,
+            Usage = WGPUBufferUsage.MapRead | WGPUBufferUsage.CopyDst,
+            MappedAtCreation = false,
+        };
+        var stagingBuffer = _wgpu.DeviceCreateBuffer(_device, &bufferDesc);
+
+        var src = new ImageCopyTexture
+        {
+            Texture = _currentSurfaceTexture.Texture,
+            MipLevel = 0,
+            Origin = new Origin3D { X = 0, Y = 0, Z = 0 },
+            Aspect = TextureAspect.All,
+        };
+
+        var dst = new ImageCopyBuffer
+        {
+            Buffer = stagingBuffer,
+            Layout = new TextureDataLayout
+            {
+                Offset = 0,
+                BytesPerRow = (uint)alignedBytesPerRow,
+                RowsPerImage = (uint)height,
+            }
+        };
+
+        var copySize = new Extent3D
+        {
+            Width = (uint)width,
+            Height = (uint)height,
+            DepthOrArrayLayers = 1
+        };
+
+        _wgpu.CommandEncoderCopyTextureToBuffer(_commandEncoder, &src, &dst, &copySize);
+
+        var tcs = new TaskCompletionSource<byte[]>();
+        var isBgra = _surfaceFormat == WGPUTextureFormat.Bgra8Unorm;
+
+        _pendingCapture = new PendingCapture
+        {
+            StagingBuffer = stagingBuffer,
+            Tcs = tcs,
+            Width = width,
+            Height = height,
+            AlignedBytesPerRow = alignedBytesPerRow,
+            BufferSize = bufferSize,
+            IsBgra = isBgra,
+        };
+
+        return tcs.Task;
+    }
+
+    private struct PendingCapture
+    {
+        public Buffer* StagingBuffer;
+        public TaskCompletionSource<byte[]> Tcs;
+        public int Width;
+        public int Height;
+        public int AlignedBytesPerRow;
+        public int BufferSize;
+        public bool IsBgra;
+    }
+
+    private PendingCapture? _pendingCapture;
+
+    internal void FlushPendingCapture()
+    {
+        if (_pendingCapture is not { } capture)
+            return;
+        _pendingCapture = null;
+
+        PfnBufferMapCallback callback = new((status, userdata) =>
+        {
+            if (status != BufferMapAsyncStatus.Success)
+            {
+                capture.Tcs.SetException(new Exception($"Capture buffer map failed: {status}"));
+                return;
+            }
+
+            var mappedPtr = _wgpu.BufferGetMappedRange(capture.StagingBuffer, 0, (nuint)capture.BufferSize);
+            var result = new byte[capture.Width * capture.Height * 4];
+
+            for (int y = 0; y < capture.Height; y++)
+            {
+                var srcOffset = y * capture.AlignedBytesPerRow;
+                var dstOffset = y * capture.Width * 4;
+                System.Runtime.InteropServices.Marshal.Copy(
+                    (IntPtr)((byte*)mappedPtr + srcOffset), result, dstOffset, capture.Width * 4);
+            }
+
+            if (capture.IsBgra)
+            {
+                for (int i = 0; i < result.Length; i += 4)
+                    (result[i], result[i + 2]) = (result[i + 2], result[i]);
+            }
+
+            _wgpu.BufferUnmap(capture.StagingBuffer);
+            _wgpu.BufferRelease(capture.StagingBuffer);
+
+            capture.Tcs.SetResult(result);
+        });
+
+        _wgpu.BufferMapAsync(capture.StagingBuffer, MapMode.Read, 0, (nuint)capture.BufferSize, callback, null);
+    }
 }
