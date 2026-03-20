@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "noz-rag": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["C:/Users/jruss/Git/noz-rag/server.py"]
+    },
+    "noz-bridge": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["tools/noz_mcp_bridge.py"]
+    }
+  }
+}
